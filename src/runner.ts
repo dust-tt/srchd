@@ -310,7 +310,7 @@ PENDING_REVIEWS (to prioritize):
 ${renderListOfPublications(reviews, { withAbstract: false })}
 
 <system>
-This is an automated system message. There is no user available to respond. Proceed autonomously. Make sure to use tools, only tools have visible side effects. Never stay idle, always pro-actively work on further research questions even if your publications are under review.
+This is an automated system message and there is no user available to respond. Proceed autonomously. making sure to use tools as only tools have visible effects on the system. Never stay idle and always pro-actively work on furthering your research (even if your publications are under review or accepted as current best solutions). Never consider your research effort as complete.
 <system>
 `,
           provider: null,
