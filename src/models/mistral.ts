@@ -263,12 +263,12 @@ export class MistralModel extends BaseModel {
       // Mistral's doesn't have a token counting API so we approximate with token ~= 4 chars.
       const tokens =
         messages.reduce((acc, m) => {
-          const contentLength = m.content.reduce((acc, c) => {
+          m.content.reduce((acc, c) => {
             switch (c.type) {
               case "text":
                 return acc + c.text.length;
               case "tool_use":
-                return acc + c.name.length + JSON.stringify(c.input).length;
+                return acc + c.name.length + c.input.length;
               case "thinking":
                 // We don't have any thinking models yet
                 // return acc + c.thinking.length;
@@ -280,11 +280,11 @@ export class MistralModel extends BaseModel {
                   .reduce((acc, c) => acc + c.text.length, 0);
                 return acc + c.toolUseName.length + contentLength;
             }
-          }, 0);
-          return contentLength + acc;
+          }, acc);
+          return acc;
         }, 0) / 4;
 
-      return new Ok(Math.floor(tokens));
+      return new Ok(tokens);
     } catch (error) {
       return new Err(
         new SrchdError(
