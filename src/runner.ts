@@ -32,6 +32,7 @@ import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { createComputerServer } from "./tools/computer";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
+import { removeNulls } from "./lib/utils";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -352,7 +353,6 @@ This is an automated system message. There is no user available to respond. Proc
     // console.log(
     //   "this.lastAgenticLoopStartPosition: " + this.lastAgenticLoopStartPosition
     // );
-    //
 
     let idx = this.innerLoopStartAtAgenticLoopStart()
       ? this.contextPruning.lastAgenticLoopInnerStartPosition + 2
@@ -409,26 +409,27 @@ This is an automated system message. There is no user available to respond. Proc
         .slice(this.contextPruning.lastAgenticLoopInnerStartPosition)
         .map((m) => m.toJSON());
 
-      const firstAgentResponse =
-        this.messages[
-          this.contextPruning.lastAgenticLoopStartPosition + 1
-        ].toJSON();
+      const agentLoopStartUserMessage = this.messages
+        .at(this.contextPruning.lastAgenticLoopStartPosition)
+        ?.toJSON();
 
-      const firstUserResponse =
-        this.messages[
-          this.contextPruning.lastAgenticLoopStartPosition + 2
-        ].toJSON();
+      const firstAgentResponse = this.messages
+        .at(this.contextPruning.lastAgenticLoopStartPosition + 1)
+        ?.toJSON();
+
+      const firstUserResponse = this.messages
+        .at(this.contextPruning.lastAgenticLoopStartPosition + 2)
+        ?.toJSON();
 
       messages = this.innerLoopStartAtAgenticLoopStart()
         ? messages
-        : [
-            this.messages[
-              this.contextPruning.lastAgenticLoopStartPosition // Keep the first message as a user message.
-            ].toJSON(),
+        : removeNulls([
+            // Conversations must start with a user message.
+            agentLoopStartUserMessage,
             // We need first response which includes 'thinking' to have a valid conversation.
             firstAgentResponse,
             firstUserResponse,
-          ].concat(messages);
+          ]).concat(messages);
 
       const res = await this.model.tokens(
         messages,
