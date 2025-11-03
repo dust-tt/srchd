@@ -53,9 +53,8 @@ export interface Message {
   content: (TextContent | ToolUse | ToolResult | Thinking)[];
 }
 
-export function isUserMessageWithText(
-  message: Message,
-): message is Message & { content: TextContent[] } {
+export function isAgenticLoopStartMessage(message: Message): boolean {
+  // A user message with only text content marks the start of an agentic loop.
   return (
     message.role === "user" && message.content.every((c) => c.type === "text")
   );

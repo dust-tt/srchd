@@ -1,6 +1,7 @@
 import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
+  isAgenticLoopStartMessage,
   Message,
   TextContent,
   Thinking,
@@ -351,6 +352,7 @@ This is an automated system message. There is no user available to respond. Proc
     // console.log(
     //   "this.lastAgenticLoopStartPosition: " + this.lastAgenticLoopStartPosition
     // );
+    //
 
     let idx = this.innerLoopStartAtAgenticLoopStart()
       ? this.contextPruning.lastAgenticLoopInnerStartPosition + 2
@@ -362,8 +364,7 @@ This is an automated system message. There is no user available to respond. Proc
       if (m.role === "agent") {
         break;
       }
-      if (m.role === "user" && m.content.every((c) => c.type === "text")) {
-        // Found the next user message, which marks the start of the next agentic loop.
+      if (isAgenticLoopStartMessage(m)) {
         foundNewAgenticLoop = true;
         break;
       }
@@ -379,8 +380,6 @@ This is an automated system message. There is no user available to respond. Proc
         ),
       );
     }
-
-    console.log("MOVING TO: " + idx);
 
     if (foundNewAgenticLoop) {
       this.contextPruning.lastAgenticLoopStartPosition = idx;
@@ -402,19 +401,34 @@ This is an automated system message. There is no user available to respond. Proc
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
     let tokenCount = 0;
+    let isFirstPruningRun = false;
+
     do {
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
         .slice(this.contextPruning.lastAgenticLoopInnerStartPosition)
         .map((m) => m.toJSON());
 
+      const firstAgentResponse =
+        this.messages[
+          this.contextPruning.lastAgenticLoopStartPosition + 1
+        ].toJSON();
+
+      const firstUserResponse =
+        this.messages[
+          this.contextPruning.lastAgenticLoopStartPosition + 2
+        ].toJSON();
+
       messages = this.innerLoopStartAtAgenticLoopStart()
-        ? [
+        ? messages
+        : [
             this.messages[
               this.contextPruning.lastAgenticLoopStartPosition // Keep the first message as a user message.
             ].toJSON(),
-          ].concat(messages)
-        : messages;
+            // We need first response which includes 'thinking' to have a valid conversation.
+            firstAgentResponse,
+            firstUserResponse,
+          ].concat(messages);
 
       const res = await this.model.tokens(
         messages,
@@ -435,9 +449,13 @@ This is an automated system message. There is no user available to respond. Proc
         return res;
       }
       tokenCount = res.value;
-      console.log("TOKEN COUNT: " + tokenCount);
+      // console.log("TOKEN COUNT: " + tokenCount);
 
       if (tokenCount > this.model.maxTokens()) {
+        if (this.contextPruning.lastAgenticLoopInnerStartPosition === 0) {
+          isFirstPruningRun = true;
+          console.log(`Pruning [${this.agent.toJSON().name}] Messages...`);
+        }
         const res = this.shiftContextPruning();
         if (res.isErr()) {
           return res;
@@ -446,6 +464,10 @@ This is an automated system message. There is no user available to respond. Proc
         return new Ok(messages);
       }
     } while (tokenCount > this.model.maxTokens());
+
+    if (isFirstPruningRun) {
+      console.log("Messages Pruned.");
+    }
 
     return new Err(new SrchdError("agent_loop_overflow_error", "Unreachable"));
   }
