@@ -401,7 +401,6 @@ This is an automated system message and there is no user available to respond. P
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
     let tokenCount = 0;
-    let isFirstPruningRun = false;
 
     do {
       // Take messages from this.lastAgenticLoopStartPosition to the end.
@@ -453,10 +452,6 @@ This is an automated system message and there is no user available to respond. P
       // console.log("TOKEN COUNT: " + tokenCount);
 
       if (tokenCount > this.model.maxTokens()) {
-        if (this.contextPruning.lastAgenticLoopInnerStartPosition === 0) {
-          isFirstPruningRun = true;
-          console.log(`Pruning [${this.agent.toJSON().name}] Messages...`);
-        }
         const res = this.shiftContextPruning();
         if (res.isErr()) {
           return res;
@@ -465,10 +460,6 @@ This is an automated system message and there is no user available to respond. P
         return new Ok(messages);
       }
     } while (tokenCount > this.model.maxTokens());
-
-    if (isFirstPruningRun) {
-      console.log("Messages Pruned.");
-    }
 
     return new Err(new SrchdError("agent_loop_overflow_error", "Unreachable"));
   }
