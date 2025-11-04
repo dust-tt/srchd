@@ -2,9 +2,8 @@ import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
   getPruningStrategy,
-  isAgenticLoopStartMessage as isAgentLoopStartMessage,
+  isAgentLoopStartMessage,
   Message,
-  PruningStrategy,
   TextContent,
   Thinking,
   Tool,
