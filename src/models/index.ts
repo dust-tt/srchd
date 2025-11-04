@@ -53,6 +53,14 @@ export interface Message {
   content: (TextContent | ToolUse | ToolResult | Thinking)[];
 }
 
+export function isUserMessageWithText(
+  message: Message,
+): message is Message & { content: TextContent[] } {
+  return (
+    message.role === "user" && message.content.every((c) => c.type === "text")
+  );
+}
+
 export type ThinkingConfig = "high" | "low" | "none";
 export function isThinkingConfig(str: string): str is ThinkingConfig {
   return ["high", "low", "none"].includes(str);
