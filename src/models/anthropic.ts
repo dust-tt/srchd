@@ -160,7 +160,7 @@ export class AnthropicModel extends BaseModel {
     Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
   > {
     try {
-      const message = await this.client.messages.create({
+      const message = await this.client.beta.messages.create({
         model: this.model,
         max_tokens:
           this.config.maxTokens ??
@@ -217,6 +217,7 @@ export class AnthropicModel extends BaseModel {
         tool_choice: {
           type: toolChoice,
         },
+        betas: ["interleaved-thinking-2025-05-14"],
       });
 
       const tokenUsage = {
@@ -273,6 +274,10 @@ export class AnthropicModel extends BaseModel {
                   };
                 }
                 case "server_tool_use":
+                case "mcp_tool_use":
+                case "mcp_tool_result":
+                case "code_execution_tool_result":
+                case "container_upload":
                 case "web_search_tool_result": {
                   return null;
                 }
