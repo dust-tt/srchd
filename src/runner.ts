@@ -358,10 +358,10 @@ This is an automated system message and there is no user available to respond. P
       this.contextPruning.lastAgentLoopInnerStartIdx >
       this.contextPruning.lastAgentLoopStartIdx
         ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
-        : // This avoids an unneeded iteration because if they are equal,
-          // the result of the iteration will be:
-          // lastAgentLoopInnerStartIdx = lastAgentLoopStartIdx + 1.
-          // Which results in the same `messages` since:
+        : // This avoids an unneeded iteration:
+          // if they are equal, the result of the iteration will be:
+          // lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
+          // Which results in the no change to `messages` since:
           // forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)]
           this.contextPruning.lastAgentLoopInnerStartIdx + 2;
     let foundNewAgenticLoop = false;
