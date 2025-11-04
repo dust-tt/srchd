@@ -274,6 +274,10 @@ export class AnthropicModel extends BaseModel {
                   };
                 }
                 case "server_tool_use":
+                case "mcp_tool_use":
+                case "mcp_tool_result":
+                case "code_execution_tool_result":
+                case "container_upload":
                 case "web_search_tool_result": {
                   return null;
                 }
