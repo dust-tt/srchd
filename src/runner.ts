@@ -37,7 +37,10 @@ export class Runner {
   private agent: AgentResource;
   private mcpClients: Client[];
   private model: BaseModel;
-  private lastAgenticLoopStartPosition: number; // last "agentic loop start position" used
+  private contextPruning: {
+    lastAgentLoopStartIdx: number;
+    lastAgentLoopInnerStartIdx: number;
+  };
   private messages: MessageResource[]; // ordered by position asc
 
   private constructor(
@@ -51,7 +54,10 @@ export class Runner {
     this.mcpClients = mcpClients;
     this.model = model;
     this.messages = [];
-    this.lastAgenticLoopStartPosition = 0;
+    this.contextPruning = {
+      lastAgentLoopStartIdx: 0,
+      lastAgentLoopInnerStartIdx: 0,
+    };
   }
 
   public static async builder(
@@ -328,26 +334,51 @@ This is an automated system message and there is no user available to respond. P
     return new Ok(message);
   }
 
-  shiftLastAgenticLoopStartPosition(): Result<void, SrchdError> {
+  private isAgentLoopStartMessage(message: Message): boolean {
+    // A user message with only text content marks the start of an agentic loop.
+    return (
+      message.role === "user" && message.content.every((c) => c.type === "text")
+    );
+  }
+
+  private isAgentLoopInnerStartMessage(m: Message): boolean {
+    // We prune at tool_uses because it ensures the conversation is valid (since any following
+    // tool_result is guaranteed to have its corresponding tool_use before it).
+    return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
+  }
+
+  shiftContextPruning(): Result<void, SrchdError> {
+    /**
+     * We bump lastAgentLoopInnerStartIdx whilst ensuring that the conversation is valid. This is
+     * done by pruning messages before a tool_use (since any following tool_result is guaranteed to
+     * have its corresponding tool_use before it).
+     */
     assert(
-      this.lastAgenticLoopStartPosition < this.messages.length,
-      "lastAgenticLoopStartPosition is out of bounds.",
+      this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
+      "lastLoopInnerStartIdx is out of bounds.",
     );
 
-    // console.log(
-    //   "this.lastAgenticLoopStartPosition: " + this.lastAgenticLoopStartPosition
-    // );
+    let idx =
+      this.contextPruning.lastAgentLoopInnerStartIdx >
+      this.contextPruning.lastAgentLoopStartIdx
+        ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
+        : /* This avoids an unneeded iteration, without this, if they were equal, the result of the
+           * iteration would have been: lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
+           * Which results in no change to `messages` since:
+           * forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)] */
+          this.contextPruning.lastAgentLoopInnerStartIdx + 2;
+    let foundNewAgenticLoop = false;
 
-    let idx = this.lastAgenticLoopStartPosition + 1;
     for (; idx < this.messages.length; idx++) {
       const m = this.messages[idx].toJSON();
-      if (m.role === "user" && m.content.every((c) => c.type === "text")) {
-        // Found the next user message, which marks the start of the next agentic loop.
+      if (this.isAgentLoopInnerStartMessage(m)) {
+        break;
+      }
+      if (this.isAgentLoopStartMessage(m)) {
+        foundNewAgenticLoop = true;
         break;
       }
     }
-
-    // console.log("shiftLastAgenticLoopStartPosition.idx: " + idx);
 
     if (idx >= this.messages.length) {
       return new Err(
@@ -358,7 +389,11 @@ This is an automated system message and there is no user available to respond. P
       );
     }
 
-    this.lastAgenticLoopStartPosition = idx;
+    if (foundNewAgenticLoop) {
+      this.contextPruning.lastAgentLoopStartIdx = idx;
+    }
+    this.contextPruning.lastAgentLoopInnerStartIdx = idx;
+
     return new Ok(undefined);
   }
 
@@ -373,12 +408,40 @@ This is an automated system message and there is no user available to respond. P
     systemPrompt: string,
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
+    /**
+     * Invariants:
+     * (1) The agent loop is always started by a user message (with only text content).
+     * (2) Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
+     *
+     * - If lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx: we have a full agent loop. And we
+     * select all messages from lastAgentLoopStartIdx (messages[lastAgentLoopInnerStartIdx]
+     * verifies (1)). And since the agent loop is not pruned we also automatically verify (2).
+     *
+     * If lastAgentLoopInnerStartIdx > lastAgentLoopStartIdx: we prune messages *in* the agent loop.
+     * We select messages from lastAgentLoopInnerStartIdx (messages[lastAgentLoopInnerStartIdx]
+     * verifies (2)). BUT we also need to include the user text message at the start of the agent
+     * loop (at lastAgentLoopStartIdx) to ensure (1).
+     */
     let tokenCount = 0;
     do {
-      // Take messages from this.lastAgenticLoopStartPosition to the end.
-      const messages = [...this.messages]
-        .slice(this.lastAgenticLoopStartPosition)
+      // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
+      let messages = [...this.messages]
+        .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
         .map((m) => m.toJSON());
+
+      // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
+      // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
+
+      if (
+        this.contextPruning.lastAgentLoopInnerStartIdx >
+        this.contextPruning.lastAgentLoopStartIdx
+      ) {
+        // A valid conversation must begin with a user message. In this case we use the
+        // user message at the start of the agent loop. Ensuring (1).
+        const agentLoopStartUserMessage =
+          this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
+        messages = [agentLoopStartUserMessage, ...messages];
+      }
 
       const res = await this.model.tokens(
         messages,
@@ -402,7 +465,7 @@ This is an automated system message and there is no user available to respond. P
       // console.log("TOKEN COUNT: " + tokenCount);
 
       if (tokenCount > this.model.maxTokens()) {
-        const res = this.shiftLastAgenticLoopStartPosition();
+        const res = this.shiftContextPruning();
         if (res.isErr()) {
           return res;
         }
