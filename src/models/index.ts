@@ -82,11 +82,14 @@ export function getPruningStrategy(
   p: provider,
   thinking: ThinkingConfig,
 ): PruningStrategy {
-  return p === "mistral"
-    ? "tool_use"
-    : thinking === "none"
-      ? "tool_use"
-      : "thinking";
+  switch (p) {
+    case "openai":
+    case "gemini":
+    case "mistral":
+      return "tool_use";
+    case "anthropic":
+      return thinking === "none" ? "tool_use" : "thinking";
+  }
 }
 
 export type ToolChoice = "auto" | "any" | "none";
