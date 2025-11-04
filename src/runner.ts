@@ -39,8 +39,8 @@ export class Runner {
   private mcpClients: Client[];
   private model: BaseModel;
   private contextPruning: {
-    lastAgentLoopStartIdx: number;
-    lastAgentLoopInnerStartIdx: number;
+    lastLoopStartIdx: number;
+    lastLoopInnerStartIdx: number;
   };
   private messages: MessageResource[]; // ordered by position asc
 
@@ -56,8 +56,8 @@ export class Runner {
     this.model = model;
     this.messages = [];
     this.contextPruning = {
-      lastAgentLoopStartIdx: 0,
-      lastAgentLoopInnerStartIdx: 0,
+      lastLoopStartIdx: 0,
+      lastLoopInnerStartIdx: 0,
     };
   }
 
@@ -337,15 +337,15 @@ This is an automated system message and there is no user available to respond. P
 
   shiftContextPruning(): Result<void, SrchdError> {
     assert(
-      this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
-      "lastAgentLoopInnerStartIdx is out of bounds.",
+      this.contextPruning.lastLoopInnerStartIdx < this.messages.length,
+      "lastLoopInnerStartIdx is out of bounds.",
     );
 
     let idx =
-      this.contextPruning.lastAgentLoopInnerStartIdx >
-      this.contextPruning.lastAgentLoopStartIdx
-        ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
-        : this.contextPruning.lastAgentLoopInnerStartIdx + 2;
+      this.contextPruning.lastLoopInnerStartIdx >
+      this.contextPruning.lastLoopStartIdx
+        ? this.contextPruning.lastLoopInnerStartIdx + 1
+        : this.contextPruning.lastLoopInnerStartIdx + 2;
 
     let foundNewAgenticLoop = false;
     for (; idx < this.messages.length; idx++) {
@@ -372,10 +372,10 @@ This is an automated system message and there is no user available to respond. P
     }
 
     if (foundNewAgenticLoop) {
-      this.contextPruning.lastAgentLoopStartIdx = idx;
+      this.contextPruning.lastLoopStartIdx = idx;
     }
 
-    this.contextPruning.lastAgentLoopInnerStartIdx = idx;
+    this.contextPruning.lastLoopInnerStartIdx = idx;
     return new Ok(undefined);
   }
 
@@ -406,15 +406,15 @@ This is an automated system message and there is no user available to respond. P
 
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
-        .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
+        .slice(this.contextPruning.lastLoopInnerStartIdx)
         .map((m) => m.toJSON());
 
       if (
-        this.contextPruning.lastAgentLoopInnerStartIdx >
-        this.contextPruning.lastAgentLoopStartIdx
+        this.contextPruning.lastLoopInnerStartIdx >
+        this.contextPruning.lastLoopStartIdx
       ) {
         const agentLoopStartUserMessage =
-          this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
+          this.messages[this.contextPruning.lastLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
       }
 
