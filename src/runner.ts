@@ -402,8 +402,8 @@ This is an automated system message and there is no user available to respond. P
     do {
       // A valid conversation must have:
       // 1. User text message (beginning of agent loop)
-      // 2. Agent thinking message (beginning of agent loop)
-      // 3. N x tool_use + tool_result messages (beginning of agent loop)
+      // 2. Agent thinking message (first agent response)
+      // 3. N x tool_use + tool_result messages
       // (with optional agent text and thinking messages interleaved)
 
       // console.log(
