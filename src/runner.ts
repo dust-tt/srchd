@@ -368,7 +368,6 @@ This is an automated system message and there is no user available to respond. P
 
     for (; idx < this.messages.length; idx++) {
       const m = this.messages[idx].toJSON();
-
       if (this.isAgentLoopInnerStartMessage(m)) {
         break;
       }
