@@ -1,7 +1,7 @@
 import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
-  isAgenticLoopStartMessage,
+  isAgenticLoopStartMessage as isAgentLoopStartMessage,
   Message,
   TextContent,
   Thinking,
@@ -39,8 +39,8 @@ export class Runner {
   private mcpClients: Client[];
   private model: BaseModel;
   private contextPruning: {
-    lastLoopStartIdx: number;
-    lastLoopInnerStartIdx: number;
+    lastAgentLoopStartIdx: number;
+    lastAgentLoopInnerStartIdx: number;
   };
   private messages: MessageResource[]; // ordered by position asc
 
@@ -56,8 +56,8 @@ export class Runner {
     this.model = model;
     this.messages = [];
     this.contextPruning = {
-      lastLoopStartIdx: 0,
-      lastLoopInnerStartIdx: 0,
+      lastAgentLoopStartIdx: 0,
+      lastAgentLoopInnerStartIdx: 0,
     };
   }
 
@@ -335,26 +335,32 @@ This is an automated system message and there is no user available to respond. P
     return new Ok(message);
   }
 
+  private isAgenticLoopInnerStartMessage(m: Message): boolean {
+    // agent messages following a user text message must start with thinking
+    return m.role === "agent" &&
+      m.content.some((c) => c.type === "thinking"
+  }
+
   shiftContextPruning(): Result<void, SrchdError> {
     assert(
-      this.contextPruning.lastLoopInnerStartIdx < this.messages.length,
+      this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
       "lastLoopInnerStartIdx is out of bounds.",
     );
 
     let idx =
-      this.contextPruning.lastLoopInnerStartIdx >
-      this.contextPruning.lastLoopStartIdx
-        ? this.contextPruning.lastLoopInnerStartIdx + 1
-        : this.contextPruning.lastLoopInnerStartIdx + 2;
+      this.contextPruning.lastAgentLoopInnerStartIdx >
+      this.contextPruning.lastAgentLoopStartIdx
+        ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
+        : this.contextPruning.lastAgentLoopInnerStartIdx + 2;
 
     let foundNewAgenticLoop = false;
     for (; idx < this.messages.length; idx++) {
       const m = this.messages[idx].toJSON();
-      if (m.role === "agent" && m.content.some((c) => c.type === "thinking")) {
-        // agent messages following a user text message must start with thinking
-        break;
-      }
-      if (isAgenticLoopStartMessage(m)) {
+
+      if (this.isAgenticLoopInnerStartMessage(m)) {
+          break;
+        }
+      if (isAgentLoopStartMessage(m)) {
         foundNewAgenticLoop = true;
         break;
       }
@@ -372,10 +378,10 @@ This is an automated system message and there is no user available to respond. P
     }
 
     if (foundNewAgenticLoop) {
-      this.contextPruning.lastLoopStartIdx = idx;
+      this.contextPruning.lastAgentLoopStartIdx = idx;
     }
 
-    this.contextPruning.lastLoopInnerStartIdx = idx;
+    this.contextPruning.lastAgentLoopInnerStartIdx = idx;
     return new Ok(undefined);
   }
 
@@ -406,15 +412,15 @@ This is an automated system message and there is no user available to respond. P
 
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
-        .slice(this.contextPruning.lastLoopInnerStartIdx)
+        .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
         .map((m) => m.toJSON());
 
       if (
-        this.contextPruning.lastLoopInnerStartIdx >
-        this.contextPruning.lastLoopStartIdx
+        this.contextPruning.lastAgentLoopInnerStartIdx >
+        this.contextPruning.lastAgentLoopStartIdx
       ) {
         const agentLoopStartUserMessage =
-          this.messages[this.contextPruning.lastLoopStartIdx].toJSON();
+          this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
       }
 
