@@ -349,9 +349,9 @@ This is an automated system message and there is no user available to respond. P
 
   shiftContextPruning(): Result<void, SrchdError> {
     /**
-     * We bump this.contextPruning.lastAgentLoopInnerStartIdx whilst ensuring that the conversation
-     * is valid. This is done by pruning messages before a tool_use (since any following tool_result
-     * is guaranteed to have its corresponding tool_use before it).
+     * We bump lastAgentLoopInnerStartIdx whilst ensuring that the conversation is valid. This is
+     * done by pruning messages before a tool_use (since any following tool_result is guaranteed to
+     * have its corresponding tool_use before it).
      */
     assert(
       this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
@@ -410,17 +410,18 @@ This is an automated system message and there is no user available to respond. P
   ): Promise<Result<Message[], SrchdError>> {
     let tokenCount = 0;
     /**
-     * Pruning Logic:
-     * - The agent loop is always started by a user message (with only text content).
-     * - Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
+     * Invariants:
+     * (1) The agent loop is always started by a user message (with only text content).
+     * (2) Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
      *
-     * If this.contextPruning.lastAgentLoopInnerStartIdx === this.contextPruning.lastAgentLoopStartIdx
-     * we have a full agent loop. And we simply select all messages from lastAgentLoopStartIdx.
+     * - If lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx: we have a full agent loop. And we
+     * select all messages from lastAgentLoopStartIdx (messages[lastAgentLoopInnerStartIdx]
+     * verifies (1)). And since the agent loop is full we also verify (2).
      *
-     * If this.contextPruning.lastAgentLoopInnerStartIdx > this.contextPruning.lastAgentLoopStartIdx
-     * we have prune messages in the agent loop. We select messages from lastAgentLoopInnerStartIdx
-     * to the end of the agent loop. BUT we also need to include the user message at the start of
-     * the agent loop.
+     * If lastAgentLoopInnerStartIdx > lastAgentLoopStartIdx: we prune messages *in* the agent loop.
+     * We select messages from lastAgentLoopInnerStartIdx (messages[lastAgentLoopInnerStartIdx]
+     * verifies (2)). BUT we also need to include the user text message at the start of the agent
+     * loop (at lastAgentLoopStartIdx) to ensure (1).
      */
     do {
       // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
