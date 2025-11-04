@@ -417,10 +417,8 @@ This is an automated system message and there is no user available to respond. P
       // 3. N x tool_use + tool_result messages
       // (with optional agent text and thinking messages interleaved)
 
-      // console.log(
-      //   `Inner: ${this.contextPruning.lastAgenticLoopInnerStartPosition}`,
-      // );
-      // console.log(`Start: ${this.contextPruning.lastAgenticLoopStartPosition}`);
+      // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
+      // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
 
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
