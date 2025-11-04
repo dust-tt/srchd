@@ -342,13 +342,17 @@ This is an automated system message and there is no user available to respond. P
   }
 
   private isAgentLoopInnerStartMessage(m: Message): boolean {
-    // We prune at tool_uses because it ensures the conversation is valid
-    // (since any following tool_result is guaranteed to have its corresponding
-    // tool_use before it).
+    // We prune at tool_uses because it ensures the conversation is valid (since any following
+    // tool_result is guaranteed to have its corresponding tool_use before it).
     return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
   }
 
   shiftContextPruning(): Result<void, SrchdError> {
+    /**
+     * We bump this.contextPruning.lastAgentLoopInnerStartIdx whilst ensuring that the conversation
+     * is valid. This is done by pruning messages before a tool_use (since any following tool_result
+     * is guaranteed to have its corresponding tool_use before it).
+     */
     assert(
       this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
       "lastLoopInnerStartIdx is out of bounds.",
@@ -358,11 +362,10 @@ This is an automated system message and there is no user available to respond. P
       this.contextPruning.lastAgentLoopInnerStartIdx >
       this.contextPruning.lastAgentLoopStartIdx
         ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
-        : // This avoids an unneeded iteration, without this,
-          // if they were equal, the result of the iteration would have been:
-          // lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
-          // Which results in no change to `messages` since:
-          // forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)]
+        : /* This avoids an unneeded iteration, without this, if they were equal, the result of the
+           * iteration would have been: lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
+           * Which results in no change to `messages` since:
+           * forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)] */
           this.contextPruning.lastAgentLoopInnerStartIdx + 2;
     let foundNewAgenticLoop = false;
 
@@ -406,10 +409,18 @@ This is an automated system message and there is no user available to respond. P
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
     let tokenCount = 0;
-    /*
-     * Conversation Invariants:
-     * The agent loop is always started by a user message (with only text content).
-     * Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
+    /**
+     * Pruning Logic:
+     * - The agent loop is always started by a user message (with only text content).
+     * - Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
+     *
+     * If this.contextPruning.lastAgentLoopInnerStartIdx === this.contextPruning.lastAgentLoopStartIdx
+     * we have a full agent loop. And we simply select all messages from lastAgentLoopStartIdx.
+     *
+     * If this.contextPruning.lastAgentLoopInnerStartIdx > this.contextPruning.lastAgentLoopStartIdx
+     * we have prune messages in the agent loop. We select messages from lastAgentLoopInnerStartIdx
+     * to the end of the agent loop. BUT we also need to include the user message at the start of
+     * the agent loop.
      */
     do {
       // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
