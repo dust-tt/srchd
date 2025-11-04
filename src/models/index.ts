@@ -8,8 +8,6 @@ export function isProvider(str: string): str is provider {
   return ["gemini", "anthropic", "openai", "mistral"].includes(str);
 }
 
-export const DEFAULT_MAX_TOKENS = 4096;
-
 export type ProviderData = Partial<Record<provider, any>>;
 
 export type TokenUsage = {
@@ -51,14 +49,6 @@ export interface ToolResult {
 export interface Message {
   role: "user" | "agent";
   content: (TextContent | ToolUse | ToolResult | Thinking)[];
-}
-
-export function isUserMessageWithText(
-  message: Message,
-): message is Message & { content: TextContent[] } {
-  return (
-    message.role === "user" && message.content.every((c) => c.type === "text")
-  );
 }
 
 export type ThinkingConfig = "high" | "low" | "none";
