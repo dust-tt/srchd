@@ -350,10 +350,6 @@ This is an automated system message and there is no user available to respond. P
       "lastAgenticLoopStartPosition is out of bounds.",
     );
 
-    // console.log(
-    //   "this.lastAgenticLoopStartPosition: " + this.lastAgenticLoopStartPosition
-    // );
-
     let idx = this.innerLoopStartAtAgenticLoopStart()
       ? this.contextPruning.lastAgenticLoopInnerStartPosition + 2
       : this.contextPruning.lastAgenticLoopInnerStartPosition + 1;
@@ -361,7 +357,8 @@ This is an automated system message and there is no user available to respond. P
     let foundNewAgenticLoop = false;
     for (; idx < this.messages.length; idx++) {
       const m = this.messages[idx].toJSON();
-      if (m.role === "agent") {
+      if (m.role === "agent" && m.content.some((c) => c.type === "thinking")) {
+        // agent messages following a user text message must start with thinking
         break;
       }
       if (isAgenticLoopStartMessage(m)) {
@@ -403,6 +400,17 @@ This is an automated system message and there is no user available to respond. P
     let tokenCount = 0;
 
     do {
+      // A valid conversation must have:
+      // 1. User text message (beginning of agent loop)
+      // 2. Agent thinking message (beginning of agent loop)
+      // 3. N x tool_use + tool_result messages (beginning of agent loop)
+      // (with optional agent text and thinking messages interleaved)
+
+      // console.log(
+      //   `Inner: ${this.contextPruning.lastAgenticLoopInnerStartPosition}`,
+      // );
+      // console.log(`Start: ${this.contextPruning.lastAgenticLoopStartPosition}`);
+
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
         .slice(this.contextPruning.lastAgenticLoopInnerStartPosition)
@@ -412,22 +420,11 @@ This is an automated system message and there is no user available to respond. P
         .at(this.contextPruning.lastAgenticLoopStartPosition)
         ?.toJSON();
 
-      const firstAgentResponse = this.messages
-        .at(this.contextPruning.lastAgenticLoopStartPosition + 1)
-        ?.toJSON();
-
-      const firstUserResponse = this.messages
-        .at(this.contextPruning.lastAgenticLoopStartPosition + 2)
-        ?.toJSON();
-
       messages = this.innerLoopStartAtAgenticLoopStart()
         ? messages
         : removeNulls([
             // Conversations must start with a user message.
             agentLoopStartUserMessage,
-            // We need first response which includes 'thinking' to have a valid conversation.
-            firstAgentResponse,
-            firstUserResponse,
           ]).concat(messages);
 
       const res = await this.model.tokens(
