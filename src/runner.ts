@@ -408,7 +408,6 @@ This is an automated system message and there is no user available to respond. P
     systemPrompt: string,
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
-    let tokenCount = 0;
     /**
      * Invariants:
      * (1) The agent loop is always started by a user message (with only text content).
@@ -416,13 +415,14 @@ This is an automated system message and there is no user available to respond. P
      *
      * - If lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx: we have a full agent loop. And we
      * select all messages from lastAgentLoopStartIdx (messages[lastAgentLoopInnerStartIdx]
-     * verifies (1)). And since the agent loop is full we also verify (2).
+     * verifies (1)). And since the agent loop is not pruned we also automatically verify (2).
      *
      * If lastAgentLoopInnerStartIdx > lastAgentLoopStartIdx: we prune messages *in* the agent loop.
      * We select messages from lastAgentLoopInnerStartIdx (messages[lastAgentLoopInnerStartIdx]
      * verifies (2)). BUT we also need to include the user text message at the start of the agent
      * loop (at lastAgentLoopStartIdx) to ensure (1).
      */
+    let tokenCount = 0;
     do {
       // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
       let messages = [...this.messages]
@@ -437,7 +437,7 @@ This is an automated system message and there is no user available to respond. P
         this.contextPruning.lastAgentLoopStartIdx
       ) {
         // A valid conversation must begin with a user message. In this case we use the
-        // user message at the start of the agent loop.
+        // user message at the start of the agent loop. Ensuring (1).
         const agentLoopStartUserMessage =
           this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
