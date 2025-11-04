@@ -336,9 +336,9 @@ This is an automated system message and there is no user available to respond. P
     return new Ok(message);
   }
 
-  private innerLoopStartAtAgenticLoopStart(): boolean {
+  private innerLoopStartBeyondAgenticLoopStart(): boolean {
     return (
-      this.contextPruning.lastAgenticLoopInnerStartPosition ===
+      this.contextPruning.lastAgenticLoopInnerStartPosition >
       this.contextPruning.lastAgenticLoopStartPosition
     );
   }
@@ -350,9 +350,9 @@ This is an automated system message and there is no user available to respond. P
       "lastAgenticLoopInnerStartPosition is out of bounds.",
     );
 
-    let idx = this.innerLoopStartAtAgenticLoopStart()
-      ? this.contextPruning.lastAgenticLoopInnerStartPosition + 2
-      : this.contextPruning.lastAgenticLoopInnerStartPosition + 1;
+    let idx = this.innerLoopStartBeyondAgenticLoopStart()
+      ? this.contextPruning.lastAgenticLoopInnerStartPosition + 1
+      : this.contextPruning.lastAgenticLoopInnerStartPosition + 2;
 
     let foundNewAgenticLoop = false;
     for (; idx < this.messages.length; idx++) {
@@ -416,16 +416,13 @@ This is an automated system message and there is no user available to respond. P
         .slice(this.contextPruning.lastAgenticLoopInnerStartPosition)
         .map((m) => m.toJSON());
 
-      const agentLoopStartUserMessage = this.messages
-        .at(this.contextPruning.lastAgenticLoopStartPosition)
-        ?.toJSON();
-
-      messages = this.innerLoopStartAtAgenticLoopStart()
-        ? messages
-        : removeNulls([
-            // Conversations must start with a user message.
-            agentLoopStartUserMessage,
-          ]).concat(messages);
+      if (this.innerLoopStartBeyondAgenticLoopStart()) {
+        const agentLoopStartUserMessage =
+          this.messages[
+            this.contextPruning.lastAgenticLoopStartPosition
+          ].toJSON();
+        messages = [agentLoopStartUserMessage, ...messages];
+      }
 
       const res = await this.model.tokens(
         messages,
