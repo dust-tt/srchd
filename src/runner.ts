@@ -32,7 +32,6 @@ import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { createComputerServer } from "./tools/computer";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
-import { removeNulls } from "./lib/utils";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -40,8 +39,8 @@ export class Runner {
   private mcpClients: Client[];
   private model: BaseModel;
   private contextPruning: {
-    lastAgenticLoopStartPosition: number;
-    lastAgenticLoopInnerStartPosition: number;
+    lastAgentLoopStartIdx: number;
+    lastAgentLoopInnerStartIdx: number;
   };
   private messages: MessageResource[]; // ordered by position asc
 
@@ -57,8 +56,8 @@ export class Runner {
     this.model = model;
     this.messages = [];
     this.contextPruning = {
-      lastAgenticLoopStartPosition: 0,
-      lastAgenticLoopInnerStartPosition: 0,
+      lastAgentLoopStartIdx: 0,
+      lastAgentLoopInnerStartIdx: 0,
     };
   }
 
@@ -336,23 +335,17 @@ This is an automated system message and there is no user available to respond. P
     return new Ok(message);
   }
 
-  private innerLoopStartBeyondAgenticLoopStart(): boolean {
-    return (
-      this.contextPruning.lastAgenticLoopInnerStartPosition >
-      this.contextPruning.lastAgenticLoopStartPosition
-    );
-  }
-
   shiftContextPruning(): Result<void, SrchdError> {
     assert(
-      this.contextPruning.lastAgenticLoopInnerStartPosition <
-        this.messages.length,
-      "lastAgenticLoopInnerStartPosition is out of bounds.",
+      this.contextPruning.lastAgentLoopInnerStartIdx < this.messages.length,
+      "lastAgentLoopInnerStartIdx is out of bounds.",
     );
 
-    let idx = this.innerLoopStartBeyondAgenticLoopStart()
-      ? this.contextPruning.lastAgenticLoopInnerStartPosition + 1
-      : this.contextPruning.lastAgenticLoopInnerStartPosition + 2;
+    let idx =
+      this.contextPruning.lastAgentLoopInnerStartIdx >
+      this.contextPruning.lastAgentLoopStartIdx
+        ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
+        : this.contextPruning.lastAgentLoopInnerStartIdx + 2;
 
     let foundNewAgenticLoop = false;
     for (; idx < this.messages.length; idx++) {
@@ -367,7 +360,7 @@ This is an automated system message and there is no user available to respond. P
       }
     }
 
-    // console.log("shiftLastAgenticLoopStartPosition.idx: " + idx);
+    // console.log("shiftContextPruning.idx: " + idx);
 
     if (idx >= this.messages.length) {
       return new Err(
@@ -379,10 +372,10 @@ This is an automated system message and there is no user available to respond. P
     }
 
     if (foundNewAgenticLoop) {
-      this.contextPruning.lastAgenticLoopStartPosition = idx;
+      this.contextPruning.lastAgentLoopStartIdx = idx;
     }
 
-    this.contextPruning.lastAgenticLoopInnerStartPosition = idx;
+    this.contextPruning.lastAgentLoopInnerStartIdx = idx;
     return new Ok(undefined);
   }
 
@@ -413,14 +406,15 @@ This is an automated system message and there is no user available to respond. P
 
       // Take messages from this.lastAgenticLoopStartPosition to the end.
       let messages = [...this.messages]
-        .slice(this.contextPruning.lastAgenticLoopInnerStartPosition)
+        .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
         .map((m) => m.toJSON());
 
-      if (this.innerLoopStartBeyondAgenticLoopStart()) {
+      if (
+        this.contextPruning.lastAgentLoopInnerStartIdx >
+        this.contextPruning.lastAgentLoopStartIdx
+      ) {
         const agentLoopStartUserMessage =
-          this.messages[
-            this.contextPruning.lastAgenticLoopStartPosition
-          ].toJSON();
+          this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
       }
 
