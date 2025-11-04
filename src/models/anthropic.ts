@@ -160,7 +160,7 @@ export class AnthropicModel extends BaseModel {
     Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
   > {
     try {
-      const message = await this.client.messages.create({
+      const message = await this.client.beta.messages.create({
         model: this.model,
         max_tokens:
           this.config.maxTokens ??
@@ -217,6 +217,7 @@ export class AnthropicModel extends BaseModel {
         tool_choice: {
           type: toolChoice,
         },
+        betas: ["interleaved-thinking-2025-05-14"],
       });
 
       const tokenUsage = {
