@@ -412,13 +412,13 @@ This is an automated system message and there is no user available to respond. P
      * Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
      */
     do {
-      // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
-      // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
-
-      // Take messages from this.contextPruning.lastAgentLoopInnerStartIdx to the end.
+      // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
       let messages = [...this.messages]
         .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
         .map((m) => m.toJSON());
+
+      // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
+      // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
 
       if (
         this.contextPruning.lastAgentLoopInnerStartIdx >
