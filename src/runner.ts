@@ -1,7 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
-  isAgentLoopStartMessage,
   Message,
   TextContent,
   Thinking,
@@ -335,10 +334,17 @@ This is an automated system message and there is no user available to respond. P
     return new Ok(message);
   }
 
+  private isAgentLoopStartMessage(message: Message): boolean {
+    // A user message with only text content marks the start of an agentic loop.
+    return (
+      message.role === "user" && message.content.every((c) => c.type === "text")
+    );
+  }
+
   private isAgentLoopInnerStartMessage(m: Message): boolean {
-    // we prune at tool_uses because it ensures the conversation is valid
-    // (since any following tool_result is assured to have it's
-    // corresponding tool_use before it.)
+    // We prune at tool_uses because it ensures the conversation is valid
+    // (since any following tool_result is guaranteed to have its corresponding
+    // tool_use before it).
     return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
   }
 
@@ -352,22 +358,25 @@ This is an automated system message and there is no user available to respond. P
       this.contextPruning.lastAgentLoopInnerStartIdx >
       this.contextPruning.lastAgentLoopStartIdx
         ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
-        : this.contextPruning.lastAgentLoopInnerStartIdx + 2;
-
+        : // This avoids an unneeded iteration because if they are equal,
+          // the result of the iteration will be:
+          // lastAgentLoopInnerStartIdx = lastAgentLoopStartIdx + 1.
+          // Which results in the same `messages` since:
+          // forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)]
+          this.contextPruning.lastAgentLoopInnerStartIdx + 2;
     let foundNewAgenticLoop = false;
+
     for (; idx < this.messages.length; idx++) {
       const m = this.messages[idx].toJSON();
 
       if (this.isAgentLoopInnerStartMessage(m)) {
         break;
       }
-      if (isAgentLoopStartMessage(m)) {
+      if (this.isAgentLoopStartMessage(m)) {
         foundNewAgenticLoop = true;
         break;
       }
     }
-
-    // console.log("shiftContextPruning.idx: " + idx);
 
     if (idx >= this.messages.length) {
       return new Err(
@@ -381,8 +390,8 @@ This is an automated system message and there is no user available to respond. P
     if (foundNewAgenticLoop) {
       this.contextPruning.lastAgentLoopStartIdx = idx;
     }
-
     this.contextPruning.lastAgentLoopInnerStartIdx = idx;
+
     return new Ok(undefined);
   }
 
@@ -398,12 +407,16 @@ This is an automated system message and there is no user available to respond. P
     tools: Tool[],
   ): Promise<Result<Message[], SrchdError>> {
     let tokenCount = 0;
-
+    /*
+     * Conversation Invariants:
+     * The agent loop is always started by a user message (with only text content).
+     * Tool Result must be preceded by a corresponding (i.e. same tool_use_id) Tool Use.
+     */
     do {
       // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
       // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
 
-      // Take messages from this.lastAgenticLoopStartPosition to the end.
+      // Take messages from this.contextPruning.lastAgentLoopInnerStartIdx to the end.
       let messages = [...this.messages]
         .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
         .map((m) => m.toJSON());
@@ -412,7 +425,8 @@ This is an automated system message and there is no user available to respond. P
         this.contextPruning.lastAgentLoopInnerStartIdx >
         this.contextPruning.lastAgentLoopStartIdx
       ) {
-        // A valid conversation must begin with a user message.
+        // A valid conversation must begin with a user message. In this case we use the
+        // user message at the start of the agent loop.
         const agentLoopStartUserMessage =
           this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
