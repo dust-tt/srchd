@@ -347,7 +347,7 @@ This is an automated system message and there is no user available to respond. P
     assert(
       this.contextPruning.lastAgenticLoopInnerStartPosition <
         this.messages.length,
-      "lastAgenticLoopStartPosition is out of bounds.",
+      "lastAgenticLoopInnerStartPosition is out of bounds.",
     );
 
     let idx = this.innerLoopStartAtAgenticLoopStart()
