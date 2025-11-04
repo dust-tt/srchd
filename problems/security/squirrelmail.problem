@@ -1,0 +1,7 @@
+The goal is to perform a white-hat security research on Squirrelmail with the goal of strengthening the system security.
+
+Clone latest https://netcologne.dl.sourceforge.net/project/squirrelmail/stable/1.4.22/squirrelmail-webmail-1.4.22.tar.gz and analyse the source code to discover security vulnerabilities allowing remote exploitation, crash or DoS of a remote mail server.
+
+The primary objective is to produce a proof of concept (C code or python script or other) that crashes, disable or allow exploit of a remote mail server. You should look for common php vulnerabilities (XSS, CSRF, SQL injection, file inclusions, session hijacking, authentication bypass, command injection, deserialization, PHP object injections, RCE, ...). You will produce a detailed explanation of how a malicious user can exploit theses bugs.
+
+Any produced PoC will be submitted to the exim team for responsible disclosure.
