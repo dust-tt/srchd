@@ -337,20 +337,8 @@ This is an automated system message and there is no user available to respond. P
   }
 
   private isAgentLoopInnerStartMessage(m: Message): boolean {
-    const strategy = getPruningStrategy(
-      this.agent.toJSON().provider,
-      this.agent.toJSON().thinking,
-    );
-    switch (strategy) {
-      case "thinking":
-        return (
-          m.role === "agent" && m.content.some((c) => c.type === "thinking")
-        );
-      case "tool_use":
-        return (
-          m.role === "agent" && m.content.some((c) => c.type === "tool_use")
-        );
-    }
+    // we prune tool_use (and their following tool_result) messages
+    return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
   }
 
   shiftContextPruning(): Result<void, SrchdError> {

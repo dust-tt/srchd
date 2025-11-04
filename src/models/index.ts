@@ -76,22 +76,6 @@ export interface Tool {
   inputSchema: JSONSchema;
 }
 
-export type PruningStrategy = "thinking" | "tool_use";
-
-export function getPruningStrategy(
-  p: provider,
-  thinking: ThinkingConfig,
-): PruningStrategy {
-  switch (p) {
-    case "openai":
-    case "gemini":
-    case "mistral":
-      return "tool_use";
-    case "anthropic":
-      return thinking === "none" ? "tool_use" : "thinking";
-  }
-}
-
 export type ToolChoice = "auto" | "any" | "none";
 
 export abstract class BaseModel {
