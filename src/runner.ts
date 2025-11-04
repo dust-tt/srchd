@@ -1,7 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
-  getPruningStrategy,
   isAgentLoopStartMessage,
   Message,
   TextContent,
@@ -337,7 +336,9 @@ This is an automated system message and there is no user available to respond. P
   }
 
   private isAgentLoopInnerStartMessage(m: Message): boolean {
-    // we prune tool_use (and their following tool_result) messages
+    // we prune at tool_uses because it ensures the conversation is valid
+    // (since any following tool_result is assured to have it's
+    // corresponding tool_use before it.)
     return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
   }
 
@@ -399,12 +400,6 @@ This is an automated system message and there is no user available to respond. P
     let tokenCount = 0;
 
     do {
-      // A valid conversation must have:
-      // 1. User text message (beginning of agent loop)
-      // 2. Agent thinking message (first agent response) (for thinking models)
-      // 3. N x tool_use + tool_result messages
-      // (with optional agent text and thinking messages interleaved)
-
       // console.log(`Inner: ${this.contextPruning.lastAgentLoopInnerStartIdx}`);
       // console.log(`Start: ${this.contextPruning.lastAgentLoopStartIdx}`);
 
@@ -417,6 +412,7 @@ This is an automated system message and there is no user available to respond. P
         this.contextPruning.lastAgentLoopInnerStartIdx >
         this.contextPruning.lastAgentLoopStartIdx
       ) {
+        // A valid conversation must begin with a user message.
         const agentLoopStartUserMessage =
           this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
