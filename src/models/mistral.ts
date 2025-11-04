@@ -57,7 +57,7 @@ export class MistralModel extends BaseModel {
     config: ModelConfig,
     model: MistralModels = "mistral-large-latest",
   ) {
-    super(config);
+    super(config, "tool_use");
     this.client = new Mistral();
     this.model = model;
   }

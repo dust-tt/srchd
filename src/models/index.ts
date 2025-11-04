@@ -77,13 +77,17 @@ export interface Tool {
   inputSchema: JSONSchema;
 }
 
+export type PruningStrategy = "thinking" | "tool_use";
+
 export type ToolChoice = "auto" | "any" | "none";
 
 export abstract class BaseModel {
   protected config: ModelConfig;
+  pruningStrategy: PruningStrategy;
 
-  constructor(config: ModelConfig) {
+  constructor(config: ModelConfig, pruningStrategy: PruningStrategy) {
     this.config = config;
+    this.pruningStrategy = pruningStrategy;
   }
 
   abstract run(

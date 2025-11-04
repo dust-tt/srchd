@@ -39,7 +39,7 @@ export class GeminiModel extends BaseModel {
     config: ModelConfig,
     model: GeminiModels = "gemini-2.5-flash-lite",
   ) {
-    super(config);
+    super(config, config.thinking === "none" ? "tool_use" : "thinking");
     this.client = new GoogleGenAI({});
     this.model = model;
   }

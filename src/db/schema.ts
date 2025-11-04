@@ -76,6 +76,9 @@ export const agents = sqliteTable(
       .$type<AnthropicModels | GeminiModels | OpenAIModels | MistralModels>()
       .notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
+    pruningStrategy: text("pruning_strategy")
+      .$type<PruningStrategy>()
+      .notNull(),
   },
   (t) => [unique().on(t.name, t.experiment)],
 );
