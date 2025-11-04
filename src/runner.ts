@@ -1,8 +1,10 @@
 import { JSONSchema7 } from "json-schema";
 import {
   BaseModel,
+  getPruningStrategy,
   isAgenticLoopStartMessage as isAgentLoopStartMessage,
   Message,
+  PruningStrategy,
   TextContent,
   Thinking,
   Tool,
@@ -336,9 +338,20 @@ This is an automated system message and there is no user available to respond. P
   }
 
   private isAgenticLoopInnerStartMessage(m: Message): boolean {
-    // agent messages following a user text message must start with thinking
-    return m.role === "agent" &&
-      m.content.some((c) => c.type === "thinking"
+    const strategy = getPruningStrategy(
+      this.agent.toJSON().provider,
+      this.agent.toJSON().thinking,
+    );
+    switch (strategy) {
+      case "thinking":
+        return (
+          m.role === "agent" && m.content.some((c) => c.type === "thinking")
+        );
+      case "tool_use":
+        return (
+          m.role === "agent" && m.content.some((c) => c.type === "tool_use")
+        );
+    }
   }
 
   shiftContextPruning(): Result<void, SrchdError> {
@@ -358,8 +371,8 @@ This is an automated system message and there is no user available to respond. P
       const m = this.messages[idx].toJSON();
 
       if (this.isAgenticLoopInnerStartMessage(m)) {
-          break;
-        }
+        break;
+      }
       if (isAgentLoopStartMessage(m)) {
         foundNewAgenticLoop = true;
         break;
@@ -401,7 +414,7 @@ This is an automated system message and there is no user available to respond. P
     do {
       // A valid conversation must have:
       // 1. User text message (beginning of agent loop)
-      // 2. Agent thinking message (first agent response)
+      // 2. Agent thinking message (first agent response) (for thinking models)
       // 3. N x tool_use + tool_result messages
       // (with optional agent text and thinking messages interleaved)
 

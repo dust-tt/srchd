@@ -130,7 +130,7 @@ export class OpenAIModel extends BaseModel {
   }
 
   constructor(config: ModelConfig, model: OpenAIModels = "gpt-5-mini") {
-    super(config, config.thinking === "none" ? "tool_use" : "thinking");
+    super(config);
     this.client = new OpenAI();
     this.model = model;
   }

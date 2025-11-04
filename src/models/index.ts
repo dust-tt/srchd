@@ -78,15 +78,24 @@ export interface Tool {
 
 export type PruningStrategy = "thinking" | "tool_use";
 
+export function getPruningStrategy(
+  p: provider,
+  thinking: ThinkingConfig,
+): PruningStrategy {
+  return p === "mistral"
+    ? "tool_use"
+    : thinking === "none"
+      ? "tool_use"
+      : "thinking";
+}
+
 export type ToolChoice = "auto" | "any" | "none";
 
 export abstract class BaseModel {
   protected config: ModelConfig;
-  pruningStrategy: PruningStrategy;
 
-  constructor(config: ModelConfig, pruningStrategy: PruningStrategy) {
+  constructor(config: ModelConfig) {
     this.config = config;
-    this.pruningStrategy = pruningStrategy;
   }
 
   abstract run(

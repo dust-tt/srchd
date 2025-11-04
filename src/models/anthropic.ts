@@ -37,7 +37,7 @@ export class AnthropicModel extends BaseModel {
     config: ModelConfig,
     model: AnthropicModels = "claude-sonnet-4-5-20250929",
   ) {
-    super(config, config.thinking === "none" ? "tool_use" : "thinking");
+    super(config);
     this.client = new Anthropic();
     this.model = model;
   }
