@@ -1,8 +1,7 @@
-export const COMPUTER_SERVER_NAME = "computer_server_name";
-export const GOAL_SOLUTION_SERVER_NAME = "goal_solution_server_name";
-export const PUBLICATIONS_SERVER_NAME = "publications_server_name";
-export const SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME =
-  "system_prompt_self_edit_server_name";
+export const COMPUTER_SERVER_NAME = "computer";
+export const GOAL_SOLUTION_SERVER_NAME = "goal_solution";
+export const PUBLICATIONS_SERVER_NAME = "publications";
+export const SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME = "system_prompt_self_edit";
 
 export const TOOLS = [
   COMPUTER_SERVER_NAME,
