@@ -5,9 +5,9 @@ import { SrchdError } from "./error";
 import { Err, Ok, Result } from "./result";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
-export async function createNamedClientServerPair(
+export async function createNamedClientFromServer(
   server: McpServer,
-): Promise<[string, Client, McpServer]> {
+): Promise<{ name: string; client: Client }> {
   // @ts-ignore use private _serverInfo
   const name = server.server._serverInfo.name;
   const client = new Client({
@@ -21,7 +21,7 @@ export async function createNamedClientServerPair(
   await server.connect(serverTransport);
   await client.connect(clientTransport);
 
-  return [name, client, server];
+  return { name, client };
 }
 
 export function errorToCallToolResult(error: SrchdError): CallToolResult {
