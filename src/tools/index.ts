@@ -1,7 +1,8 @@
-import { SERVER_NAME as COMPUTER_SERVER_NAME } from "./computer";
-import { SERVER_NAME as GOAL_SOLUTION_SERVER_NAME } from "./goal_solution";
-import { SERVER_NAME as PUBLICATIONS_SERVER_NAME } from "./publications";
-import { SERVER_NAME as SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME } from "./system_prompt_self_edit";
+export const COMPUTER_SERVER_NAME = "computer_server_name";
+export const GOAL_SOLUTION_SERVER_NAME = "goal_solution_server_name";
+export const PUBLICATIONS_SERVER_NAME = "publications_server_name";
+export const SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME =
+  "system_prompt_self_edit_server_name";
 
 export const TOOL_NAMES = [
   COMPUTER_SERVER_NAME,

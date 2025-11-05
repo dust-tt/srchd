@@ -7,8 +7,8 @@ import {
   stringEdit,
 } from "../lib/mcp";
 import { normalizeError, SrchdError } from "../lib/error";
+import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "../tools";
 
-export const SERVER_NAME = "system_prompt_self_edit";
 const SERVER_VERSION = "0.1.0";
 
 export async function createSystemPromptSelfEditServer(
