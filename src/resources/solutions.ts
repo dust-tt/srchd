@@ -5,7 +5,7 @@ import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
 import { concurrentExecutor } from "../lib/async";
 import { PublicationResource } from "./publication";
-import { DEFAULT_TOOLS } from "../tools";
+import { DEFAULT_TOOLS } from "../tools/registry";
 
 type Solution = InferSelectModel<typeof solutions>;
 

@@ -2,7 +2,7 @@ import { createComputerServer } from "./computer";
 import { createGoalSolutionServer } from "./goal_solution";
 import { createPublicationsServer } from "./publications";
 import { createSystemPromptSelfEditServer } from "./system_prompt_self_edit";
-import { ToolName } from "./index";
+import { ToolName } from "./registry";
 import type { AgentResource } from "../resources/agent";
 import type { ExperimentResource } from "../resources/experiment";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
