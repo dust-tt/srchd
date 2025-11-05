@@ -9,8 +9,7 @@ export async function createClientFromServer(
   server: McpServer,
 ): Promise<Client> {
   const client = new Client({
-    // @ts-ignore use private _serverInfo
-    name: server.server._serverInfo.name,
+    name,
     // @ts-ignore use private _serverInfo
     version: server.server._serverInfo.version,
   });

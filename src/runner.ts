@@ -16,7 +16,14 @@ import { Err, Ok, Result } from "./lib/result";
 import { MessageResource } from "./resources/messages";
 import assert from "assert";
 import { PublicationResource } from "./resources/publication";
+<<<<<<< HEAD
 import { renderListOfPublications } from "./tools/publications";
+=======
+import {
+  createPublicationsServer,
+  renderListOfPublications,
+} from "./tools/publications";
+>>>>>>> 1e66da3 (implemented-filtering-within-runner)
 import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
