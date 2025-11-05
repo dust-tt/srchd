@@ -55,6 +55,7 @@ export class PublicationResource {
       provider: "anthropic" as const,
       model: "claude-sonnet-4-5-20250929" as const,
       thinking: "low" as const,
+      tools: [],
     };
     this.experiment = experiment;
   }
