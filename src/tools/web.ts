@@ -2,11 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { errorToCallToolResult } from "../lib/mcp";
 import { SrchdError } from "../lib/error";
-<<<<<<< HEAD
-import Firecrawl from "@mendable/firecrawl";
-=======
 import Firecrawl from "@mendable/firecrawl-js";
->>>>>>> 36c60d9 (made-fetch-server)
 
 const SERVER_NAME = "web";
 const SERVER_VERSION = "0.1.0";
@@ -37,36 +33,60 @@ export async function createWebServer(): Promise<McpServer> {
       });
 
       if (scrapeResponse.success) {
-<<<<<<< HEAD
-        const text = scrapeResponse.markdown
-          ? scrapeResponse.markdown.slice(0, 40000) // Approximately 10k tokens.
-          : "";
-=======
-        console.log("WEBPAGE CONTENT:", scrapeResponse.markdown);
->>>>>>> 36c60d9 (made-fetch-server)
+        // console.log("WEBPAGE CONTENT:", scrapeResponse.markdown);
         return {
           isError: false,
           content: [
             {
               type: "text",
-<<<<<<< HEAD
-              text,
-=======
               text: scrapeResponse.markdown ?? "",
->>>>>>> 36c60d9 (made-fetch-server)
             },
           ],
         };
       }
       return errorToCallToolResult(
         new SrchdError(
-<<<<<<< HEAD
-          "web_fetch_error",
-=======
           "fetch_error",
->>>>>>> 36c60d9 (made-fetch-server)
           "Failed to fetch the webpage",
           new Error(scrapeResponse.error),
+        ),
+      );
+    },
+  );
+
+  server.tool(
+    "search",
+    "Returns list of search results for the query.",
+    {
+      query: z
+        .string()
+        .describe("The query to search for. Must be a valid query."),
+    },
+    async ({ query }: { query: string }) => {
+      const searchResponse = await firecrawl.search(query);
+
+      if (searchResponse.success) {
+        let results = "";
+        for (const [i, res] of searchResponse.data.entries()) {
+          results += `${i + 1}. [${res.title}](${res.url})\n`;
+        }
+        // console.log("SEARCH RESULTS:\n", results);
+        return {
+          isError: false,
+          content: [
+            {
+              type: "text",
+              text: results,
+            },
+          ],
+        };
+      }
+
+      return errorToCallToolResult(
+        new SrchdError(
+          "search_error",
+          "Failed to search for the query",
+          new Error(searchResponse.error),
         ),
       );
     },

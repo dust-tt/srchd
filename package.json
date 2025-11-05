@@ -17,11 +17,8 @@
     "@anthropic-ai/sdk": "^0.57.0",
     "@google/genai": "^1.13.0",
     "@hono/node-server": "^1.19.1",
-<<<<<<< HEAD
     "@mendable/firecrawl": "^1.21.1",
-=======
     "@mendable/firecrawl-js": "^1.21.1",
->>>>>>> 36c60d9 (made-fetch-server)
     "@mistralai/mistralai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@types/json-schema": "^7.0.15",
