@@ -63,7 +63,9 @@ export async function createWebServer(): Promise<McpServer> {
         .describe("The query to search for. Must be a valid query."),
     },
     async ({ query }: { query: string }) => {
-      const searchResponse = await firecrawl.search(query);
+      const searchResponse = await firecrawl.search(query, {
+        limit: 10,
+      });
 
       if (searchResponse.success) {
         let results = "";
