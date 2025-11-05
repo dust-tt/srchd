@@ -3,9 +3,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ "main" ]
-
 jobs:
   eslint:
     name: Run eslint scanning
@@ -15,9 +13,12 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Install dependencies
+        run: npm ci
+      
       - name: Lint
-      - run: npx eslint .
-      - uses: actions/checkout@v2
+        run: npx eslint .
+      
       - name: TypeCheck
-      - run: npx tsc --noEmit
-
+        run: npx tsc --noEmit
