@@ -20,7 +20,7 @@ import {
   createPublicationsServer,
   renderListOfPublications,
 } from "./tools/publications";
-import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
+import { createNamedClientServerPair, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { createSystemPromptSelfEditServer } from "./tools/system_prompt_self_edit";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
@@ -90,16 +90,16 @@ export class Runner {
     }
 
     const clients = [
-      await createClientFromServer(
+      await createNamedClientServerPair(
         await createPublicationsServer(experiment, agent),
       ),
-      await createClientFromServer(
+      await createNamedClientServerPair(
         await createSystemPromptSelfEditServer(agent),
       ),
-      await createClientFromServer(
+      await createNamedClientServerPair(
         await createGoalSolutionServer(experiment, agent),
       ),
-      await createClientFromServer(
+      await createNamedClientServerPair(
         await createComputerServer(experiment, agent),
       ),
     ]

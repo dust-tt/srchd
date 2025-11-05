@@ -16,7 +16,7 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
-import { isTools, TOOLS } from "./tools";
+import { isToolNameList, TOOLS } from "./tools";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -241,7 +241,7 @@ agentCmd
         );
       }
 
-      if (!isTools(tools)) {
+      if (!isToolNameList(tools)) {
         return exitWithError(
           new Err(
             new SrchdError(
