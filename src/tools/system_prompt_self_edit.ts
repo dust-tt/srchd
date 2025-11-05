@@ -8,11 +8,11 @@ import {
 } from "../lib/mcp";
 import { normalizeError, SrchdError } from "../lib/error";
 
-const SERVER_NAME = "system_prompt_self_edit";
+export const SERVER_NAME = "system_prompt_self_edit";
 const SERVER_VERSION = "0.1.0";
 
 export async function createSystemPromptSelfEditServer(
-  agent: AgentResource
+  agent: AgentResource,
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
@@ -46,7 +46,7 @@ export async function createSystemPromptSelfEditServer(
           },
         ],
       };
-    }
+    },
   );
 
   server.tool(
@@ -59,7 +59,7 @@ ${STRING_EDIT_INSTRUCTIONS}`,
       old_str: z
         .string()
         .describe(
-          "The exact text to replace (must be an exact match of the file current content, including whitespaces and indentation)."
+          "The exact text to replace (must be an exact match of the file current content, including whitespaces and indentation).",
         ),
       new_str: z.string().describe("The edited text to replace `old_str`"),
       expected_replacements: z
@@ -68,7 +68,7 @@ ${STRING_EDIT_INSTRUCTIONS}`,
         .positive()
         .optional()
         .describe(
-          "The expected number of replacements to perform. Defaults to 1 if not specified."
+          "The expected number of replacements to perform. Defaults to 1 if not specified.",
         ),
     },
     async (params) => {
@@ -105,11 +105,11 @@ ${STRING_EDIT_INSTRUCTIONS}`,
           new SrchdError(
             "tool_execution_error",
             `Error editing system prompt`,
-            normalizeError(error)
-          )
+            normalizeError(error),
+          ),
         );
       }
-    }
+    },
   );
 
   return server;

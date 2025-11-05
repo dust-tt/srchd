@@ -7,12 +7,12 @@ import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { SolutionResource } from "../resources/solutions";
 
-const SERVER_NAME = "goal_solution";
+export const SERVER_NAME = "goal_solution";
 const SERVER_VERSION = "0.1.0";
 
 export async function createGoalSolutionServer(
   experiment: ExperimentResource,
-  agent: AgentResource
+  agent: AgentResource,
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
@@ -30,7 +30,7 @@ export async function createGoalSolutionServer(
         .string()
         .nullable()
         .describe(
-          "The reference of the publication. `null` if the previous solution was proven wrong and there is no current valid solution."
+          "The reference of the publication. `null` if the previous solution was proven wrong and there is no current valid solution.",
         ),
       reason: z
         .enum([
@@ -49,15 +49,15 @@ export async function createGoalSolutionServer(
 
       if (reference && !publication) {
         return errorToCallToolResult(
-          new SrchdError("not_found_error", "Publication not found")
+          new SrchdError("not_found_error", "Publication not found"),
         );
       }
       if (publication && publication.toJSON().status !== "PUBLISHED") {
         return errorToCallToolResult(
           new SrchdError(
             "invalid_parameters_error",
-            "Publication is not published"
-          )
+            "Publication is not published",
+          ),
         );
       }
 
@@ -76,7 +76,7 @@ export async function createGoalSolutionServer(
           },
         ],
       };
-    }
+    },
   );
 
   return server;
