@@ -16,7 +16,7 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
-import { isToolNameList, TOOLS } from "./tools";
+import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -199,7 +199,7 @@ agentCmd
       const provider = options.provider ?? "anthropic";
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
-      const tools = options.tools ?? TOOLS;
+      const tools = options.tools ?? DEFAULT_TOOLS;
 
       if (!isProvider(provider)) {
         return exitWithError(

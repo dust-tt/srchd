@@ -5,7 +5,6 @@ import { ExperimentResource } from "./experiment";
 import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError } from "../lib/error";
 import { concurrentExecutor } from "../lib/async";
-import { Tool } from "../models";
 
 export type Agent = InferSelectModel<typeof agents>;
 export type Evolution = InferSelectModel<typeof evolutions>;
