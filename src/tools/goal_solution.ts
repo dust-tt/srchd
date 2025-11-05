@@ -6,7 +6,7 @@ import { PublicationResource } from "../resources/publication";
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { SolutionResource } from "../resources/solutions";
-import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "../tools";
+import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "../tools/registry";
 
 const SERVER_VERSION = "0.1.0";
 

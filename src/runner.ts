@@ -17,7 +17,7 @@ import { MessageResource } from "./resources/messages";
 import assert from "assert";
 import { PublicationResource } from "./resources/publication";
 import { renderListOfPublications } from "./tools/publications";
-import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
+import { createClientServerPair, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
 import { assertNever } from "./lib/assert";
@@ -25,7 +25,7 @@ import { GeminiModel, GeminiModels } from "./models/gemini";
 import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
-import { createServer } from "./tools/create_server";
+import { createServer } from "./tools";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -87,7 +87,12 @@ export class Runner {
     const servers = await Promise.all(
       agent.toJSON().tools.map((t) => createServer(t, { experiment, agent })),
     );
-    const clients = await Promise.all(servers.map(createClientFromServer));
+    const clients = await Promise.all(
+      servers.map(async (s) => {
+        const [client] = await createClientServerPair(s);
+        return client;
+      }),
+    );
 
     const model = (() => {
       const provider = agent.toJSON().provider;

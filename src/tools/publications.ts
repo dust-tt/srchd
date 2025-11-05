@@ -9,7 +9,7 @@ import {
 } from "../resources/publication";
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
-import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "../tools";
+import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "../tools/registry";
 
 const SERVER_VERSION = "0.1.0";
 
