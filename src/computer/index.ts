@@ -53,7 +53,7 @@ export class Computer {
       await ensureImage(COMPUTER_IMAGE);
       await ensureVolume(volume);
 
-      let privileged = false;
+      const privileged = false;
       const usernsMode = "1000:100000:65536";
 
       const container = await docker.createContainer({
@@ -118,7 +118,7 @@ export class Computer {
       // This will raise an error if the container does not exist which will in turn return null.
       await container.inspect();
       return new Computer(computerId, container);
-    } catch (err) {
+    } catch (_err) {
       return null;
     }
   }
@@ -139,7 +139,6 @@ export class Computer {
             ),
           );
         }
-      } else {
       }
       return new Ok(c);
     }
@@ -178,7 +177,7 @@ export class Computer {
     try {
       try {
         await this.container.stop({ t: 5 });
-      } catch (err) {
+      } catch (_err) {
         // ignore
       }
       await this.container.remove({ v: removeVolume, force: true });
@@ -227,7 +226,7 @@ export class Computer {
         Cmd: ["/bin/bash", "-lc", cmd],
         AttachStdout: true,
         AttachStderr: true,
-        WorkingDir: options?.cwd || DEFAULT_WORKDIR,
+        WorkingDir: options?.cwd ?? DEFAULT_WORKDIR,
         Env: options?.env
           ? Object.entries(options.env).map(([k, v]) => `${k}=${v}`)
           : undefined,
@@ -271,7 +270,7 @@ export class Computer {
               resolve();
             });
 
-            stream.on("error", (e: any) => {
+            stream.on("error", (e: Error) => {
               reject(e);
             });
           } else {
@@ -282,7 +281,7 @@ export class Computer {
               stdout = Buffer.concat(chunks).toString("utf-8");
               resolve();
             });
-            stream.on("error", (e: any) => {
+            stream.on("error", (e: Error) => {
               reject(e);
             });
           }

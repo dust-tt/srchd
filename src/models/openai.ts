@@ -114,6 +114,7 @@ export class OpenAIModel extends BaseModel {
                         },
                       ];
                     }
+                    return [];
                   default:
                     return [];
                 }
@@ -180,7 +181,7 @@ export class OpenAIModel extends BaseModel {
       // console.log(JSON.stringify(tools, null, 2));
       // console.log("----------------------------------------------");
 
-      let response = await this.client.responses.create({
+      const response = await this.client.responses.create({
         model: this.model,
         instructions: prompt,
         input,

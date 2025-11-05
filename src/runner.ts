@@ -586,7 +586,7 @@ ${this.agent.toJSON().system}`;
       { concurrency: 8 },
     );
 
-    let last = this.messages[this.messages.length - 1];
+    const last = this.messages[this.messages.length - 1];
 
     const agentMessage = await MessageResource.create(
       this.experiment,

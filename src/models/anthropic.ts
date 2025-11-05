@@ -131,10 +131,10 @@ export class AnthropicModel extends BaseModel {
       ),
     }));
 
-    for (var i = anthropicMessages.length - 1; i >= 0; i--) {
+    for (let i = anthropicMessages.length - 1; i >= 0; i--) {
       if (anthropicMessages[i].role === "user") {
         let found = false;
-        for (var j = anthropicMessages[i].content.length - 1; j >= 0; j--) {
+        for (let j = anthropicMessages[i].content.length - 1; j >= 0; j--) {
           const c = anthropicMessages[i].content[j];
           if (typeof c !== "string" && c.type === "text") {
             c.cache_control = { type: "ephemeral" };

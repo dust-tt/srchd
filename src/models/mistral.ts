@@ -255,9 +255,9 @@ export class MistralModel extends BaseModel {
 
   async tokens(
     messages: Message[],
-    prompt: string,
-    toolChoice: ToolChoice,
-    tools: Tool[],
+    _prompt: string,
+    _toolChoice: ToolChoice,
+    _tools: Tool[],
   ): Promise<Result<number, SrchdError>> {
     try {
       // Mistral's doesn't have a token counting API so we approximate with token ~= 4 chars.

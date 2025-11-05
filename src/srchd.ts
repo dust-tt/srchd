@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command, InvalidOptionArgumentError, Option } from "commander";
+import { Command, Option } from "commander";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";
@@ -192,9 +192,9 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
-      const provider = options.provider || "anthropic";
-      const model = options.model || "claude-sonnet-4-5-20250929";
-      const thinking = options.thinking || "low";
+      const provider = options.provider ?? "anthropic";
+      const model = options.model ?? "claude-sonnet-4-5-20250929";
+      const thinking = options.thinking ?? "low";
 
       if (!isProvider(provider)) {
         return exitWithError(

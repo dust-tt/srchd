@@ -6,7 +6,7 @@ import { normalizeError, SrchdError } from "./error";
 import { Err, Ok, Result } from "./result";
 
 export const readFileContent = async (
-  filePath: string
+  filePath: string,
 ): Promise<Result<string, SrchdError>> => {
   try {
     const resolvedPath = filePath.startsWith("~")
@@ -20,8 +20,8 @@ export const readFileContent = async (
       new SrchdError(
         "reading_file_error",
         `Failed to read file at ${filePath}`,
-        normalizeError(error)
-      )
+        normalizeError(error),
+      ),
     );
   }
 };

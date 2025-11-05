@@ -35,7 +35,7 @@ export class ExperimentResource {
     data: Omit<
       InferInsertModel<typeof experiments>,
       "id" | "created" | "updated"
-    >
+    >,
   ): Promise<ExperimentResource> {
     const [created] = await db.insert(experiments).values(data).returning();
     return new ExperimentResource(created);
@@ -47,7 +47,7 @@ export class ExperimentResource {
   }
 
   async update(
-    data: Partial<Omit<InferInsertModel<typeof experiments>, "id" | "created">>
+    data: Partial<Omit<InferInsertModel<typeof experiments>, "id" | "created">>,
   ): Promise<ExperimentResource> {
     const [updated] = await db
       .update(experiments)
