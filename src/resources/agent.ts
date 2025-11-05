@@ -13,14 +13,12 @@ export type Evolution = InferSelectModel<typeof evolutions>;
 export class AgentResource {
   private data: Agent;
   private evolutions: Evolution[];
-  private tools: string[];
   experiment: ExperimentResource;
 
   private constructor(data: Agent, experiment: ExperimentResource) {
     this.data = data;
     this.evolutions = [];
     this.experiment = experiment;
-    this.tools = data.tools as string[];
   }
 
   private async finalize(): Promise<AgentResource> {
