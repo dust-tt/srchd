@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command, InvalidOptionArgumentError, Option } from "commander";
+import { Command, Option } from "commander";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";
@@ -16,6 +16,7 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
+import { isTools, TOOLS } from "./tools";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -136,6 +137,9 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
+  .option("--tools <tools>", "Tools to use (comma separated)", (value) =>
+    value.split(","),
+  )
   .action(async (options) => {
     // Read system prompt from file
     const systemFiles: string[] = Array.isArray(options.system)
@@ -192,9 +196,10 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
-      const provider = options.provider || "anthropic";
-      const model = options.model || "claude-sonnet-4-5-20250929";
-      const thinking = options.thinking || "low";
+      const provider = options.provider ?? "anthropic";
+      const model = options.model ?? "claude-sonnet-4-5-20250929";
+      const thinking = options.thinking ?? "low";
+      const tools = options.tools ?? TOOLS;
 
       if (!isProvider(provider)) {
         return exitWithError(
@@ -236,6 +241,17 @@ agentCmd
         );
       }
 
+      if (!isTools(tools)) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              `Tools '${tools}' are not valid. Use one or more of: ${TOOLS}.`,
+            ),
+          ),
+        );
+      }
+
       const agent = await AgentResource.create(
         experiment,
         {
@@ -243,6 +259,7 @@ agentCmd
           provider,
           model,
           thinking,
+          tools,
         },
         { system: system },
       );
