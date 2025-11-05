@@ -137,9 +137,7 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
-  .option("--tools <tools>", "Tools to use (comma separated)", (value) =>
-    value.split(","),
-  )
+  .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
   .action(async (options) => {
     // Read system prompt from file
     const systemFiles: string[] = Array.isArray(options.system)
@@ -199,7 +197,7 @@ agentCmd
       const provider = options.provider ?? "anthropic";
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
-      const tools = options.tools ?? DEFAULT_TOOLS;
+      const tools = options.tool ?? DEFAULT_TOOLS;
 
       if (!isProvider(provider)) {
         return exitWithError(
