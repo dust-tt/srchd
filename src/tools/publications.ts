@@ -34,11 +34,7 @@ reviews:${publication
       .toJSON()
       .reviews.map(
         (r) =>
-<<<<<<< HEAD
           `${r.grade ?? "PENDING"}` +
-=======
-          `${r.grade || "PENDING"}` +
->>>>>>> 81aa8df (updated db schema and added `ToolName` type to record tools for agents)
           (r.created ? ` (${r.created.toISOString()})` : ""),
       )
       .join(", ")}
