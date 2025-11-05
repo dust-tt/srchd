@@ -11,6 +11,7 @@ import { GeminiModels } from "../models/gemini";
 import { OpenAIModels } from "../models/openai";
 import { MistralModels } from "../models/mistral";
 import { TOOL_NAMES as TOOLS, ToolName } from "../tools";
+import { sql } from "drizzle-orm";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -80,7 +81,10 @@ export const agents = sqliteTable(
     tools: text("tools", { mode: "json" })
       .$type<ToolName[]>()
       .notNull()
-      .$defaultFn(() => TOOLS),
+      // .$defaultFn(() => TOOLS),
+      .default(
+        sql`'["computer", "goal_solution", "publications", "system_prompt_self_edit"]'`,
+      ),
   },
   (t) => [unique().on(t.name, t.experiment)],
 );
