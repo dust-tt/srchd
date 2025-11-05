@@ -255,14 +255,14 @@ export class MistralModel extends BaseModel {
 
   async tokens(
     messages: Message[],
-    prompt: string,
+    _prompt: string,
     _toolChoice: ToolChoice,
     _tools: Tool[],
   ): Promise<Result<number, SrchdError>> {
     try {
       // Mistral's doesn't have a token counting API so we approximate with token ~= 4 chars.
       const tokens =
-        (messages.reduce((acc, m) => {
+        messages.reduce((acc, m) => {
           const contentLength = m.content.reduce((acc, c) => {
             switch (c.type) {
               case "text":
@@ -282,9 +282,7 @@ export class MistralModel extends BaseModel {
             }
           }, 0);
           return contentLength + acc;
-        }, 0) +
-          prompt.length) /
-        4;
+        }, 0) / 4;
 
       return new Ok(Math.floor(tokens));
     } catch (error) {
