@@ -5,6 +5,7 @@ import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
 import { concurrentExecutor } from "../lib/async";
 import { PublicationResource } from "./publication";
+import { TOOLS } from "../tools";
 
 type Solution = InferSelectModel<typeof solutions>;
 
@@ -25,7 +26,7 @@ export class SolutionResource {
       provider: "anthropic" as const,
       model: "claude-sonnet-4-5-20250929" as const,
       thinking: "low" as const,
-      tools: [],
+      tools: TOOLS,
     };
     this.experiment = experiment;
   }
