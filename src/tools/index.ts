@@ -12,7 +12,7 @@ export const TOOLS = [
 
 export type ToolName = (typeof TOOLS)[number];
 
-export function isTools(tools: any): tools is ToolName[] {
+export function isToolNameList(tools: any): tools is ToolName[] {
   if (!Array.isArray(tools)) {
     return false;
   }
