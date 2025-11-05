@@ -251,8 +251,8 @@ export class GeminiModel extends BaseModel {
   async tokens(
     messages: Message[],
     prompt: string,
-    toolChoice: ToolChoice,
-    tools: Tool[],
+    _toolChoice: ToolChoice,
+    _tools: Tool[],
   ): Promise<Result<number, SrchdError>> {
     try {
       const response = await this.client.models.countTokens({

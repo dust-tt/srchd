@@ -20,7 +20,7 @@ export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
   constructor(
     readonly code: T,
     message: string,
-    readonly cause?: Error | null
+    readonly cause?: Error | null,
   ) {
     super(message);
   }

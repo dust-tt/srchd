@@ -22,11 +22,11 @@ export class TokenUsageResource {
       .where(eq(token_usages.experiment, experiment.toJSON().id));
 
     return {
-      total: Number(results[0].total) ?? 0,
-      input: Number(results[0].input) ?? 0,
-      output: Number(results[0].output) ?? 0,
-      cached: Number(results[0].cached) ?? 0,
-      thinking: Number(results[0].thinking) ?? 0,
+      total: Number(results[0].total),
+      input: Number(results[0].input),
+      output: Number(results[0].output),
+      cached: Number(results[0].cached),
+      thinking: Number(results[0].thinking),
     };
   }
 
@@ -38,7 +38,7 @@ export class TokenUsageResource {
     options?: { tx?: Tx },
   ): Promise<void> {
     const executor = options?.tx ?? db;
-    const [created] = await executor
+    const [_created] = await executor
       .insert(token_usages)
       .values({
         experiment: experiment.toJSON().id,

@@ -3,13 +3,13 @@
 // To be run from the root of the srchd repository
 
 import { readdir, readFile, writeFile } from "fs/promises";
-import path, { resolve } from "path";
+import path from "path";
 
 (async () => {
   if (!process.cwd().endsWith("/srchd")) {
     console.error(
       "Run this script from the root of the srchd repository",
-      process.cwd()
+      process.cwd(),
     );
     process.exit(1);
   }
@@ -19,7 +19,7 @@ import path, { resolve } from "path";
     ).includes("readme.md")
   ) {
     console.error(
-      "problems/ARC-AGI-2/vendor not found. Run `git submodule update --init --recursive`"
+      "problems/ARC-AGI-2/vendor not found. Run `git submodule update --init --recursive`",
     );
     process.exit(1);
   }
@@ -27,13 +27,13 @@ import path, { resolve } from "path";
   const trainingProblems = (
     await readFile(
       path.join(process.cwd(), "problems/ARC-AGI-2/vendor/data/evaluation.txt"),
-      "utf-8"
+      "utf-8",
     )
   ).split("\n");
 
   const template = await readFile(
     path.join(process.cwd(), "problems/ARC-AGI-2/template.md"),
-    "utf-8"
+    "utf-8",
   );
 
   console.log(`Found ${trainingProblems.length} evaluation problems`);
@@ -44,13 +44,13 @@ import path, { resolve } from "path";
         path.join(
           process.cwd(),
           "problems/ARC-AGI-2/vendor/data/evaluation",
-          `${problem}.json`
+          `${problem}.json`,
         ),
-        "utf-8"
-      )
+        "utf-8",
+      ),
     );
 
-    let training = [];
+    const training = [];
     for (const example of problemData.train) {
       let t = "INPUT:\n";
       t += example.input.map((row: number[]) => row.join(" ")).join("\n");
@@ -59,7 +59,7 @@ import path, { resolve } from "path";
       training.push(t);
     }
 
-    let test = [];
+    const test = [];
     for (const example of problemData.test) {
       let t = "INPUT:\n";
       t += example.input.map((row: number[]) => row.join(" ")).join("\n");
@@ -75,10 +75,10 @@ import path, { resolve } from "path";
       path.join(
         process.cwd(),
         "problems/ARC-AGI-2/generated",
-        `${problem}.problem`
+        `${problem}.problem`,
       ),
       p,
-      "utf-8"
+      "utf-8",
     );
   }
 })();

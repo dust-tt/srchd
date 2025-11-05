@@ -33,7 +33,7 @@ export class AgentResource {
 
   static async findByName(
     experiment: ExperimentResource,
-    name: string
+    name: string,
   ): Promise<AgentResource | null> {
     const [result] = await db
       .select()
@@ -41,8 +41,8 @@ export class AgentResource {
       .where(
         and(
           eq(agents.name, name),
-          eq(agents.experiment, experiment.toJSON().id)
-        )
+          eq(agents.experiment, experiment.toJSON().id),
+        ),
       )
       .limit(1);
 
@@ -53,7 +53,7 @@ export class AgentResource {
 
   static async findById(
     experiment: ExperimentResource,
-    id: number
+    id: number,
   ): Promise<AgentResource | null> {
     const [result] = await db
       .select()
@@ -67,7 +67,7 @@ export class AgentResource {
   }
 
   static async listByExperiment(
-    experiment: ExperimentResource
+    experiment: ExperimentResource,
   ): Promise<AgentResource[]> {
     const results = await db
       .select()
@@ -80,7 +80,7 @@ export class AgentResource {
       async (data) => {
         return await new AgentResource(data, experiment).finalize();
       },
-      { concurrency: 8 }
+      { concurrency: 8 },
     );
   }
 
@@ -93,7 +93,7 @@ export class AgentResource {
     evolution: Omit<
       InferInsertModel<typeof evolutions>,
       "id" | "created" | "updated" | "experiment" | "agent"
-    >
+    >,
   ): Promise<AgentResource> {
     const [created] = await db
       .insert(agents)
@@ -113,7 +113,7 @@ export class AgentResource {
   }
 
   async update(
-    data: Partial<Omit<InferInsertModel<typeof agents>, "id" | "created">>
+    data: Partial<Omit<InferInsertModel<typeof agents>, "id" | "created">>,
   ): Promise<AgentResource> {
     const [updated] = await db
       .update(agents)
@@ -134,7 +134,7 @@ export class AgentResource {
     data: Omit<
       InferInsertModel<typeof evolutions>,
       "id" | "created" | "updated" | "experiment" | "agent"
-    >
+    >,
   ): Promise<Result<AgentResource, SrchdError>> {
     try {
       const [created] = await db
@@ -153,8 +153,8 @@ export class AgentResource {
         new SrchdError(
           "resource_creation_error",
           "Failed to create agent evolution",
-          normalizeError(error)
-        )
+          normalizeError(error),
+        ),
       );
     }
   }

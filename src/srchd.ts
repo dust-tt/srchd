@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command, InvalidOptionArgumentError, Option } from "commander";
+import { Command, Option } from "commander";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";

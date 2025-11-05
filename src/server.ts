@@ -59,7 +59,7 @@ const sanitizeMarkdown = (value: unknown): string => {
       },
       allowedSchemes: ["http", "https", "mailto"],
     });
-  } catch (error) {
+  } catch (_error) {
     // Fallback to plain text sanitization if markdown parsing fails
     return sanitizeText(input);
   }
@@ -712,7 +712,7 @@ app.get("/experiments/:id/agents/:agentId", async (c) => {
         const evolutionNumber = evolutions.length - currentEvolutionIndex;
 
         document.getElementById('evolutionMeta').textContent =
-          \`Evolution #\${evolutionNumber}\ - Created: \${new Date(evolution.created).toLocaleString()}\`;
+          \`Evolution #\${evolutionNumber} - Created: \${new Date(evolution.created).toLocaleString()}\`;
         document.getElementById('evolutionCounter').textContent = \`\${currentEvolutionIndex + 1} / \${evolutions.length}\`;
 
         document.getElementById('prevBtn').disabled = currentEvolutionIndex === 0;
@@ -1026,7 +1026,6 @@ app.get("/experiments/:id/solutions", async (c) => {
 
   const experimentSolutions =
     await SolutionResource.listByExperiment(experiment);
-  const experimentAgents = await AgentResource.listByExperiment(experiment);
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
 
@@ -1047,7 +1046,7 @@ app.get("/experiments/:id/solutions", async (c) => {
         <div class="chart-legend">
           ${chartData.publicationLines
             .map(
-              (line, index) => `
+              (line, _index) => `
             <div class="legend-item">
               <div class="legend-color" style="background-color: ${line.color};"></div>
               <span>${sanitizeText(

@@ -14,7 +14,7 @@
 export async function concurrentExecutor<T, V>(
   items: T[],
   iterator: (item: T, idx: number) => Promise<V>,
-  { concurrency = 8 }: { concurrency: number }
+  { concurrency = 8 }: { concurrency: number },
 ) {
   const results: V[] = new Array(items.length);
 
@@ -43,7 +43,7 @@ export async function concurrentExecutor<T, V>(
   // Create and start workers, limiting the number to either the concurrency limit or the number of
   // items, whichever is smaller. All workers share the same queue and results array.
   await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
   );
 
   return results;
