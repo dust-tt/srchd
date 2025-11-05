@@ -88,10 +88,23 @@ export async function createWebServer(): Promise<McpServer> {
       query: z
         .string()
         .describe("The query to search for. Must be a valid query."),
+      limit: z
+        .number()
+        .describe("The limit of search results to return. (Max 20)")
+        .default(10),
     },
-    async ({ query }: { query: string }) => {
+    async ({ query, limit }: { query: string; limit: number }) => {
+      if (limit > 20) {
+        return errorToCallToolResult(
+          new SrchdError(
+            "web_search_error",
+            `The limit of ${limit} results is too large. It must be less than 20.`,
+          ),
+        );
+      }
+
       const searchResponse = await firecrawl.search(query, {
-        limit: 10,
+        limit,
       });
 
       if (searchResponse.success) {
