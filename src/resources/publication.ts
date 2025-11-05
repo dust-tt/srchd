@@ -20,10 +20,14 @@ import { concurrentExecutor } from "../lib/async";
 import { assertNever } from "../lib/assert";
 import assert from "assert";
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { DEFAULT_TOOLS } from "../tools";
 =======
 import { TOOLS } from "../tools";
 >>>>>>> 7a62608 (nit)
+=======
+import { DEFAULT_TOOLS } from "../tools";
+>>>>>>> afdd14c (changed-tool-defaults)
 
 // const REVIEW_SCORES = {
 //   STRONG_ACCEPT: 2,
@@ -61,10 +65,14 @@ export class PublicationResource {
       model: "claude-sonnet-4-5-20250929" as const,
       thinking: "low" as const,
 <<<<<<< HEAD
+<<<<<<< HEAD
       tools: DEFAULT_TOOLS,
 =======
       tools: TOOLS,
 >>>>>>> 7a62608 (nit)
+=======
+      tools: DEFAULT_TOOLS,
+>>>>>>> afdd14c (changed-tool-defaults)
     };
     this.experiment = experiment;
   }
