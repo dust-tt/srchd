@@ -81,10 +81,7 @@ export const agents = sqliteTable(
     tools: text("tools", { mode: "json" })
       .$type<ToolName[]>()
       .notNull()
-      // .$defaultFn(() => TOOLS),
-      .default(
-        sql`'["computer", "goal_solution", "publications", "system_prompt_self_edit"]'`,
-      ),
+      .$defaultFn(() => TOOLS),
   },
   (t) => [unique().on(t.name, t.experiment)],
 );
