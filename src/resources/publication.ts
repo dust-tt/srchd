@@ -19,7 +19,7 @@ import { newID4, removeNulls } from "../lib/utils";
 import { concurrentExecutor } from "../lib/async";
 import { assertNever } from "../lib/assert";
 import assert from "assert";
-import { TOOLS } from "../tools";
+import { DEFAULT_TOOLS } from "../tools";
 
 // const REVIEW_SCORES = {
 //   STRONG_ACCEPT: 2,
@@ -56,7 +56,7 @@ export class PublicationResource {
       provider: "anthropic" as const,
       model: "claude-sonnet-4-5-20250929" as const,
       thinking: "low" as const,
-      tools: TOOLS,
+      tools: DEFAULT_TOOLS,
     };
     this.experiment = experiment;
   }
