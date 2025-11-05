@@ -31,6 +31,7 @@ import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { createComputerServer } from "./tools/computer";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
+import { createWebServer } from "./tools/web";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -101,6 +102,7 @@ export class Runner {
     const [computerClient] = await createClientServerPair(
       await createComputerServer(experiment, agent),
     );
+    const [webClient] = await createClientServerPair(await createWebServer());
 
     const model = (() => {
       const provider = agent.toJSON().provider;
@@ -146,6 +148,7 @@ export class Runner {
         systemPromptSelfEditClient,
         goalSolutionClient,
         computerClient,
+        webClient,
       ],
       model,
     );
