@@ -70,7 +70,7 @@ export async function createWebServer(): Promise<McpServer> {
       if (searchResponse.success) {
         let results = "";
         for (const [i, res] of searchResponse.data.entries()) {
-          results += `${i + 1}. [${res.title}](${res.url})\n`;
+          results += `${i + 1}. [${res.title}](${res.url})\n${res.description}\n\n`;
         }
         // console.log("SEARCH RESULTS:\n", results);
         return {
