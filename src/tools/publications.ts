@@ -10,7 +10,7 @@ import {
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 
-const SERVER_NAME = "publications";
+export const SERVER_NAME = "publications";
 const SERVER_VERSION = "0.1.0";
 
 export const reviewHeader = (review: Review) => {
@@ -241,7 +241,7 @@ ${r.content}`;
       }
 
       const res = publication.value.toJSON();
-       
+
       delete (res as any).reviews;
 
       return {

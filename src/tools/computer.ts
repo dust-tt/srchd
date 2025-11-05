@@ -12,7 +12,7 @@ import { Computer } from "../computer";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
-const SERVER_NAME = "computer";
+export const SERVER_NAME = "computer";
 const SERVER_VERSION = "0.1.0";
 
 function computerId(experiment: ExperimentResource, agent: AgentResource) {

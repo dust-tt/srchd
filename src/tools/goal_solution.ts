@@ -7,7 +7,7 @@ import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { SolutionResource } from "../resources/solutions";
 
-const SERVER_NAME = "goal_solution";
+export const SERVER_NAME = "goal_solution";
 const SERVER_VERSION = "0.1.0";
 
 export async function createGoalSolutionServer(
