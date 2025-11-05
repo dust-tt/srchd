@@ -20,21 +20,46 @@ export async function createWebServer(): Promise<McpServer> {
 
   server.tool(
     "fetch",
-    "Returns a Markdown-formatted content of the webpage at url.",
+    "Returns a Markdown-formatted content of the webpage at url. (Capped at 8196 characters)",
     {
       url: z
         .string()
         .describe("The URL of the webpage to fetch. Must be a valid URL."),
+      offset: z
+        .number()
+        .describe("The offset (in chars) of the content to fetch.")
+        .default(0),
+      limit: z
+        .number()
+        .describe("The limit (in chars) of the content to fetch. (Max 8196)")
+        .default(8196),
     },
-    async ({ url }: { url: string }) => {
+    async ({
+      url,
+      offset,
+      limit,
+    }: {
+      url: string;
+      offset: number;
+      limit: number;
+    }) => {
       const scrapeResponse = await firecrawl.scrapeUrl(url, {
         // By default cache-expiry is already set to 2 days.
         formats: ["markdown"],
       });
 
+      if (limit > 8196) {
+        return errorToCallToolResult(
+          new SrchdError(
+            "web_fetch_error",
+            `The limit of ${limit} characters is too large. It must be less than 8196.`,
+          ),
+        );
+      }
+
       if (scrapeResponse.success) {
         const text = scrapeResponse.markdown
-          ? scrapeResponse.markdown.slice(0, 40000) // Approximately 10k tokens.
+          ? scrapeResponse.markdown.slice(offset, 8196 + offset)
           : "";
         console.log("WEBPAGE CONTENT:", text);
         return {
