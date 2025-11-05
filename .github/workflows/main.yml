@@ -1,0 +1,24 @@
+name: Lint & TypeCheck
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  eslint:
+    name: Run eslint scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dependencies
+        run: npm i
+      
+      - name: Lint
+        run: npx eslint .
+      
+      - name: TypeCheck
+        run: npx tsc --noEmit
