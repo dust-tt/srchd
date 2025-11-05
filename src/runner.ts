@@ -20,7 +20,7 @@ import {
   createPublicationsServer,
   renderListOfPublications,
 } from "./tools/publications";
-import { createClientServerPair, errorToCallToolResult } from "./lib/mcp";
+import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { createSystemPromptSelfEditServer } from "./tools/system_prompt_self_edit";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
@@ -89,18 +89,24 @@ export class Runner {
       );
     }
 
-    const [publicationClient] = await createClientServerPair(
-      await createPublicationsServer(experiment, agent),
-    );
-    const [systemPromptSelfEditClient] = await createClientServerPair(
-      await createSystemPromptSelfEditServer(agent),
-    );
-    const [goalSolutionClient] = await createClientServerPair(
-      await createGoalSolutionServer(experiment, agent),
-    );
-    const [computerClient] = await createClientServerPair(
-      await createComputerServer(experiment, agent),
-    );
+    const clients = [
+      await createClientFromServer(
+        await createPublicationsServer(experiment, agent),
+      ),
+      await createClientFromServer(
+        await createSystemPromptSelfEditServer(agent),
+      ),
+      await createClientFromServer(
+        await createGoalSolutionServer(experiment, agent),
+      ),
+      await createClientFromServer(
+        await createComputerServer(experiment, agent),
+      ),
+    ]
+      .filter((nameClientServer) =>
+        agent.toJSON().tools.includes(nameClientServer[0]),
+      )
+      .map((nameClientServer) => nameClientServer[1]);
 
     const model = (() => {
       const provider = agent.toJSON().provider;
@@ -138,17 +144,7 @@ export class Runner {
       }
     })();
 
-    const runner = await Runner.initialize(
-      experiment,
-      agent,
-      [
-        publicationClient,
-        systemPromptSelfEditClient,
-        goalSolutionClient,
-        computerClient,
-      ],
-      model,
-    );
+    const runner = await Runner.initialize(experiment, agent, clients, model);
     if (runner.isErr()) {
       return runner;
     }

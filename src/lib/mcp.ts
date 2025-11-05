@@ -5,12 +5,13 @@ import { SrchdError } from "./error";
 import { Err, Ok, Result } from "./result";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
-export async function createClientServerPair(
-  server: McpServer
-): Promise<[Client, McpServer]> {
+export async function createClientFromServer(
+  server: McpServer,
+): Promise<[string, Client, McpServer]> {
+  // @ts-ignore use private _serverInfo
+  const name = server.server._serverInfo.name;
   const client = new Client({
-    // @ts-ignore use private _serverInfo
-    name: server.server._serverInfo.name,
+    name,
     // @ts-ignore use private _serverInfo
     version: server.server._serverInfo.version,
   });
@@ -20,7 +21,7 @@ export async function createClientServerPair(
   await server.connect(serverTransport);
   await client.connect(clientTransport);
 
-  return [client, server];
+  return [name, client, server];
 }
 
 export function errorToCallToolResult(error: SrchdError): CallToolResult {
@@ -65,8 +66,8 @@ export function stringEdit({
     return new Err(
       new SrchdError(
         "string_edit_error",
-        `String to replace not found in content to edit`
-      )
+        `String to replace not found in content to edit`,
+      ),
     );
   }
 
@@ -74,8 +75,8 @@ export function stringEdit({
     return new Err(
       new SrchdError(
         "string_edit_error",
-        `Expected ${expectedReplacements} replacements, but found ${occurrences} occurrences`
-      )
+        `Expected ${expectedReplacements} replacements, but found ${occurrences} occurrences`,
+      ),
     );
   }
 
