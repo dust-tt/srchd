@@ -16,21 +16,16 @@ import { Err, Ok, Result } from "./lib/result";
 import { MessageResource } from "./resources/messages";
 import assert from "assert";
 import { PublicationResource } from "./resources/publication";
-import {
-  createPublicationsServer,
-  renderListOfPublications,
-} from "./tools/publications";
-import { createNamedClientFromServer, errorToCallToolResult } from "./lib/mcp";
+import { renderListOfPublications } from "./tools/publications";
+import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
-import { createSystemPromptSelfEditServer } from "./tools/system_prompt_self_edit";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
 import { assertNever } from "./lib/assert";
-import { createGoalSolutionServer } from "./tools/goal_solution";
 import { GeminiModel, GeminiModels } from "./models/gemini";
 import { OpenAIModel, OpenAIModels } from "./models/openai";
-import { createComputerServer } from "./tools/computer";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
+import { createServer } from "./tools/create_server";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -89,17 +84,10 @@ export class Runner {
       );
     }
 
-    const servers = await Promise.all([
-      createPublicationsServer(experiment, agent),
-      createSystemPromptSelfEditServer(agent),
-      createGoalSolutionServer(experiment, agent),
-      createComputerServer(experiment, agent),
-    ]);
-    const clients = (
-      await Promise.all(servers.map(createNamedClientFromServer))
-    )
-      .filter(({ name }) => agent.toJSON().tools.includes(name))
-      .map(({ client }) => client);
+    const servers = await Promise.all(
+      agent.toJSON().tools.map((t) => createServer(t, { experiment, agent })),
+    );
+    const clients = await Promise.all(servers.map(createClientFromServer));
 
     const model = (() => {
       const provider = agent.toJSON().provider;
