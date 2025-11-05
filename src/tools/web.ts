@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { errorToCallToolResult } from "../lib/mcp";
 import { SrchdError } from "../lib/error";
-import Firecrawl from "@mendable/firecrawl-js";
+import Firecrawl from "@mendable/firecrawl";
 
 const SERVER_NAME = "web";
 const SERVER_VERSION = "0.1.0";
