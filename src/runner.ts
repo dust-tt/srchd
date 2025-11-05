@@ -16,11 +16,8 @@ import { Err, Ok, Result } from "./lib/result";
 import { MessageResource } from "./resources/messages";
 import assert from "assert";
 import { PublicationResource } from "./resources/publication";
-import {
-  createPublicationsServer,
-  renderListOfPublications,
-} from "./tools/publications";
-import { createNamedClientFromServer, errorToCallToolResult } from "./lib/mcp";
+import { renderListOfPublications } from "./tools/publications";
+import { createClientFromServer, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
 import { assertNever } from "./lib/assert";
@@ -87,17 +84,10 @@ export class Runner {
       );
     }
 
-    const servers = await Promise.all([
-      createPublicationsServer(experiment, agent),
-      createSystemPromptSelfEditServer(agent),
-      createGoalSolutionServer(experiment, agent),
-      createComputerServer(experiment, agent),
-    ]);
-    const clients = (
-      await Promise.all(servers.map(createNamedClientFromServer))
-    )
-      .filter(({ name }) => agent.toJSON().tools.includes(name))
-      .map(({ client }) => client);
+    const servers = await Promise.all(
+      agent.toJSON().tools.map((t) => createServer(t, { experiment, agent })),
+    );
+    const clients = await Promise.all(servers.map(createClientFromServer));
 
     const model = (() => {
       const provider = agent.toJSON().provider;
