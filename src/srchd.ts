@@ -244,7 +244,7 @@ agentCmd
           new Err(
             new SrchdError(
               "invalid_parameters_error",
-              `Tools '${tools}' are not valid. Use one or more of: ${TOOLS}.`,
+              `Tools '${tools}' are not valid. Use one or more of: [${TOOLS.join(", ")}].`,
             ),
           ),
         );

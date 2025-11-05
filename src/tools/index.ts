@@ -1,32 +1,27 @@
-export const COMPUTER_SERVER_NAME = "computer" as const;
-export const GOAL_SOLUTION_SERVER_NAME = "goal_solution" as const;
-export const PUBLICATIONS_SERVER_NAME = "publications" as const;
-export const SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME =
-  "system_prompt_self_edit" as const;
+import { createComputerServer } from "./computer";
+import { createGoalSolutionServer } from "./goal_solution";
+import { createPublicationsServer } from "./publications";
+import { createSystemPromptSelfEditServer } from "./system_prompt_self_edit";
+import { ToolName } from "./index";
+import type { AgentResource } from "../resources/agent";
+import type { ExperimentResource } from "../resources/experiment";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
 
-export const TOOLS = [
-  COMPUTER_SERVER_NAME,
-  GOAL_SOLUTION_SERVER_NAME,
-  PUBLICATIONS_SERVER_NAME,
-  SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME,
-];
-
-export const DEFAULT_TOOLS = [
-  GOAL_SOLUTION_SERVER_NAME,
-  PUBLICATIONS_SERVER_NAME,
-  SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME,
-];
-
-export type ToolName = (typeof TOOLS)[number];
-
-export function isToolNameList(tools: any): tools is ToolName[] {
-  if (!Array.isArray(tools)) {
-    return false;
+export async function createServer(
+  tool: ToolName,
+  {
+    experiment,
+    agent,
+  }: { experiment: ExperimentResource; agent: AgentResource },
+): Promise<McpServer> {
+  switch (tool) {
+    case "computer":
+      return createComputerServer(experiment, agent);
+    case "goal_solution":
+      return createGoalSolutionServer(experiment, agent);
+    case "publications":
+      return createPublicationsServer(experiment, agent);
+    case "system_prompt_self_edit":
+      return createSystemPromptSelfEditServer(agent);
   }
-  for (const tool of tools) {
-    if (!TOOLS.includes(tool)) {
-      return false;
-    }
-  }
-  return true;
 }
