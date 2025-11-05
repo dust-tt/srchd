@@ -1,4 +1,4 @@
-name: ESLint
+name: Lint & TypeCheck
 on:
   push:
     branches: [ "main" ]
@@ -17,4 +17,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Lint
       - run: npx eslint .
+      - uses: actions/checkout@v2
+      - name: TypeCheck
+      - run: npx tsc --noEmit
 
