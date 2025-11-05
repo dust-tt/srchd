@@ -15,6 +15,7 @@ export type ErrorCode =
   | "computer_run_error"
   | "computer_timeout_error"
   | "fetch_error"
+  | "search_error"
   | "string_edit_error";
 
 export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {

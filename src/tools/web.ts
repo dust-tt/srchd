@@ -33,7 +33,7 @@ export async function createWebServer(): Promise<McpServer> {
       });
 
       if (scrapeResponse.success) {
-        console.log("WEBPAGE CONTENT:", scrapeResponse.markdown);
+        // console.log("WEBPAGE CONTENT:", scrapeResponse.markdown);
         return {
           isError: false,
           content: [
@@ -49,6 +49,44 @@ export async function createWebServer(): Promise<McpServer> {
           "fetch_error",
           "Failed to fetch the webpage",
           new Error(scrapeResponse.error),
+        ),
+      );
+    },
+  );
+
+  server.tool(
+    "search",
+    "Returns list of search results for the query.",
+    {
+      query: z
+        .string()
+        .describe("The query to search for. Must be a valid query."),
+    },
+    async ({ query }: { query: string }) => {
+      const searchResponse = await firecrawl.search(query);
+
+      if (searchResponse.success) {
+        let results = "";
+        for (const [i, res] of searchResponse.data.entries()) {
+          results += `${i + 1}. [${res.title}](${res.url})\n`;
+        }
+        // console.log("SEARCH RESULTS:\n", results);
+        return {
+          isError: false,
+          content: [
+            {
+              type: "text",
+              text: results,
+            },
+          ],
+        };
+      }
+
+      return errorToCallToolResult(
+        new SrchdError(
+          "search_error",
+          "Failed to search for the query",
+          new Error(searchResponse.error),
         ),
       );
     },
