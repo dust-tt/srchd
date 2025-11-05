@@ -20,7 +20,7 @@ import {
   createPublicationsServer,
   renderListOfPublications,
 } from "./tools/publications";
-import { createNamedClientServerPair, errorToCallToolResult } from "./lib/mcp";
+import { createNamedClientFromServer, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
 import { assertNever } from "./lib/assert";
@@ -87,24 +87,17 @@ export class Runner {
       );
     }
 
-    const clients = [
-      await createNamedClientServerPair(
-        await createPublicationsServer(experiment, agent),
-      ),
-      await createNamedClientServerPair(
-        await createSystemPromptSelfEditServer(agent),
-      ),
-      await createNamedClientServerPair(
-        await createGoalSolutionServer(experiment, agent),
-      ),
-      await createNamedClientServerPair(
-        await createComputerServer(experiment, agent),
-      ),
-    ]
-      .filter((nameClientServer) =>
-        agent.toJSON().tools.includes(nameClientServer[0]),
-      )
-      .map((nameClientServer) => nameClientServer[1]);
+    const servers = await Promise.all([
+      createPublicationsServer(experiment, agent),
+      createSystemPromptSelfEditServer(agent),
+      createGoalSolutionServer(experiment, agent),
+      createComputerServer(experiment, agent),
+    ]);
+    const clients = (
+      await Promise.all(servers.map(createNamedClientFromServer))
+    )
+      .filter(({ name }) => agent.toJSON().tools.includes(name))
+      .map(({ client }) => client);
 
     const model = (() => {
       const provider = agent.toJSON().provider;
