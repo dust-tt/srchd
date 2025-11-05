@@ -17,10 +17,14 @@ import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools";
 =======
 import { isTools, TOOLS } from "./tools";
 >>>>>>> 0cb633f (cmd-line-args)
+=======
+import { isToolNameList, TOOLS } from "./tools";
+>>>>>>> 1a2aeed (renames)
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -254,10 +258,14 @@ agentCmd
       }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
       if (!isToolNameList(tools)) {
 =======
       if (!isTools(tools)) {
 >>>>>>> 0cb633f (cmd-line-args)
+=======
+      if (!isToolNameList(tools)) {
+>>>>>>> 1a2aeed (renames)
         return exitWithError(
           new Err(
             new SrchdError(
