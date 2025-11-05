@@ -16,7 +16,11 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
+<<<<<<< HEAD
 import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools";
+=======
+import { isTools, TOOLS } from "./tools";
+>>>>>>> 0cb633f (cmd-line-args)
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -137,7 +141,13 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
+<<<<<<< HEAD
   .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
+=======
+  .option("--tools <tools>", "Tools to use (comma separated)", (value) =>
+    value.split(","),
+  )
+>>>>>>> 0cb633f (cmd-line-args)
   .action(async (options) => {
     // Read system prompt from file
     const systemFiles: string[] = Array.isArray(options.system)
@@ -197,7 +207,11 @@ agentCmd
       const provider = options.provider ?? "anthropic";
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
+<<<<<<< HEAD
       const tools = options.tool ?? DEFAULT_TOOLS;
+=======
+      const tools = options.tools ?? TOOLS;
+>>>>>>> 0cb633f (cmd-line-args)
 
       if (!isProvider(provider)) {
         return exitWithError(
@@ -239,7 +253,11 @@ agentCmd
         );
       }
 
+<<<<<<< HEAD
       if (!isToolNameList(tools)) {
+=======
+      if (!isTools(tools)) {
+>>>>>>> 0cb633f (cmd-line-args)
         return exitWithError(
           new Err(
             new SrchdError(

@@ -11,6 +11,7 @@ export const TOOLS = [
   SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME,
 ];
 
+<<<<<<< HEAD
 export const DEFAULT_TOOLS = [
   GOAL_SOLUTION_SERVER_NAME,
   PUBLICATIONS_SERVER_NAME,
@@ -20,6 +21,11 @@ export const DEFAULT_TOOLS = [
 export type ToolName = (typeof TOOLS)[number];
 
 export function isToolNameList(tools: any): tools is ToolName[] {
+=======
+export type ToolName = (typeof TOOLS)[number];
+
+export function isTools(tools: any): tools is ToolName[] {
+>>>>>>> 0cb633f (cmd-line-args)
   if (!Array.isArray(tools)) {
     return false;
   }
