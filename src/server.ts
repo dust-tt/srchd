@@ -21,7 +21,7 @@ const sanitizeText = (value: unknown): string => {
 const sanitizeMarkdown = (value: unknown): string => {
   const input = value === null || value === undefined ? "" : String(value);
   try {
-    const html = marked.parse(input, { async: false }) as string;
+    const html = marked.parse(input, { async: false });
     return sanitizeHtml(html, {
       allowedTags: [
         "h1",

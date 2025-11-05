@@ -140,7 +140,7 @@ export class GeminiModel extends BaseModel {
               functionDeclarations: tools.map((tool) => {
                 return {
                   name: tool.name,
-                  description: tool.description || "",
+                  description: tool.description ?? "",
                   parametersJsonSchema: tool.inputSchema,
                 } as FunctionDeclaration;
               }),
@@ -187,7 +187,7 @@ export class GeminiModel extends BaseModel {
         message: {
           role: content.role === "model" ? "agent" : "user",
           content: removeNulls(
-            (content.parts || []).map((part) => {
+            (content.parts ?? []).map((part) => {
               if (part.text) {
                 if (part.thought) {
                   return {

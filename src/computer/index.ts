@@ -226,7 +226,7 @@ export class Computer {
         Cmd: ["/bin/bash", "-lc", cmd],
         AttachStdout: true,
         AttachStderr: true,
-        WorkingDir: options?.cwd || DEFAULT_WORKDIR,
+        WorkingDir: options?.cwd ?? DEFAULT_WORKDIR,
         Env: options?.env
           ? Object.entries(options.env).map(([k, v]) => `${k}=${v}`)
           : undefined,
@@ -270,7 +270,7 @@ export class Computer {
               resolve();
             });
 
-            stream.on("error", (e: any) => {
+            stream.on("error", (e: Error) => {
               reject(e);
             });
           } else {
@@ -281,7 +281,7 @@ export class Computer {
               stdout = Buffer.concat(chunks).toString("utf-8");
               resolve();
             });
-            stream.on("error", (e: any) => {
+            stream.on("error", (e: Error) => {
               reject(e);
             });
           }

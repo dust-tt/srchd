@@ -192,9 +192,9 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
-      const provider = options.provider || "anthropic";
-      const model = options.model || "claude-sonnet-4-5-20250929";
-      const thinking = options.thinking || "low";
+      const provider = options.provider ?? "anthropic";
+      const model = options.model ?? "claude-sonnet-4-5-20250929";
+      const thinking = options.thinking ?? "low";
 
       if (!isProvider(provider)) {
         return exitWithError(
