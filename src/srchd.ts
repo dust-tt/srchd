@@ -115,6 +115,43 @@ metricsCmd
     console.table(agents);
   });
 
+metricsCmd
+  .command("publications")
+  .description("Calculate publication metrics")
+  .argument("<experiment>", "Experiment name")
+  .action(async (experiment) => {
+    const experimentRes = await ExperimentResource.findByName(experiment);
+    if (!experimentRes) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    const metrics = await Metrics.publications(experimentRes);
+    if (!metrics) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    console.table([metrics.experiment]);
+    const agents = [];
+    for (const [name, publication] of Object.entries(metrics.agents)) {
+      agents.push({ name, ...publication });
+    }
+    console.table(agents);
+  });
+
 // Experiment commands
 const experimentCmd = program
   .command("experiment")
