@@ -10,6 +10,7 @@ import { AnthropicModels } from "../models/anthropic";
 import { GeminiModels } from "../models/gemini";
 import { OpenAIModels } from "../models/openai";
 import { MistralModels } from "../models/mistral";
+import { DEFAULT_TOOLS, ToolName } from "../tools/constants";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -76,6 +77,10 @@ export const agents = sqliteTable(
       .$type<AnthropicModels | GeminiModels | OpenAIModels | MistralModels>()
       .notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
+    tools: text("tools", { mode: "json" })
+      .$type<ToolName[]>()
+      .notNull()
+      .$defaultFn(() => DEFAULT_TOOLS),
   },
   (t) => [unique().on(t.name, t.experiment)],
 );

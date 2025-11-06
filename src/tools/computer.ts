@@ -11,8 +11,8 @@ import { SrchdError } from "../lib/error";
 import { Computer } from "../computer";
 import { readFile } from "fs/promises";
 import { join } from "path";
+import { COMPUTER_SERVER_NAME as SERVER_NAME } from "../tools/constants";
 
-const SERVER_NAME = "computer";
 const SERVER_VERSION = "0.1.0";
 
 function computerId(experiment: ExperimentResource, agent: AgentResource) {

@@ -16,21 +16,16 @@ import { Err, Ok, Result } from "./lib/result";
 import { MessageResource } from "./resources/messages";
 import assert from "assert";
 import { PublicationResource } from "./resources/publication";
-import {
-  createPublicationsServer,
-  renderListOfPublications,
-} from "./tools/publications";
+import { renderListOfPublications } from "./tools/publications";
 import { createClientServerPair, errorToCallToolResult } from "./lib/mcp";
 import { concurrentExecutor } from "./lib/async";
-import { createSystemPromptSelfEditServer } from "./tools/system_prompt_self_edit";
 import { AnthropicModel, AnthropicModels } from "./models/anthropic";
 import { assertNever } from "./lib/assert";
-import { createGoalSolutionServer } from "./tools/goal_solution";
 import { GeminiModel, GeminiModels } from "./models/gemini";
 import { OpenAIModel, OpenAIModels } from "./models/openai";
-import { createComputerServer } from "./tools/computer";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
+import { createServer } from "./tools";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -89,17 +84,14 @@ export class Runner {
       );
     }
 
-    const [publicationClient] = await createClientServerPair(
-      await createPublicationsServer(experiment, agent),
+    const servers = await Promise.all(
+      agent.toJSON().tools.map((t) => createServer(t, { experiment, agent })),
     );
-    const [systemPromptSelfEditClient] = await createClientServerPair(
-      await createSystemPromptSelfEditServer(agent),
-    );
-    const [goalSolutionClient] = await createClientServerPair(
-      await createGoalSolutionServer(experiment, agent),
-    );
-    const [computerClient] = await createClientServerPair(
-      await createComputerServer(experiment, agent),
+    const clients = await Promise.all(
+      servers.map(async (s) => {
+        const [client] = await createClientServerPair(s);
+        return client;
+      }),
     );
 
     const model = (() => {
@@ -138,17 +130,7 @@ export class Runner {
       }
     })();
 
-    const runner = await Runner.initialize(
-      experiment,
-      agent,
-      [
-        publicationClient,
-        systemPromptSelfEditClient,
-        goalSolutionClient,
-        computerClient,
-      ],
-      model,
-    );
+    const runner = await Runner.initialize(experiment, agent, clients, model);
     if (runner.isErr()) {
       return runner;
     }

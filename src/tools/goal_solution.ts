@@ -6,8 +6,8 @@ import { PublicationResource } from "../resources/publication";
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { SolutionResource } from "../resources/solutions";
+import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "../tools/constants";
 
-const SERVER_NAME = "goal_solution";
 const SERVER_VERSION = "0.1.0";
 
 export async function createGoalSolutionServer(
