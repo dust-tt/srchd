@@ -7,8 +7,8 @@ import {
   TextContent,
   ToolUse,
   Thinking,
+  TokenUsage,
 } from "./index";
-import { TokenUsage } from "../metrics";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";

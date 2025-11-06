@@ -1,14 +1,4 @@
-<<<<<<< HEAD
 import { TokenUsage } from "../models";
-=======
-export type TokenUsage = {
-  total: number;
-  input: number;
-  output: number;
-  cached: number;
-  thinking: number;
-};
->>>>>>> 6b8268f (metrics-begun)
 
 export type ExperimentMessageMetrics = {
   totalMessages: number;
@@ -27,7 +17,6 @@ export type AgentMessageMetrics = {
   toolCallsPerAgenticLoop: number;
   thinkingPerAgenticLoop: number;
 };
-<<<<<<< HEAD
 
 export type MessageMetrics = {
   experiment: ExperimentMessageMetrics;
@@ -86,5 +75,3 @@ export type PublicationMetrics = {
   experiment: ExperimentPublicationMetrics;
   agents: { [agentName: string]: AgentPublicationMetrics };
 };
-=======
->>>>>>> 6b8268f (metrics-begun)
