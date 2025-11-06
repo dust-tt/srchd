@@ -10,7 +10,7 @@ import { AnthropicModels } from "../models/anthropic";
 import { GeminiModels } from "../models/gemini";
 import { OpenAIModels } from "../models/openai";
 import { MistralModels } from "../models/mistral";
-import { DEFAULT_TOOLS, ToolName } from "../tools/registry";
+import { DEFAULT_TOOLS, ToolName } from "../tools/constants";
 
 export const experiments = sqliteTable(
   "experiments",

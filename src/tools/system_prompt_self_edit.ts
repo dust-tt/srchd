@@ -7,7 +7,7 @@ import {
   stringEdit,
 } from "../lib/mcp";
 import { normalizeError, SrchdError } from "../lib/error";
-import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "../tools/registry";
+import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "../tools/constants";
 
 const SERVER_VERSION = "0.1.0";
 

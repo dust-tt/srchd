@@ -19,7 +19,7 @@ import { newID4, removeNulls } from "../lib/utils";
 import { concurrentExecutor } from "../lib/async";
 import { assertNever } from "../lib/assert";
 import assert from "assert";
-import { DEFAULT_TOOLS } from "../tools/registry";
+import { DEFAULT_TOOLS } from "../tools/constants";
 
 // const REVIEW_SCORES = {
 //   STRONG_ACCEPT: 2,
