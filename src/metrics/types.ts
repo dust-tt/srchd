@@ -18,6 +18,11 @@ export type AgentMessageMetrics = {
   thinkingPerAgenticLoop: number;
 };
 
+export type MessageMetrics = {
+  experiment: ExperimentMessageMetrics;
+  agents: { [agentName: string]: AgentMessageMetrics };
+};
+
 export type TokenMetrics = {
   experimentTokenUsage: TokenUsage;
   agentsTokenUsage: { [agentName: string]: TokenUsage };
