@@ -390,18 +390,18 @@ const baseTemplate = (title: string, content: string, breadcrumb?: string) => `
 `;
 
 // Helper to create experiment nav for pages within an experiment
-const experimentNav = (experimentId: number, current: string) => `
+const experimentNav = (experimentUUID: string, current: string) => `
   <div class="nav">
-    <a href="/experiments/${experimentId}"${
+    <a href="/experiments/${experimentUUID}"${
       current === "overview" ? ' style="font-weight: bold;"' : ""
     }>Overview</a>
-    <a href="/experiments/${experimentId}/agents"${
+    <a href="/experiments/${experimentUUID}/agents"${
       current === "agents" ? ' style="font-weight: bold;"' : ""
     }>Agents</a>
-    <a href="/experiments/${experimentId}/publications"${
+    <a href="/experiments/${experimentUUID}/publications"${
       current === "publications" ? ' style="font-weight: bold;"' : ""
     }>Publications</a>
-    <a href="/experiments/${experimentId}/solutions"${
+    <a href="/experiments/${experimentUUID}/solutions"${
       current === "solutions" ? ' style="font-weight: bold;"' : ""
     }>Solutions</a>
   </div>
@@ -556,7 +556,7 @@ app.get("/", async (c) => {
         const data = exp.toJSON();
         return `
         <div class="card">
-          <h3><a href="/experiments/${data.id}">${sanitizeText(data.name)}</a></h3>
+          <h3><a href="/experiments/${data.uuid}">${sanitizeText(data.name)}</a></h3>
           <div class="meta">
             Created: ${sanitizeText(data.created.toLocaleString())} |
             Updated: ${sanitizeText(data.updated.toLocaleString())}
@@ -571,10 +571,10 @@ app.get("/", async (c) => {
 });
 
 // Experiment overview
-app.get("/experiments/:id", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid", async (c) => {
+  const uuid = c.req.param("uuid");
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
@@ -587,7 +587,7 @@ app.get("/experiments/:id", async (c) => {
 
   const experimentName = sanitizeText(expData.name);
   const content = `
-    ${experimentNav(id, "overview")}
+    ${experimentNav(uuid, "overview")}
     <div class="card">
       <h3>${experimentName}</h3>
       <div class="meta">
@@ -608,10 +608,10 @@ app.get("/experiments/:id", async (c) => {
 });
 
 // Experiment agents
-app.get("/experiments/:id/agents", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid/agents", async (c) => {
+  const uuid = c.req.param("uuid");
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
@@ -619,13 +619,13 @@ app.get("/experiments/:id/agents", async (c) => {
   const experimentName = sanitizeText(expData.name);
 
   const content = `
-    ${experimentNav(id, "agents")}
+    ${experimentNav(uuid, "agents")}
     ${experimentAgents
       .map((agent) => {
         const agentData = agent.toJSON();
         return `
         <div class="card">
-          <h3><a href="/experiments/${id}/agents/${agentData.id}">${sanitizeText(
+          <h3><a href="/experiments/${uuid}/agents/${agentData.id}">${sanitizeText(
             agentData.name,
           )}</a></h3>
           <div class="meta">
@@ -644,16 +644,16 @@ app.get("/experiments/:id/agents", async (c) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Agents`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${uuid}">${experimentName}</a> > Agents`;
   return c.html(baseTemplate("Agents", content, breadcrumb));
 });
 
 // Agent detail
-app.get("/experiments/:id/agents/:agentId", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid/agents/:agentId", async (c) => {
+  const uuid = c.req.param("uuid");
   const agentId = parseInt(c.req.param("agentId"));
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const agents = await AgentResource.listByExperiment(experiment);
@@ -781,7 +781,7 @@ app.get("/experiments/:id/agents/:agentId", async (c) => {
       : "";
 
   const content = `
-    ${experimentNav(id, "agents")}
+    ${experimentNav(uuid, "agents")}
     <h1>${agentName}</h1>
     <div class="card">
       <p><strong>Provider:</strong> ${sanitizeText(agentData.provider)}</p>
@@ -803,7 +803,7 @@ app.get("/experiments/:id/agents/:agentId", async (c) => {
         const statusClass = safeStatusClass(pubData.status);
         return `
         <div class="card">
-          <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
+          <h3><a href="/experiments/${uuid}/publications/${pubData.id}">${sanitizeText(
             pubData.title,
           )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
@@ -839,15 +839,15 @@ app.get("/experiments/:id/agents/:agentId", async (c) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a> > ${agentName}`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${uuid}">${experimentName}</a> > <a href="/experiments/${uuid}/agents">Agents</a> > ${agentName}`;
   return c.html(baseTemplate(agentData.name, content, breadcrumb));
 });
 
 // Experiment publications
-app.get("/experiments/:id/publications", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid/publications", async (c) => {
+  const uuid = c.req.param("uuid");
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const experimentPublications =
@@ -856,14 +856,14 @@ app.get("/experiments/:id/publications", async (c) => {
   const experimentName = sanitizeText(expData.name);
 
   const content = `
-    ${experimentNav(id, "publications")}
+    ${experimentNav(uuid, "publications")}
     ${experimentPublications
       .map((pub) => {
         const pubData = pub.toJSON();
         const statusClass = safeStatusClass(pubData.status);
         return `
         <div class="card">
-          <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
+          <h3><a href="/experiments/${uuid}/publications/${pubData.id}">${sanitizeText(
             pubData.title,
           )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
@@ -893,16 +893,16 @@ app.get("/experiments/:id/publications", async (c) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Publications`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${uuid}">${experimentName}</a> > Publications`;
   return c.html(baseTemplate("Publications", content, breadcrumb));
 });
 
 // Publication detail
-app.get("/experiments/:id/publications/:pubId", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid/publications/:pubId", async (c) => {
+  const uuid = c.req.param("uuid");
   const pubId = parseInt(c.req.param("pubId"));
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const publications = await PublicationResource.listByExperiment(experiment);
@@ -921,7 +921,7 @@ app.get("/experiments/:id/publications/:pubId", async (c) => {
   const publicationStatusClass = safeStatusClass(pubData.status);
 
   const content = `
-    ${experimentNav(id, "publications")}
+    ${experimentNav(uuid, "publications")}
     <h1>${publicationTitle}</h1>
     <div class="card">
       <p><strong>Author:</strong> ${publicationAuthor}</p>
@@ -944,7 +944,7 @@ app.get("/experiments/:id/publications/:pubId", async (c) => {
         ${pubData.citations.from
           .map(
             (cit) => `
-          <div class="citation">→ <a href="/experiments/${id}/publications/${cit.to}">${sanitizeText(
+          <div class="citation">→ <a href="/experiments/${uuid}/publications/${cit.to}">${sanitizeText(
             String(cit.to),
           )}</a></div>
         `,
@@ -964,7 +964,7 @@ app.get("/experiments/:id/publications/:pubId", async (c) => {
         ${pubData.citations.to
           .map(
             (cit) => `
-          <div class="citation">← <a href="/experiments/${id}/publications/${cit.from}">${sanitizeText(
+          <div class="citation">← <a href="/experiments/${uuid}/publications/${cit.from}">${sanitizeText(
             String(cit.from),
           )}</a></div>
         `,
@@ -1015,15 +1015,15 @@ app.get("/experiments/:id/publications/:pubId", async (c) => {
     }
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/publications">Publications</a> > ${publicationTitle}`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${uuid}">${experimentName}</a> > <a href="/experiments/${uuid}/publications">Publications</a> > ${publicationTitle}`;
   return c.html(baseTemplate(pubData.title, content, breadcrumb));
 });
 
 // Experiment solutions
-app.get("/experiments/:id/solutions", async (c) => {
-  const id = parseInt(c.req.param("id"));
+app.get("/experiments/:uuid/solutions", async (c) => {
+  const uuid = c.req.param("uuid");
 
-  const experiment = await ExperimentResource.findById(id);
+  const experiment = await ExperimentResource.findByUUID(uuid);
   if (!experiment) return c.notFound();
 
   const experimentSolutions =
@@ -1035,7 +1035,7 @@ app.get("/experiments/:id/solutions", async (c) => {
   const chartData = prepareChartData(experimentSolutions);
 
   const content = `
-    ${experimentNav(id, "solutions")}
+    ${experimentNav(uuid, "solutions")}
     ${
       chartData.publicationLines.length > 0
         ? `
@@ -1198,7 +1198,7 @@ app.get("/experiments/:id/solutions", async (c) => {
           ${
             solData.publication
               ? `
-            <a href="/experiments/${id}/publications/${solData.publication.id}">${sanitizeText(
+            <a href="/experiments/${uuid}/publications/${solData.publication.id}">${sanitizeText(
               solData.publication.reference,
             )}</a>`
               : ""
@@ -1214,7 +1214,7 @@ app.get("/experiments/:id/solutions", async (c) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Solutions`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${uuid}">${experimentName}</a> > Solutions`;
   return c.html(baseTemplate("Solutions", content, breadcrumb));
 });
 
