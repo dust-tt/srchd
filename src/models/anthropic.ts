@@ -1,6 +1,12 @@
 import { MessageParam } from "@anthropic-ai/sdk/resources/messages";
-import { BaseModel, ModelConfig, Message, Tool, ToolChoice } from "./index";
-import { TokenUsage } from "../metrics";
+import {
+  BaseModel,
+  ModelConfig,
+  Message,
+  Tool,
+  ToolChoice,
+  TokenUsage,
+} from "./index";
 import Anthropic from "@anthropic-ai/sdk";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
