@@ -1,1 +1,0 @@
-ALTER TABLE `agents` ADD `tools` text DEFAULT '["goal_solution", "publications", "system_prompt_self_edit"]' NOT NULL;
