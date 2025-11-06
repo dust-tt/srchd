@@ -25,7 +25,7 @@ import { GeminiModel, GeminiModels } from "./models/gemini";
 import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
-import { createWebServer } from "./tools/web";
+import { createServer } from "./tools";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -93,7 +93,6 @@ export class Runner {
         return client;
       }),
     );
-    const [webClient] = await createClientServerPair(await createWebServer());
 
     const model = (() => {
       const provider = agent.toJSON().provider;
@@ -131,18 +130,7 @@ export class Runner {
       }
     })();
 
-    const runner = await Runner.initialize(
-      experiment,
-      agent,
-      [
-        publicationClient,
-        systemPromptSelfEditClient,
-        goalSolutionClient,
-        computerClient,
-        webClient,
-      ],
-      model,
-    );
+    const runner = await Runner.initialize(experiment, agent, clients, model);
     if (runner.isErr()) {
       return runner;
     }

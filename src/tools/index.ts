@@ -2,6 +2,7 @@ import { createComputerServer } from "./computer";
 import { createGoalSolutionServer } from "./goal_solution";
 import { createPublicationsServer } from "./publications";
 import { createSystemPromptSelfEditServer } from "./system_prompt_self_edit";
+import { createWebServer } from "./web";
 import { ToolName } from "./constants";
 import type { AgentResource } from "../resources/agent";
 import type { ExperimentResource } from "../resources/experiment";
@@ -23,5 +24,7 @@ export async function createServer(
       return createPublicationsServer(experiment, agent);
     case "system_prompt_self_edit":
       return createSystemPromptSelfEditServer(agent);
+    case "web":
+      return createWebServer();
   }
 }

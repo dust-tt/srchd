@@ -3,8 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { errorToCallToolResult } from "../lib/mcp";
 import { SrchdError } from "../lib/error";
 import Firecrawl from "@mendable/firecrawl";
+import { WEB_SERVER_NAME as SERVER_NAME } from "./constants";
 
-const SERVER_NAME = "web";
 const SERVER_VERSION = "0.1.0";
 
 export async function createWebServer(): Promise<McpServer> {
@@ -77,7 +77,7 @@ export async function createWebServer(): Promise<McpServer> {
       }
       return errorToCallToolResult(
         new SrchdError(
-          "fetch_error",
+          "web_fetch_error",
           "Failed to fetch the webpage",
           new Error(scrapeResponse.error),
         ),
@@ -128,7 +128,7 @@ export async function createWebServer(): Promise<McpServer> {
 
       return errorToCallToolResult(
         new SrchdError(
-          "search_error",
+          "web_search_error",
           "Failed to search for the query",
           new Error(searchResponse.error),
         ),

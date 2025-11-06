@@ -3,12 +3,14 @@ export const GOAL_SOLUTION_SERVER_NAME = "goal_solution" as const;
 export const PUBLICATIONS_SERVER_NAME = "publications" as const;
 export const SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME =
   "system_prompt_self_edit" as const;
+export const WEB_SERVER_NAME = "web" as const;
 
 export const TOOLS = [
   COMPUTER_SERVER_NAME,
   GOAL_SOLUTION_SERVER_NAME,
   PUBLICATIONS_SERVER_NAME,
   SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME,
+  WEB_SERVER_NAME,
 ];
 
 export const DEFAULT_TOOLS = [
