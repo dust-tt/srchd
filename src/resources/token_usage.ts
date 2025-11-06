@@ -3,7 +3,7 @@ import { token_usages } from "../db/schema";
 import { AgentResource } from "./agent";
 import { MessageResource } from "./messages";
 import { db, Tx } from "../db";
-import { TokenUsage } from "../metrics/types";
+import { TokenUsage } from "../models/index";
 import { ExperimentResource } from "./experiment";
 
 export class TokenUsageResource {
