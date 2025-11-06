@@ -1,6 +1,12 @@
 import { ResponseInputItem } from "openai/resources/responses/responses";
-import { BaseModel, ModelConfig, Message, Tool, ToolChoice } from "./index";
-import { TokenUsage } from "../metrics";
+import {
+  BaseModel,
+  ModelConfig,
+  Message,
+  Tool,
+  ToolChoice,
+  TokenUsage,
+} from "./index";
 
 import OpenAI from "openai";
 import { normalizeError, SrchdError } from "../lib/error";

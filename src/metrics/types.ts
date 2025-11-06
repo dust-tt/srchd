@@ -1,11 +1,3 @@
-export type TokenUsage = {
-  total: number;
-  input: number;
-  output: number;
-  cached: number;
-  thinking: number;
-};
-
 export type ExperimentMessageMetrics = {
   totalMessages: number;
   toolCalls: number;
