@@ -2,6 +2,7 @@ import type { JSONSchema7 as JSONSchema } from "json-schema";
 import { Result } from "../lib/result";
 import { SrchdError } from "../lib/error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
+import { TokenUsage } from "../metrics";
 
 export type provider = "gemini" | "anthropic" | "openai" | "mistral";
 export function isProvider(str: string): str is provider {
@@ -9,14 +10,6 @@ export function isProvider(str: string): str is provider {
 }
 
 export type ProviderData = Partial<Record<provider, any>>;
-
-export type TokenUsage = {
-  total: number;
-  input: number;
-  output: number;
-  cached: number;
-  thinking: number;
-};
 
 export interface TextContent {
   type: "text";
