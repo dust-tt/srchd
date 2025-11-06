@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "65dbee2b-6bed-409e-8630-0d1a0d87accb",
+  "id": "6535c2ba-305a-4754-9389-23a4ce75cca2",
   "prevId": "502ec128-00ff-4637-abf9-27f843266da3",
   "tables": {
     "agents": {
@@ -69,7 +69,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'[\"computer\", \"goal_solution\", \"publications\", \"system_prompt_self_edit\"]'"
+          "default": "'[\"goal_solution\", \"publications\", \"system_prompt_self_edit\"]'"
         }
       },
       "indexes": {
