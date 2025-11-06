@@ -14,7 +14,8 @@ import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
 import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
-import app from "./server";
+import localApp from "./server/local";
+import prodApp from "./server/production";
 import { isMistralModel } from "./models/mistral";
 import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools/constants";
 
@@ -477,8 +478,9 @@ agentCmd
 program
   .command("serve")
   .description("Start the web UI server")
+  .argument("<env>", "Environment to run in (local, production)")
   .option("-p, --port <port>", "Port to serve on", "1337")
-  .action(async (options) => {
+  .action(async (env, options) => {
     const port = parseInt(options.port);
     if (isNaN(port) || port < 1 || port > 65535) {
       return exitWithError(
@@ -491,12 +493,28 @@ program
       );
     }
 
-    console.log(`Starting server on http://localhost:${port}`);
+    console.log(`Starting ${env} server on http://localhost:${port}`);
 
-    serve({
-      fetch: app.fetch,
-      port,
-    });
+    if (env === "local") {
+      serve({
+        fetch: localApp.fetch,
+        port,
+      });
+    } else if (env === "production") {
+      serve({
+        fetch: prodApp.fetch,
+        port,
+      });
+    } else {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            "Environment must be either 'local' or 'production'.",
+          ),
+        ),
+      );
+    }
   });
 
 program.parse();
