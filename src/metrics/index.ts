@@ -40,9 +40,6 @@ export class Metrics {
       return undefined;
     }
     const fullMessages = messages.map((msg) => msg.toJSON());
-    const userMessages = fullMessages.filter(
-      (msg) => msg.role === "user",
-    ).length;
     const agentMessages = fullMessages.filter(
       (msg) => msg.role === "agent",
     ).length;
@@ -57,7 +54,6 @@ export class Metrics {
       totalMessages,
       toolCalls,
       thinking,
-      userMessages,
       agentMessages,
     };
   }
@@ -65,8 +61,8 @@ export class Metrics {
   /**
    * Calculates the following metrics for an agent:
    * - Total number of messages
-   * - Number of tool call messages
-   * - Number of thinking messages
+   * - Number of tool calls
+   * - Number of thinking content
    * - Number of agentic loops
    * - Average number of messages per agentic loop
    * - Average number of tool calls per agentic loop
@@ -89,12 +85,16 @@ export class Metrics {
     }
 
     const fullMessages = messages.map((msg) => msg.toJSON());
-    const toolCalls = fullMessages.filter((msg) =>
-      msg.content.some((c) => c.type === "tool_use"),
-    ).length;
-    const thinking = fullMessages.filter((msg) =>
-      msg.content.some((c) => c.type === "thinking"),
-    ).length;
+    const toolCalls = fullMessages.reduce(
+      (acc, msg) =>
+        msg.content.filter((c) => c.type === "tool_use").length + acc,
+      0,
+    );
+    const thinking = fullMessages.reduce(
+      (acc, msg) =>
+        msg.content.filter((c) => c.type === "thinking").length + acc,
+      0,
+    );
     const agenticLoops = fullMessages.filter(
       (msg) =>
         msg.role === "user" && msg.content.every((c) => c.type === "text"),
@@ -119,12 +119,11 @@ export class Metrics {
         thinkingPerAgenticLoopAgg.push(0);
       }
 
-      if (content_types.some((t) => t === "tool_use")) {
-        toolCallsPerAgenticLoopAgg[agenticLoopsPassed]++;
-      }
-      if (content_types.some((t) => t === "thinking")) {
-        thinkingPerAgenticLoopAgg[agenticLoopsPassed]++;
-      }
+      const tooluses = content_types.filter((t) => t === "tool_use").length;
+      toolCallsPerAgenticLoopAgg[agenticLoopsPassed] += tooluses;
+
+      const thinkings = content_types.filter((t) => t === "thinking").length;
+      thinkingPerAgenticLoopAgg[agenticLoopsPassed] += thinkings;
     }
 
     const messagesPerAgenticLoop =

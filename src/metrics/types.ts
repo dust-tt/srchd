@@ -4,7 +4,6 @@ export type ExperimentMessageMetrics = {
   totalMessages: number;
   toolCalls: number;
   thinking: number;
-  userMessages: number;
   agentMessages: number;
 };
 
