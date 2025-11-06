@@ -12,8 +12,8 @@ import {
   ToolChoice,
   TextContent,
   ToolUse,
-  TokenUsage,
 } from "./index";
+import { TokenUsage } from "../metrics";
 import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError } from "../lib/error";
 import { assertNever } from "../lib/assert";
