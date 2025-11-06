@@ -10,8 +10,8 @@ const SERVER_VERSION = "0.1.0";
 export async function createWebServer(): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "Web Tools",
-    description: "Tools to Search and browse the web",
+    title: "Web Browsing & Search",
+    description: "Tools to search and browse the web",
     version: SERVER_VERSION,
   });
 
@@ -20,39 +20,42 @@ export async function createWebServer(): Promise<McpServer> {
 
   server.tool(
     "fetch",
-    "Returns a Markdown-formatted content of the webpage at url. (Capped at 8196 characters)",
+    "Returns a Markdown-formatted content of the webpage at url.",
     {
-      url: z
-        .string()
-        .describe("The URL of the webpage to fetch. Must be a valid URL."),
+      url: z.string().describe("The URL of the webpage to fetch."),
       offset: z
         .number()
-        .describe("The offset (in chars) of the content to fetch.")
+        .describe(
+          "The offset (in number of characters) of the content to fetch. (Default: 0)",
+        )
         .default(0),
-      limit: z
+      length: z
         .number()
-        .describe("The limit (in chars) of the content to fetch. (Max 8196)")
+        .describe(
+          " length (in number of characters) of the data returned from the fetched content (max\
+          8169, defaults to 8196).",
+        )
         .default(8196),
     },
     async ({
       url,
       offset,
-      limit,
+      length,
     }: {
       url: string;
       offset: number;
-      limit: number;
+      length: number;
     }) => {
       const scrapeResponse = await firecrawl.scrapeUrl(url, {
         // By default cache-expiry is already set to 2 days.
         formats: ["markdown"],
       });
 
-      if (limit > 8196) {
+      if (length > 8196) {
         return errorToCallToolResult(
           new SrchdError(
             "web_fetch_error",
-            `The limit of ${limit} characters is too large. It must be less than 8196.`,
+            `The length of ${length} characters is too large. It must be less than 8196.`,
           ),
         );
       }
@@ -85,26 +88,24 @@ export async function createWebServer(): Promise<McpServer> {
     "search",
     "Returns list of search results for the query.",
     {
-      query: z
-        .string()
-        .describe("The query to search for. Must be a valid query."),
-      limit: z
+      query: z.string().describe("The query to search for."),
+      count: z
         .number()
-        .describe("The limit of search results to return. (Max 20)")
+        .describe("The number of results to return (max 20, defaults to 10).")
         .default(10),
     },
-    async ({ query, limit }: { query: string; limit: number }) => {
-      if (limit > 20) {
+    async ({ query, count }: { query: string; count: number }) => {
+      if (count > 20) {
         return errorToCallToolResult(
           new SrchdError(
             "web_search_error",
-            `The limit of ${limit} results is too large. It must be less than 20.`,
+            `The count of ${count} results is too large. It must be less than 20.`,
           ),
         );
       }
 
       const searchResponse = await firecrawl.search(query, {
-        limit,
+        limit: count,
       });
 
       if (searchResponse.success) {
