@@ -16,7 +16,7 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
-import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools/registry";
+import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools/constants";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
