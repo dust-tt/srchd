@@ -134,7 +134,38 @@ tokensMetric
       );
     }
 
-    const metrics = await Metrics.tokens(experimentRes);
+    const metrics = await Metrics.experimentTokens(experimentRes);
+    if (!metrics) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    console.table([metrics]);
+  });
+
+tokensMetric
+  .command("full")
+  .argument("<experiment>", "Experiment name")
+  .action(async (experiment) => {
+    const experimentRes = await ExperimentResource.findByName(experiment);
+    if (!experimentRes) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    const metrics = await Metrics.fullTokens(experimentRes);
     if (!metrics) {
       return exitWithError(
         new Err(
@@ -153,7 +184,7 @@ tokensMetric
       },
     ]);
     const agents = [];
-    for (const { name, usage } of Object.values(metrics.agentsTokenUsage)) {
+    for (const [name, usage] of Object.entries(metrics.agentsTokenUsage)) {
       agents.push({ name, ...usage });
     }
     console.table(agents);

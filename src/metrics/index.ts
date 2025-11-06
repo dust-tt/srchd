@@ -71,11 +71,13 @@ export class Metrics {
     const toolCallsPerAgenticLoopAgg = [0];
     const thinkingPerAgenticLoopAgg = [0];
     let agenticLoopsPassed = 0;
-    for (let i = 0; i < fullMessages.length; i++) {
-      if (
-        fullMessages[i].role === "user" &&
-        fullMessages[i].content.every((c) => c.type === "text")
-      ) {
+    // We start at 1 because the first message is always the user's first message
+    for (let i = 1; i < fullMessages.length; i++) {
+      messagesPerAgenticLoopAgg[agenticLoopsPassed]++;
+      const role = fullMessages[i].role;
+      const content_types = fullMessages[i].content.map((c) => c.type);
+
+      if (role === "user" && content_types.every((t) => t === "text")) {
         // On each agentic loop we aggregate on a new index
         agenticLoopsPassed += 1;
         messagesPerAgenticLoopAgg.push(0);
@@ -83,24 +85,20 @@ export class Metrics {
         thinkingPerAgenticLoopAgg.push(0);
       }
 
-      messagesPerAgenticLoopAgg[agenticLoopsPassed] += 1;
-      if (fullMessages[i].content.some((c) => c.type === "tool_use")) {
-        toolCallsPerAgenticLoopAgg[agenticLoopsPassed] += 1;
+      if (content_types.some((t) => t === "tool_use")) {
+        toolCallsPerAgenticLoopAgg[agenticLoopsPassed]++;
       }
-      if (fullMessages[i].content.some((c) => c.type === "thinking")) {
-        thinkingPerAgenticLoopAgg[agenticLoopsPassed] += 1;
+      if (content_types.some((t) => t === "thinking")) {
+        thinkingPerAgenticLoopAgg[agenticLoopsPassed]++;
       }
     }
 
-    const messagesPerAgenticLoop =
-      messagesPerAgenticLoopAgg.reduce((acc, cur) => acc + cur, 0) /
-      agenticLoops;
-    const toolCallsPerAgenticLoop =
-      toolCallsPerAgenticLoopAgg.reduce((acc, cur) => acc + cur, 0) /
-      agenticLoops;
-    const thinkingPerAgenticLoop =
-      thinkingPerAgenticLoopAgg.reduce((acc, cur) => acc + cur, 0) /
-      agenticLoops;
+    // ∑ (x/n) = (∑ x)/n
+    const avg = (acc: number, cur: number) => acc + cur / agenticLoops;
+
+    const messagesPerAgenticLoop = messagesPerAgenticLoopAgg.reduce(avg, 0);
+    const toolCallsPerAgenticLoop = toolCallsPerAgenticLoopAgg.reduce(avg, 0);
+    const thinkingPerAgenticLoop = thinkingPerAgenticLoopAgg.reduce(avg, 0);
 
     return {
       totalMessages,
@@ -113,26 +111,36 @@ export class Metrics {
     };
   }
 
-  static async tokens(experiment: ExperimentResource): Promise<TokenMetrics> {
+  static async fullTokens(
+    experiment: ExperimentResource,
+  ): Promise<TokenMetrics> {
+    const experimentTokenUsage = await this.experimentTokens(experiment);
+
     const agents = await AgentResource.listByExperiment(experiment);
-    const experimentTokenUsage =
-      await TokenUsageResource.getExperimentTokenUsage(experiment);
     const agentsTokenUsage: {
-      [agentId: string]: { name: string; usage: TokenUsage };
+      [agentName: string]: TokenUsage;
     } = {};
     for (const agent of agents) {
-      agentsTokenUsage[agent.toJSON().id] = {
-        name: agent.toJSON().name,
-        usage: await TokenUsageResource.getAgentTokenUsage(experiment, agent),
-      };
+      agentsTokenUsage[agent.toJSON().name] = await this.agentTokens(
+        experiment,
+        agent,
+      );
     }
+
     const tokenThroughput =
       await TokenUsageResource.getTokenThroughput(experiment);
+
     return {
       experimentTokenUsage,
       agentsTokenUsage,
       tokenThroughput,
     };
+  }
+
+  static async experimentTokens(
+    experiment: ExperimentResource,
+  ): Promise<TokenUsage> {
+    return await TokenUsageResource.getExperimentTokenUsage(experiment);
   }
 
   static async agentTokens(
