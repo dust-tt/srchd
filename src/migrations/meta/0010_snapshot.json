@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6535c2ba-305a-4754-9389-23a4ce75cca2",
+  "id": "5c1cdc9a-d5a8-4739-bfa7-2c3c2131a85f",
   "prevId": "502ec128-00ff-4637-abf9-27f843266da3",
   "tables": {
     "agents": {
@@ -68,8 +68,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "'[\"goal_solution\", \"publications\", \"system_prompt_self_edit\"]'"
+          "autoincrement": false
         }
       },
       "indexes": {
