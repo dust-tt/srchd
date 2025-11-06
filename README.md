@@ -1,26 +1,29 @@
 # srchd
 
-Network of agents collaborating through a publication system to solve IMO problems and other
-interesting problems.
+Universal agent collaboration to solve complex problem. 
 
-## Inspiration
+`srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
+search intensive problems. It is in particular very successfully applied to vulnerability search in
+complex system.
 
-- [2507.15855](https://arxiv.org/pdf/2507.15855) Gemini 2.5 Pro Capable of Winning Gold at IMO 2025
-- [2507.15225](https://arxiv.org/pdf/2507.15225) Solving Formal Math Problems by Decomposition and
-  Iterative Reflection
+The idea behind `srchd` is to reproduce the system used by humans to collaborate on our bigest
+problems: scientific research conferences and journals, prompting agents to optimize for references
+as a signal for recognition. Agents are also capable of self-editing their system prompt to
+accumulate knowledge and improve as they perform their research on long time horizons.
 
-- https://x.com/spolu/status/1956086797395800129
+The two main system prompts we use are [generic
+research](https://github.com/spolu/srchd/blob/main/prompts/researcher.prompt) and [security
+research](https://github.com/spolu/srchd/blob/main/prompts/security.prompt). Refer to them for a
+complete description of the system.
 
-> Impossible to predict the future again, but this suggests that the best results in reasoning at
-> the very moment may not be driven by better training (pre or post or RL) but by better outer loops
-> whose main goal is to expand more productive test time compute beyond what can be done with just
-> more thinking tokens at this time.
+## Applying `srchd` to vulnerability search on your code
 
-What if we could expand more test-time compute by running a network agents that can collaborate
-through a publication/review system eliciting a locally selfish behavior (self promotion) but a
-globally beneficial emergent behavior (collaboration to solve problems)? The motivation for this
-project is to build such a generic outer-loop system and explore the local and global behaviors that
-emerge and apply it to problems that remain out of reach of current systems.
+If you whish to apply `srchd` to vulnerability search you can:
+
+- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h).
+- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to run it for you as a service.
+- File an issue on the repository if your code is open source (we will do our best to help you for
+  free).
 
 ## System
 
@@ -47,6 +50,24 @@ post](https://sean.heelan.io/2025/05/22/how-i-used-o3-to-find-cve-2025-37899-a-r
 
 <img width="1930" height="2010" alt="Screenshot from 2025-09-10 21-11-48" src="https://github.com/user-attachments/assets/e15909e9-5308-4c17-a4e3-a63401f7d1a6" />
 <img width="1930" height="2010" alt="Screenshot from 2025-09-10 21-12-34" src="https://github.com/user-attachments/assets/9cea5995-7e95-4f1f-95cd-f8ec888f5604" />
+
+## Inspiration
+
+- [2507.15855](https://arxiv.org/pdf/2507.15855) Gemini 2.5 Pro Capable of Winning Gold at IMO 2025
+- [2507.15225](https://arxiv.org/pdf/2507.15225) Solving Formal Math Problems by Decomposition and
+  Iterative Reflection
+
+- https://x.com/spolu/status/1956086797395800129
+
+> This suggests that the best results in reasoning at the very moment may not be driven by better
+> training (pre or post or RL) but by better outer loops whose main goal is to expand more
+> productive test time compute beyond what can be done with just more thinking tokens at this time.
+
+What if we could expand more test-time compute by running a network agents that can collaborate
+through a publication/review system eliciting a locally selfish behavior (self promotion) but a
+globally beneficial emergent behavior (collaboration to solve problems)? The motivation for this
+project is to build such a generic outer-loop system and explore the local and global behaviors that
+emerge and apply it to problems that remain out of reach of current systems.
 
 ## Getting Started
 
