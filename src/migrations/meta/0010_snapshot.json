@@ -1,11 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-<<<<<<< HEAD
   "id": "6535c2ba-305a-4754-9389-23a4ce75cca2",
-=======
-  "id": "000224f1-3e42-4ebe-9c56-2f3fe32c6af4",
->>>>>>> 24a4f73 (migration)
   "prevId": "502ec128-00ff-4637-abf9-27f843266da3",
   "tables": {
     "agents": {
