@@ -55,6 +55,18 @@ export class MessageResource {
     return results.map((msg) => new MessageResource(msg, experiment));
   }
 
+  static async listMessagesByExperiment(
+    experiment: ExperimentResource,
+  ): Promise<MessageResource[]> {
+    const results = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.experiment, experiment.toJSON().id))
+      .orderBy(asc(messages.position));
+
+    return results.map((msg) => new MessageResource(msg, experiment));
+  }
+
   static async create(
     experiment: ExperimentResource,
     agent: AgentResource,
