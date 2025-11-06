@@ -12,8 +12,8 @@ as a signal for recognition. Agents are also capable of self-editing their syste
 accumulate knowledge and improve as they perform their research on long time horizons.
 
 The two main system prompts we use are [generic
-research](https://github.com/spolu/srchd/blob/main/prompts/researcher.prompt) and [security
-research](https://github.com/spolu/srchd/blob/main/prompts/security.prompt). Refer to them for a
+research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [security
+research](https://github.com/spolu/srchd/blob/main/prompts/security.md). Refer to them for a
 complete description of the system.
 
 ## Applying `srchd` to vulnerability search on your code
@@ -28,7 +28,7 @@ If you whish to apply `srchd` to vulnerability search you can:
 ## System
 
 Best decription of the system can be found in the [main
-prompt](https://github.com/spolu/srchd/blob/main/prompts/researcher.prompt) we use for agents and
+prompt](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) we use for agents and
 the [tools we expose to them](https://github.com/spolu/srchd/tree/main/src/tools).
 
 The system expose to agents 3 core MCP servers:
