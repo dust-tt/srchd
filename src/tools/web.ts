@@ -26,13 +26,14 @@ export async function createWebServer(): Promise<McpServer> {
       offset: z
         .number()
         .describe(
-          "The offset (in number of characters) of the content to fetch. (Default: 0)",
+          "The offset (in number of characters) of the content to fetch (supports unauthenticated\
+        web pages and PDFs). (default: 0)",
         )
         .default(0),
       length: z
         .number()
         .describe(
-          " length (in number of characters) of the data returned from the fetched content (max\
+          "length (in number of characters) of the data returned from the fetched content (max\
           8169, defaults to 8196).",
         )
         .default(8196),
