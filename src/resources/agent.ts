@@ -165,7 +165,7 @@ export class AgentResource {
       ...this.data,
       // DB is only used to store extra tools
       tools: this.data.tools
-        ? Array(new Set([DEFAULT_TOOLS, ...this.data.tools]))
+        ? [...this.data.tools, ...DEFAULT_TOOLS]
         : DEFAULT_TOOLS,
       system: this.evolutions[0].system,
       evolutions: this.evolutions,

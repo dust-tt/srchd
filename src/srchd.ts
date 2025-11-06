@@ -16,7 +16,11 @@ import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
-import { isToolNameList, TOOLS, DEFAULT_TOOLS } from "./tools/constants";
+import {
+  isToolNameList,
+  DEFAULT_TOOLS,
+  NON_DEFAULT_TOOLS,
+} from "./tools/constants";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -197,7 +201,7 @@ agentCmd
       const provider = options.provider ?? "anthropic";
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
-      const tools = options.tool ?? DEFAULT_TOOLS;
+      const tools = options.tool ?? [];
 
       if (!isProvider(provider)) {
         return exitWithError(
@@ -244,7 +248,8 @@ agentCmd
           new Err(
             new SrchdError(
               "invalid_parameters_error",
-              `Tools '${tools}' are not valid. Use one or more of: [${TOOLS.join(", ")}].`,
+              `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
+              The default tools: ${DEFAULT_TOOLS.join(", ")} are always included.`,
             ),
           ),
         );
