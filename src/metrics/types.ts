@@ -1,3 +1,5 @@
+import { TokenUsage } from "../models";
+
 export type ExperimentMessageMetrics = {
   totalMessages: number;
   toolCalls: number;
@@ -14,4 +16,10 @@ export type AgentMessageMetrics = {
   messagesPerAgenticLoop: number;
   toolCallsPerAgenticLoop: number;
   thinkingPerAgenticLoop: number;
+};
+
+export type TokenMetrics = {
+  experimentTokenUsage: TokenUsage;
+  agentsTokenUsage: { [agentId: string]: { name: string; usage: TokenUsage } };
+  tokenThroughput?: number;
 };
