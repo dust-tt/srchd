@@ -74,10 +74,7 @@
       "indexes": {
         "agents_name_experiment_unique": {
           "name": "agents_name_experiment_unique",
-          "columns": [
-            "name",
-            "experiment"
-          ],
+          "columns": ["name", "experiment"],
           "isUnique": true
         }
       },
@@ -86,12 +83,8 @@
           "name": "agents_experiment_experiments_id_fk",
           "tableFrom": "agents",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -149,11 +142,7 @@
       "indexes": {
         "citations_from_to_experiment_unique": {
           "name": "citations_from_to_experiment_unique",
-          "columns": [
-            "from",
-            "to",
-            "experiment"
-          ],
+          "columns": ["from", "to", "experiment"],
           "isUnique": true
         }
       },
@@ -162,12 +151,8 @@
           "name": "citations_experiment_experiments_id_fk",
           "tableFrom": "citations",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -175,12 +160,8 @@
           "name": "citations_from_publications_id_fk",
           "tableFrom": "citations",
           "tableTo": "publications",
-          "columnsFrom": [
-            "from"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["from"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -188,12 +169,8 @@
           "name": "citations_to_publications_id_fk",
           "tableFrom": "citations",
           "tableTo": "publications",
-          "columnsFrom": [
-            "to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["to"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -251,11 +228,7 @@
       "indexes": {
         "evolutions_idx_experiment_agent_created": {
           "name": "evolutions_idx_experiment_agent_created",
-          "columns": [
-            "experiment",
-            "agent",
-            "created"
-          ],
+          "columns": ["experiment", "agent", "created"],
           "isUnique": false
         }
       },
@@ -264,12 +237,8 @@
           "name": "evolutions_experiment_experiments_id_fk",
           "tableFrom": "evolutions",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -277,12 +246,8 @@
           "name": "evolutions_agent_agents_id_fk",
           "tableFrom": "evolutions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -333,9 +298,7 @@
       "indexes": {
         "experiments_name_unique": {
           "name": "experiments_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },
@@ -407,11 +370,7 @@
       "indexes": {
         "messages_experiment_agent_position_unique": {
           "name": "messages_experiment_agent_position_unique",
-          "columns": [
-            "experiment",
-            "agent",
-            "position"
-          ],
+          "columns": ["experiment", "agent", "position"],
           "isUnique": true
         }
       },
@@ -420,12 +379,8 @@
           "name": "messages_experiment_experiments_id_fk",
           "tableFrom": "messages",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -433,12 +388,8 @@
           "name": "messages_agent_agents_id_fk",
           "tableFrom": "messages",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -524,10 +475,7 @@
       "indexes": {
         "publications_experiment_reference_unique": {
           "name": "publications_experiment_reference_unique",
-          "columns": [
-            "experiment",
-            "reference"
-          ],
+          "columns": ["experiment", "reference"],
           "isUnique": true
         }
       },
@@ -536,12 +484,8 @@
           "name": "publications_experiment_experiments_id_fk",
           "tableFrom": "publications",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -549,12 +493,8 @@
           "name": "publications_author_agents_id_fk",
           "tableFrom": "publications",
           "tableTo": "agents",
-          "columnsFrom": [
-            "author"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -626,10 +566,7 @@
       "indexes": {
         "reviews_author_publication_unique": {
           "name": "reviews_author_publication_unique",
-          "columns": [
-            "author",
-            "publication"
-          ],
+          "columns": ["author", "publication"],
           "isUnique": true
         }
       },
@@ -638,12 +575,8 @@
           "name": "reviews_experiment_experiments_id_fk",
           "tableFrom": "reviews",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -651,12 +584,8 @@
           "name": "reviews_publication_publications_id_fk",
           "tableFrom": "reviews",
           "tableTo": "publications",
-          "columnsFrom": [
-            "publication"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["publication"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -664,12 +593,8 @@
           "name": "reviews_author_agents_id_fk",
           "tableFrom": "reviews",
           "tableTo": "agents",
-          "columnsFrom": [
-            "author"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -741,11 +666,7 @@
       "indexes": {
         "solutions_idx_experiment_agent_created": {
           "name": "solutions_idx_experiment_agent_created",
-          "columns": [
-            "experiment",
-            "agent",
-            "created"
-          ],
+          "columns": ["experiment", "agent", "created"],
           "isUnique": false
         }
       },
@@ -754,12 +675,8 @@
           "name": "solutions_experiment_experiments_id_fk",
           "tableFrom": "solutions",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -767,12 +684,8 @@
           "name": "solutions_publication_publications_id_fk",
           "tableFrom": "solutions",
           "tableTo": "publications",
-          "columnsFrom": [
-            "publication"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["publication"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -780,12 +693,8 @@
           "name": "solutions_agent_agents_id_fk",
           "tableFrom": "solutions",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -878,10 +787,7 @@
       "indexes": {
         "token_usages_idx_experiment_agent": {
           "name": "token_usages_idx_experiment_agent",
-          "columns": [
-            "experiment",
-            "agent"
-          ],
+          "columns": ["experiment", "agent"],
           "isUnique": false
         }
       },
@@ -890,12 +796,8 @@
           "name": "token_usages_experiment_experiments_id_fk",
           "tableFrom": "token_usages",
           "tableTo": "experiments",
-          "columnsFrom": [
-            "experiment"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["experiment"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -903,12 +805,8 @@
           "name": "token_usages_agent_agents_id_fk",
           "tableFrom": "token_usages",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -916,12 +814,8 @@
           "name": "token_usages_message_messages_id_fk",
           "tableFrom": "token_usages",
           "tableTo": "messages",
-          "columnsFrom": [
-            "message"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
