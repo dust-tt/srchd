@@ -44,27 +44,27 @@ const metricsCmd = program.command("metrics").description("Show metrics");
 metricsCmd
   .command("experiment")
   .description("Show experiment metrics")
-  .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .action(async (options) => {
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
+  .argument("<experiment>", "Experiment name")
+  .action(async (experiment) => {
+    const experimentRes = await ExperimentResource.findByName(experiment);
+    if (!experimentRes) {
       return exitWithError(
         new Err(
           new SrchdError(
             "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
+            `Experiment '${experiment}' not found.`,
           ),
         ),
       );
     }
 
-    const metrics = await Metrics.experimentMessages(experiment);
+    const metrics = await Metrics.experimentMessages(experimentRes);
     if (!metrics) {
       return exitWithError(
         new Err(
           new SrchdError(
             "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
+            `Experiment '${experiment}' not found.`,
           ),
         ),
       );
@@ -76,9 +76,9 @@ metricsCmd
 metricsCmd
   .command("agent")
   .description("Show agent metrics")
+  .argument("<agent>", "Agent name")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .requiredOption("-a, --agent <agent>", "Agent name")
-  .action(async (options) => {
+  .action(async (agent, options) => {
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
@@ -91,8 +91,8 @@ metricsCmd
       );
     }
 
-    const agent = await AgentResource.findByName(experiment, options.agent);
-    if (!agent) {
+    const agentRes = await AgentResource.findByName(experiment, agent);
+    if (!agentRes) {
       return exitWithError(
         new Err(
           new SrchdError(
@@ -103,7 +103,7 @@ metricsCmd
       );
     }
 
-    const metrics = await Metrics.agentMessages(experiment, agent);
+    const metrics = await Metrics.agentMessages(experiment, agentRes);
     if (!metrics) {
       return exitWithError(
         new Err(
@@ -118,30 +118,33 @@ metricsCmd
     console.table([metrics]);
   });
 
-metricsCmd
+const tokensMetric = metricsCmd
   .command("tokens")
-  .description("Show token usage")
-  .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .action(async (options) => {
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
+  .description("Show token usage");
+
+tokensMetric
+  .command("experiment")
+  .argument("<experiment>", "Experiment name")
+  .action(async (experiment) => {
+    const experimentRes = await ExperimentResource.findByName(experiment);
+    if (!experimentRes) {
       return exitWithError(
         new Err(
           new SrchdError(
             "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
+            `Experiment '${experiment}' not found.`,
           ),
         ),
       );
     }
 
-    const metrics = await Metrics.tokens(experiment);
+    const metrics = await Metrics.tokens(experimentRes);
     if (!metrics) {
       return exitWithError(
         new Err(
           new SrchdError(
             "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
+            `Experiment '${experiment}' not found.`,
           ),
         ),
       );
@@ -158,6 +161,50 @@ metricsCmd
       agents.push({ name, ...usage });
     }
     console.table(agents);
+  });
+
+tokensMetric
+  .command("agent")
+  .argument("<agent>", "Agent name")
+  .requiredOption("-e, --experiment <experiment>", "Experiment name")
+  .action(async (agent, options) => {
+    const experiment = await ExperimentResource.findByName(options.experiment);
+    if (!experiment) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${options.experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    const agentRes = await AgentResource.findByName(experiment, agent);
+    if (!agentRes) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Agent '${agent}' not found in experiment '${options.experiment}'.`,
+          ),
+        ),
+      );
+    }
+
+    const metrics = await Metrics.agentTokens(experiment, agentRes);
+    if (!metrics) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${options.experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    console.table([metrics]);
   });
 
 // Experiment commands
