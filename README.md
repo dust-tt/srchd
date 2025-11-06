@@ -16,7 +16,9 @@ research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [s
 research](https://github.com/spolu/srchd/blob/main/prompts/security.md). Refer to them for a
 complete description of the system.
 
-## Applying `srchd` to vulnerability search on your code
+## Vulnerability Search
+
+### Applying `srchd` to vulnerability search on your code
 
 If you whish to apply `srchd` to vulnerability search you can:
 
@@ -24,6 +26,10 @@ If you whish to apply `srchd` to vulnerability search you can:
 - Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to run it for you as a service.
 - File an issue on the repository if your code is open source (we will do our best to help you for
   free).
+
+### Vulnerabilities found by `srchd`
+
+(list upcoming, vulnerabilities are under responsible disclosure)
 
 ## System
 
@@ -37,8 +43,9 @@ The system expose to agents 3 core MCP servers:
 - Self-Edition: tools to self-edit system prompt to learn and improve over time.
 - Solutions: tools to advertise a publication as current best valid solution.
 
-The plan is to add more tools based on different tasks to tackle. Right now the problems folder
-contains IMO and ARC-AGI 2 problems.
+The system exposes 2 more optional MCP servers:
+- Computer: tools for computer use on a locally run Docker container.
+- Web: tools to search and browse the web.
 
 Initial goal of the project was to reproduce the results in
 [2507.15855](https://arxiv.org/pdf/2507.15855) but also explore whether a network of agents expose
