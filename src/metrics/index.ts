@@ -7,10 +7,11 @@ import {
   ExperimentMessageMetrics,
   AgentMessageMetrics,
   TokenMetrics,
+  MessageMetrics,
 } from "./types";
 
 export class Metrics {
-  static async experimentMessages(
+  private static async experimentMessages(
     experiment: ExperimentResource,
   ): Promise<ExperimentMessageMetrics | undefined> {
     const messages = await MessageResource.listMessagesByExperiment(experiment);
@@ -41,7 +42,7 @@ export class Metrics {
     };
   }
 
-  static async agentMessages(
+  private static async agentMessages(
     experiment: ExperimentResource,
     agent: AgentResource,
   ): Promise<AgentMessageMetrics | undefined> {
@@ -108,6 +109,33 @@ export class Metrics {
       messagesPerAgenticLoop,
       toolCallsPerAgenticLoop,
       thinkingPerAgenticLoop,
+    };
+  }
+
+  static async messages(
+    experiment: ExperimentResource,
+  ): Promise<MessageMetrics | undefined> {
+    const experimentMetrics = await Metrics.experimentMessages(experiment);
+    if (!experimentMetrics) {
+      return undefined;
+    }
+    const agents = await AgentResource.listByExperiment(experiment);
+
+    const agentsMetrics: {
+      [agentName: string]: AgentMessageMetrics;
+    } = {};
+
+    for (const agent of agents) {
+      const metrics = await Metrics.agentMessages(experiment, agent);
+      if (!metrics) {
+        // Note: this shouldn't happen as all the agents are extracted from the experiment
+        continue;
+      }
+      agentsMetrics[agent.toJSON().name] = metrics;
+    }
+    return {
+      experiment: experimentMetrics,
+      agents: agentsMetrics,
     };
   }
 
