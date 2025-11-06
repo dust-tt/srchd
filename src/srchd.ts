@@ -21,6 +21,8 @@ import {
   NON_DEFAULT_TOOLS,
 } from "./tools/constants";
 import { Metrics } from "./metrics";
+import { TokenFlags } from "typescript";
+import { TokenUsageResource } from "./resources/token_usage";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -123,37 +125,6 @@ const tokensMetric = metricsCmd
   .description("Show token usage");
 
 tokensMetric
-  .command("experiment")
-  .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => {
-    const experimentRes = await ExperimentResource.findByName(experiment);
-    if (!experimentRes) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    const metrics = await Metrics.experimentTokens(experimentRes);
-    if (!metrics) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    console.table([metrics]);
-  });
-
-tokensMetric
   .command("full")
   .argument("<experiment>", "Experiment name")
   .action(async (experiment) => {
@@ -169,7 +140,7 @@ tokensMetric
       );
     }
 
-    const metrics = await Metrics.fullTokens(experimentRes);
+    const metrics = await Metrics.tokenUsage(experimentRes);
     if (!metrics) {
       return exitWithError(
         new Err(
@@ -192,6 +163,38 @@ tokensMetric
       agents.push({ name, ...usage });
     }
     console.table(agents);
+  });
+
+tokensMetric
+  .command("experiment")
+  .argument("<experiment>", "Experiment name")
+  .action(async (experiment) => {
+    const experimentRes = await ExperimentResource.findByName(experiment);
+    if (!experimentRes) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    const metrics =
+      await TokenUsageResource.getExperimentTokenUsage(experimentRes);
+    if (!metrics) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${experiment}' not found.`,
+          ),
+        ),
+      );
+    }
+
+    console.table([metrics]);
   });
 
 tokensMetric
@@ -223,7 +226,10 @@ tokensMetric
       );
     }
 
-    const metrics = await Metrics.agentTokens(experiment, agentRes);
+    const metrics = await TokenUsageResource.getAgentTokenUsage(
+      experiment,
+      agentRes,
+    );
     if (!metrics) {
       return exitWithError(
         new Err(

@@ -111,20 +111,19 @@ export class Metrics {
     };
   }
 
-  static async fullTokens(
+  static async tokenUsage(
     experiment: ExperimentResource,
   ): Promise<TokenMetrics> {
-    const experimentTokenUsage = await this.experimentTokens(experiment);
+    const experimentTokenUsage =
+      await TokenUsageResource.getExperimentTokenUsage(experiment);
 
     const agents = await AgentResource.listByExperiment(experiment);
     const agentsTokenUsage: {
       [agentName: string]: TokenUsage;
     } = {};
     for (const agent of agents) {
-      agentsTokenUsage[agent.toJSON().name] = await this.agentTokens(
-        experiment,
-        agent,
-      );
+      agentsTokenUsage[agent.toJSON().name] =
+        await TokenUsageResource.getAgentTokenUsage(experiment, agent);
     }
 
     const tokenThroughput =
@@ -135,18 +134,5 @@ export class Metrics {
       agentsTokenUsage,
       tokenThroughput,
     };
-  }
-
-  static async experimentTokens(
-    experiment: ExperimentResource,
-  ): Promise<TokenUsage> {
-    return await TokenUsageResource.getExperimentTokenUsage(experiment);
-  }
-
-  static async agentTokens(
-    experiment: ExperimentResource,
-    agent: AgentResource,
-  ): Promise<TokenUsage> {
-    return await TokenUsageResource.getAgentTokenUsage(experiment, agent);
   }
 }
