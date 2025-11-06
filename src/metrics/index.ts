@@ -1,36 +1,19 @@
+import { TokenUsage } from "../models";
 import { AgentResource } from "../resources/agent";
 import { ExperimentResource } from "../resources/experiment";
 import { MessageResource } from "../resources/messages";
-import { PublicationResource } from "../resources/publication";
-import { ExperimentMessageMetrics, AgentMessageMetrics } from "./types";
+import { TokenUsageResource } from "../resources/token_usage";
+import {
+  ExperimentMessageMetrics,
+  AgentMessageMetrics,
+  TokenMetrics,
+} from "./types";
 
 export class Metrics {
-  private experiment: ExperimentResource;
-  private agents: AgentResource[];
-  private publications: PublicationResource[];
-
-  constructor(
+  static async experimentMessages(
     experiment: ExperimentResource,
-    agents: AgentResource[],
-    publications: PublicationResource[],
-  ) {
-    this.experiment = experiment;
-    this.agents = agents;
-    this.publications = publications;
-  }
-
-  static async create(experiment: ExperimentResource): Promise<Metrics> {
-    const agents = await AgentResource.listByExperiment(experiment);
-    const publications = await PublicationResource.listByExperiment(experiment);
-    return new Metrics(experiment, agents, publications);
-  }
-
-  async getExperimentMessageMetrics(): Promise<
-    ExperimentMessageMetrics | undefined
-  > {
-    const messages = await MessageResource.listMessagesByExperiment(
-      this.experiment,
-    );
+  ): Promise<ExperimentMessageMetrics | undefined> {
+    const messages = await MessageResource.listMessagesByExperiment(experiment);
     const totalMessages = messages.length;
     if (totalMessages === 0) {
       return undefined;
@@ -58,17 +41,12 @@ export class Metrics {
     };
   }
 
-  async getAgentMessageMetrics(): Promise<(AgentMessageMetrics | undefined)[]> {
-    return Promise.all(
-      this.agents.map((agent) => this.getSingleAgentMessageMetrics(agent)),
-    );
-  }
-
-  private async getSingleAgentMessageMetrics(
+  static async agentMessages(
+    experiment: ExperimentResource,
     agent: AgentResource,
   ): Promise<AgentMessageMetrics | undefined> {
     const messages = await MessageResource.listMessagesByAgent(
-      this.experiment,
+      experiment,
       agent,
     );
     const totalMessages = messages.length;
@@ -132,6 +110,28 @@ export class Metrics {
       messagesPerAgenticLoop,
       toolCallsPerAgenticLoop,
       thinkingPerAgenticLoop,
+    };
+  }
+
+  static async tokens(experiment: ExperimentResource): Promise<TokenMetrics> {
+    const agents = await AgentResource.listByExperiment(experiment);
+    const experimentTokenUsage =
+      await TokenUsageResource.getExperimentTokenUsage(experiment);
+    const agentsTokenUsage: {
+      [agentId: string]: { name: string; usage: TokenUsage };
+    } = {};
+    for (const agent of agents) {
+      agentsTokenUsage[agent.toJSON().id] = {
+        name: agent.toJSON().name,
+        usage: await TokenUsageResource.getAgentTokenUsage(experiment, agent),
+      };
+    }
+    const tokenThroughput =
+      await TokenUsageResource.getTokenThroughput(experiment);
+    return {
+      experimentTokenUsage,
+      agentsTokenUsage,
+      tokenThroughput,
     };
   }
 }
