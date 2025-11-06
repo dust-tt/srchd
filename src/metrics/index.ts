@@ -210,6 +210,14 @@ export class Metrics {
     };
   }
 
+  /**
+   * Calculates the following metrics for an experiment:
+   * - Total number of publications
+   * - Total number of published publications
+   * - Average review grade
+   * @param experiment
+   * @returns experiment publication metrics
+   */
   private static async experimentPublications(
     experiment: ExperimentResource,
   ): Promise<ExperimentPublicationMetrics | undefined> {
@@ -241,6 +249,16 @@ export class Metrics {
     };
   }
 
+  /**
+   * Calculates the following metrics for an agent:
+   * - Total number of publications
+   * - Total number of published publications
+   * - Average review grade
+   * - Publication rate
+   * @param experiment
+   * @param agent
+   * @returns agent publication metrics
+   */
   private static async agentPublications(
     experiment: ExperimentResource,
     agent: AgentResource,
@@ -280,7 +298,7 @@ export class Metrics {
   }
 
   /**
-   * Calculates the metrics of an experiment and its agents
+   * Calculates the publication metrics of an experiment and its agents
    * @param experiment
    * @returns experiment and agent publication metrics
    */
