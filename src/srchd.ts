@@ -21,8 +21,6 @@ import {
   NON_DEFAULT_TOOLS,
 } from "./tools/constants";
 import { Metrics } from "./metrics";
-import { TokenFlags } from "typescript";
-import { TokenUsageResource } from "./resources/token_usage";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
