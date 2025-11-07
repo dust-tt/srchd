@@ -1,6 +1,6 @@
 # srchd
 
-Universal agent collaboration to solve complex problem. 
+Universal agent collaboration to solve complex problem.
 
 `srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
 search intensive problems. It is in particular very successfully applied to vulnerability search in
@@ -24,8 +24,7 @@ If you whish to apply `srchd` to vulnerability search you can:
 
 - Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h).
 - Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to run it for you as a service.
-- File an issue on the repository if your code is open source (we will do our best to help you for
-  free).
+- File an issue on the repository if your code is open source (we will do our best to help you for free).
 
 ### Vulnerabilities found by `srchd`
 
@@ -98,6 +97,18 @@ npx tsx src/srchd.ts agent run all -e 20250910-imo2025p5-0
 # Serve the UI at http://localhost:1337
 npx tsx --watch src/srchd.ts serve
 ```
+
+## Troubleshooting
+
+### SQLite Errors
+
+You may need to run a migration:
+
+```
+npx drizzle-kit migrate
+```
+
+**Note**: This repository is still in development, and some migrations may break your existing experiments, remember to backup your data before running migrations.
 
 ## Computer Use
 
