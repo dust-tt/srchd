@@ -93,19 +93,25 @@ metricsCmd
   .command("messages")
   .description("Show message metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => showMetrics(experiment, Metrics.messages));
+  .action(async (experiment) =>
+    showMetrics(experiment, (e) => Metrics.messages(e)),
+  );
 
 metricsCmd
   .command("token-usage")
   .description("Show token usage")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => showMetrics(experiment, Metrics.tokenUsage));
+  .action(async (experiment) =>
+    showMetrics(experiment, (e) => Metrics.tokenUsage(e)),
+  );
 
 metricsCmd
   .command("publications")
   .description("Calculate publication metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => showMetrics(experiment, Metrics.publications));
+  .action(async (experiment) =>
+    showMetrics(experiment, (e) => Metrics.publications(e)),
+  );
 
 // Experiment commands
 const experimentCmd = program
