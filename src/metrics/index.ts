@@ -1,5 +1,4 @@
 import { removeNulls } from "../lib/utils";
-import { TokenUsage } from "../models";
 import { AgentResource } from "../resources/agent";
 import { ExperimentResource } from "../resources/experiment";
 import { MessageResource } from "../resources/messages";
@@ -15,6 +14,7 @@ import {
   gradeToScore,
   scoreToGrade,
   PublicationMetrics,
+  UnifiedMetrics,
 } from "./types";
 
 function sum(acc: number, cur: number): number {
@@ -152,28 +152,11 @@ export class Metrics {
   static async messages(
     experiment: ExperimentResource,
   ): Promise<MessageMetrics | undefined> {
-    const experimentMetrics = await Metrics.experimentMessages(experiment);
-    if (!experimentMetrics) {
-      return undefined;
-    }
-    const agents = await AgentResource.listByExperiment(experiment);
-
-    const agentsMetrics: {
-      [agentName: string]: AgentMessageMetrics;
-    } = {};
-
-    for (const agent of agents) {
-      const metrics = await Metrics.agentMessages(experiment, agent);
-      if (!metrics) {
-        // Note: this shouldn't happen as all the agents are extracted from the experiment
-        continue;
-      }
-      agentsMetrics[agent.toJSON().name] = metrics;
-    }
-    return {
-      experiment: experimentMetrics,
-      agents: agentsMetrics,
-    };
+    return Metrics.experimentAndAgentMetrics(
+      experiment,
+      (e) => Metrics.experimentMessages(e),
+      (e, a) => Metrics.agentMessages(e, a),
+    );
   }
 
   /**
@@ -186,27 +169,22 @@ export class Metrics {
    */
   static async tokenUsage(
     experiment: ExperimentResource,
-  ): Promise<TokenMetrics> {
-    const experimentTokenUsage =
-      await TokenUsageResource.getExperimentTokenUsage(experiment);
-
-    const agents = await AgentResource.listByExperiment(experiment);
-    const agentsTokenUsage: {
-      [agentName: string]: TokenUsage;
-    } = {};
-    for (const agent of agents) {
-      agentsTokenUsage[agent.toJSON().name] =
-        await TokenUsageResource.getAgentTokenUsage(experiment, agent);
-    }
-
+  ): Promise<TokenMetrics | undefined> {
     const tokenThroughput =
       await TokenUsageResource.getTokenThroughput(experiment);
 
-    return {
-      experimentTokenUsage,
-      agentsTokenUsage,
-      tokenThroughput,
-    };
+    const unifiedMetrics = await Metrics.experimentAndAgentMetrics(
+      experiment,
+      (e) => TokenUsageResource.getExperimentTokenUsage(e),
+      (e, a) => TokenUsageResource.getAgentTokenUsage(e, a),
+    );
+
+    return unifiedMetrics
+      ? {
+          ...unifiedMetrics,
+          tokenThroughput,
+        }
+      : undefined;
   }
 
   /**
@@ -304,18 +282,35 @@ export class Metrics {
   static async publications(
     experiment: ExperimentResource,
   ): Promise<PublicationMetrics | undefined> {
-    const experimentMetrics = await Metrics.experimentPublications(experiment);
+    return Metrics.experimentAndAgentMetrics(
+      experiment,
+      (e) => Metrics.experimentPublications(e),
+      (e, a) => Metrics.agentPublications(e, a),
+    );
+  }
+
+  private static async experimentAndAgentMetrics<E, A>(
+    experiment: ExperimentResource,
+    experimentRetriever: (
+      experiment: ExperimentResource,
+    ) => Promise<E | undefined>,
+    agentRetriever: (
+      experiment: ExperimentResource,
+      agent: AgentResource,
+    ) => Promise<A | undefined>,
+  ): Promise<UnifiedMetrics<E, A> | undefined> {
+    const experimentMetrics = await experimentRetriever(experiment);
     if (!experimentMetrics) {
       return undefined;
     }
     const agents = await AgentResource.listByExperiment(experiment);
 
     const agentsMetrics: {
-      [agentName: string]: AgentPublicationMetrics;
+      [agentName: string]: A;
     } = {};
 
     for (const agent of agents) {
-      const metrics = await Metrics.agentPublications(experiment, agent);
+      const metrics = await agentRetriever(experiment, agent);
       if (!metrics) {
         // Note: this shouldn't happen as all the agents are extracted from the experiment
         continue;

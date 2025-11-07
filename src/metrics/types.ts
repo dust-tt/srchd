@@ -1,5 +1,10 @@
 import { TokenUsage } from "../models";
 
+export interface UnifiedMetrics<E, A = E> {
+  experiment: E;
+  agents: { [agentName: string]: A };
+}
+
 export type ExperimentMessageMetrics = {
   totalMessages: number;
   toolCalls: number;
@@ -23,8 +28,8 @@ export type MessageMetrics = {
 };
 
 export type TokenMetrics = {
-  experimentTokenUsage: TokenUsage;
-  agentsTokenUsage: { [agentName: string]: TokenUsage };
+  experiment: TokenUsage;
+  agents: { [agentName: string]: TokenUsage };
   tokenThroughput?: number;
 };
 

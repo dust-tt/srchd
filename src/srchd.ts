@@ -109,12 +109,12 @@ metricsCmd
 
     console.table([
       {
-        ...metrics.experimentTokenUsage,
+        ...metrics.experiment,
         tokensPerSecond: metrics.tokenThroughput,
       },
     ]);
     const agents = [];
-    for (const [name, usage] of Object.entries(metrics.agentsTokenUsage)) {
+    for (const [name, usage] of Object.entries(metrics.agents)) {
       agents.push({ name, ...usage });
     }
     console.table(agents);
