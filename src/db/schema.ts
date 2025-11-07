@@ -11,6 +11,7 @@ import { GeminiModels } from "../models/gemini";
 import { OpenAIModels } from "../models/openai";
 import { MistralModels } from "../models/mistral";
 import { ToolName } from "../tools/constants";
+import { v4 as uuid } from "uuid";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -22,11 +23,14 @@ export const experiments = sqliteTable(
     updated: integer("updated", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
+    uuid: text("uuid")
+      .notNull()
+      .$defaultFn(() => uuid()),
 
     name: text("name").notNull(),
     problem: text("problem").notNull(),
   },
-  (t) => [unique().on(t.name)],
+  (t) => [unique().on(t.name), unique().on(t.uuid)],
 );
 
 export const token_usages = sqliteTable(
