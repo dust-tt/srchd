@@ -83,6 +83,9 @@ You need the default environment variables for each provier libraries set up wit
 ```
 npm i
 
+# You may need to run a migration
+npx drizzle-kit migrate
+
 # Create a new experiment for IMO 2025 problem 5
 npx tsx src/srchd.ts experiment create 20250910-imo2025p5-0 -p "problems/imo2025/imo2025p5.problem"
 
@@ -97,18 +100,6 @@ npx tsx src/srchd.ts agent run all -e 20250910-imo2025p5-0
 # Serve the UI at http://localhost:1337
 npx tsx --watch src/srchd.ts serve
 ```
-
-## Troubleshooting
-
-### SQLite Errors
-
-You may need to run a migration:
-
-```
-npx drizzle-kit migrate
-```
-
-**Note**: This repository is still in development, and some migrations may break your existing experiments, remember to backup your data before running migrations.
 
 ## Computer Use
 
