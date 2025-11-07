@@ -18,6 +18,33 @@ import { Context } from "hono";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 
+// Experiments list
+export const experimentsList = async (c: Input) => {
+  const experiments = (await ExperimentResource.all()).sort(
+    (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
+  );
+
+  const content = `
+    <h1>Experiments</h1>
+    ${experiments
+      .map((exp) => {
+        const data = exp.toJSON();
+        return `
+        <div class="card">
+          <h3><a href="/experiments/${data.id}">${sanitizeText(data.name)}</a></h3>
+          <div class="meta">
+            Created: ${sanitizeText(data.created.toLocaleString())} |
+            Updated: ${sanitizeText(data.updated.toLocaleString())}
+          </div>
+        </div>
+      `;
+      })
+      .join("")}
+  `;
+
+  return c.html(baseTemplate("Experiments", content));
+};
+
 // Experiment overview
 export const experimentOverview = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
@@ -92,7 +119,7 @@ export const experimentAgents = async (c: Input) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a>`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Agents`;
   return c.html(baseTemplate("Agents", content, breadcrumb));
 };
 
