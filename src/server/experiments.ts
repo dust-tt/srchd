@@ -51,7 +51,7 @@ export const experimentOverview = async (c: Input) => {
     </div>
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > ${experimentName}`;
+  const breadcrumb = `<a href="/">Experiments</a> > ${experimentName}`;
   return c.html(baseTemplate(expData.name, content, breadcrumb));
 };
 
@@ -92,7 +92,7 @@ export const experimentAgents = async (c: Input) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a>`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a>`;
   return c.html(baseTemplate("Agents", content, breadcrumb));
 };
 
@@ -287,7 +287,7 @@ export const agentOverview = async (c: Input) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a> > ${agentName}`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a> > ${agentName}`;
   return c.html(baseTemplate(agentData.name, content, breadcrumb));
 };
 
@@ -341,7 +341,7 @@ export const publicationList = async (c: Input) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > Publications`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Publications`;
   return c.html(baseTemplate("Publications", content, breadcrumb));
 };
 
@@ -463,7 +463,7 @@ export const publicationDetail = async (c: Input) => {
     }
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/publications">Publications</a> > ${publicationTitle}`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/publications">Publications</a> > ${publicationTitle}`;
   return c.html(baseTemplate(pubData.title, content, breadcrumb));
 };
 
@@ -662,6 +662,6 @@ export const solutionList = async (c: Input) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > Solutions`;
+  const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > Solutions`;
   return c.html(baseTemplate("Solutions", content, breadcrumb));
 };

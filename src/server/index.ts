@@ -13,7 +13,8 @@ import { ExperimentResource } from "../resources/experiment";
 const app = new Hono();
 
 // Home page - List all experiments
-app.get("/", async (c) => {
+app.get("/", (c) => c.redirect("/experiments"));
+app.get("/experiments", async (c) => {
   const experiments = (await ExperimentResource.all()).sort(
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
