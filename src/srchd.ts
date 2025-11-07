@@ -22,7 +22,7 @@ import {
 } from "./tools/constants";
 import {
   messagesMetricsByExperiment as messageMetricsByExperiment,
-  tokenUsageMetricsByExperiment as tokenMetricsByExperiment,
+  tokenUsageMetricsByExperiment as tokenUsageMetricsByExperiment,
   publicationsMetricsByExperiment as publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
@@ -100,10 +100,10 @@ metricsCmd
   .action(async (e) => displayMetrics(e, messageMetricsByExperiment));
 
 metricsCmd
-  .command("tokens")
+  .command("token-usage")
   .description("Show token usage")
   .argument("<experiment>", "Experiment name")
-  .action(async (e) => displayMetrics(e, tokenMetricsByExperiment));
+  .action(async (e) => displayMetrics(e, tokenUsageMetricsByExperiment));
 
 metricsCmd
   .command("publications")

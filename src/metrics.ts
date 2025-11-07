@@ -22,10 +22,6 @@ export type PublicationMetric = {
   totalPublished: number;
 };
 
-export type TokenMetric = TokenUsage & {
-  tokensPerSecond?: number;
-};
-
 function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
   const totalMessages = messages.length;
   const fullMessages = messages.map((msg) => msg.toJSON());
@@ -58,34 +54,14 @@ export async function messagesMetricsByExperiment(
   );
 }
 
-function calculateTokenMetrics(
-  tokenUsageAndTs: TokenUsage & { startTs?: Date; endTs?: Date },
-): TokenMetric {
-  // Divide by 1000 to convert to seconds
-  const tokensPerSecond =
-    tokenUsageAndTs.startTs && tokenUsageAndTs.endTs
-      ? tokenUsageAndTs.total /
-        ((tokenUsageAndTs.endTs.getTime() - tokenUsageAndTs.startTs.getTime()) /
-          1000)
-      : undefined;
-  return {
-    total: tokenUsageAndTs.total,
-    input: tokenUsageAndTs.input,
-    output: tokenUsageAndTs.output,
-    cached: tokenUsageAndTs.cached,
-    thinking: tokenUsageAndTs.thinking,
-    tokensPerSecond,
-  };
-}
-
 export async function tokenUsageMetricsByExperiment(
   experiment: ExperimentResource,
-): Promise<ExperimentMetrics<TokenMetric>> {
+): Promise<ExperimentMetrics<TokenUsage>> {
   return metricsForExperiment(
     experiment,
     async (e) => TokenUsageResource.experimentTokenUsage(e),
     async (e, a) => TokenUsageResource.agentTokenUsage(e, a),
-    calculateTokenMetrics,
+    (d) => d,
   );
 }
 
