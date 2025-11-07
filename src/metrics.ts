@@ -43,7 +43,7 @@ function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
   };
 }
 
-export async function messagesMetricsByExperiment(
+export async function messageMetricsByExperiment(
   experiment: ExperimentResource,
 ): Promise<ExperimentMetrics<MessageMetric>> {
   return metricsForExperiment(
@@ -80,7 +80,7 @@ function calculatePublicationMetrics(
   };
 }
 
-export async function publicationsMetricsByExperiment(
+export async function publicationMetricsByExperiment(
   experiment: ExperimentResource,
 ): Promise<ExperimentMetrics<PublicationMetric>> {
   return await metricsForExperiment(
