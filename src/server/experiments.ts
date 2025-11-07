@@ -19,10 +19,10 @@ import { Context } from "hono";
 type Input = Context<BlankEnv, any, BlankInput>;
 
 // Experiment overview
-export const experimentOverview = async (c: Input, isProd: boolean = false) => {
-  const uuid = c.req.param("uuid");
+export const experimentOverview = async (c: Input = false) => {
+  const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
@@ -35,7 +35,7 @@ export const experimentOverview = async (c: Input, isProd: boolean = false) => {
 
   const experimentName = sanitizeText(expData.name);
   const content = `
-    ${experimentNav(uuid, "overview")}
+    ${experimentNav(id, "overview")}
     <div class="card">
       <h3>${experimentName}</h3>
       <div class="meta">
@@ -51,15 +51,15 @@ export const experimentOverview = async (c: Input, isProd: boolean = false) => {
     </div>
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > ${experimentName}`;
+  const breadcrumb = `<a href="/">Home</a> > ${experimentName}`;
   return c.html(baseTemplate(expData.name, content, breadcrumb));
 };
 
 // Experiment agents
-export const experimentAgents = async (c: Input, isProd: boolean) => {
-  const uuid = c.req.param("uuid");
+export const experimentAgents = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
@@ -67,13 +67,13 @@ export const experimentAgents = async (c: Input, isProd: boolean) => {
   const experimentName = sanitizeText(expData.name);
 
   const content = `
-    ${experimentNav(uuid, "agents")}
+    ${experimentNav(id, "agents")}
     ${experimentAgents
       .map((agent) => {
         const agentData = agent.toJSON();
         return `
         <div class="card">
-          <h3><a href="/experiments/${uuid}/agents/${agentData.id}">${sanitizeText(
+          <h3><a href="/experiments/${id}/agents/${agentData.id}">${sanitizeText(
             agentData.name,
           )}</a></h3>
           <div class="meta">
@@ -92,16 +92,16 @@ export const experimentAgents = async (c: Input, isProd: boolean) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > <a href="/experiments/${uuid}">${experimentName}</a> > <a href="/experiments/${uuid}/agents">Agents</a>`;
+  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a>`;
   return c.html(baseTemplate("Agents", content, breadcrumb));
 };
 
 // Agent detail
-export const agentOverview = async (c: Input, isProd: boolean) => {
-  const uuid = c.req.param("uuid");
+export const agentOverview = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
   const agentId = parseInt(c.req.param("agentId"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const agents = await AgentResource.listByExperiment(experiment);
@@ -229,7 +229,7 @@ export const agentOverview = async (c: Input, isProd: boolean) => {
       : "";
 
   const content = `
-    ${experimentNav(uuid, "agents")}
+    ${experimentNav(id, "agents")}
     <h1>${agentName}</h1>
     <div class="card">
       <p><strong>Provider:</strong> ${sanitizeText(agentData.provider)}</p>
@@ -251,7 +251,7 @@ export const agentOverview = async (c: Input, isProd: boolean) => {
         const statusClass = safeStatusClass(pubData.status);
         return `
         <div class="card">
-          <h3><a href="/experiments/${uuid}/publications/${pubData.id}">${sanitizeText(
+          <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
             pubData.title,
           )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
@@ -287,15 +287,15 @@ export const agentOverview = async (c: Input, isProd: boolean) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > <a href="/experiments/${uuid}">${experimentName}</a> > <a href="/experiments/${uuid}/agents">Agents</a> > ${agentName}`;
+  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a> > ${agentName}`;
   return c.html(baseTemplate(agentData.name, content, breadcrumb));
 };
 
 // Experiment publications
-export const publicationList = async (c: Input, isProd: boolean) => {
-  const uuid = c.req.param("uuid");
+export const publicationList = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const experimentPublications =
@@ -304,14 +304,14 @@ export const publicationList = async (c: Input, isProd: boolean) => {
   const experimentName = sanitizeText(expData.name);
 
   const content = `
-    ${experimentNav(uuid, "publications")}
+    ${experimentNav(id, "publications")}
     ${experimentPublications
       .map((pub) => {
         const pubData = pub.toJSON();
         const statusClass = safeStatusClass(pubData.status);
         return `
         <div class="card">
-          <h3><a href="/experiments/${uuid}/publications/${pubData.id}">${sanitizeText(
+          <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
             pubData.title,
           )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
@@ -341,16 +341,16 @@ export const publicationList = async (c: Input, isProd: boolean) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > <a href="/experiments/${uuid}">${experimentName}</a> > Publications`;
+  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > Publications`;
   return c.html(baseTemplate("Publications", content, breadcrumb));
 };
 
 // Publication detail
-export const publicationDetail = async (c: Input, isProd: boolean) => {
-  const uuid = c.req.param("uuid");
+export const publicationDetail = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
   const pubId = parseInt(c.req.param("pubId"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const publications = await PublicationResource.listByExperiment(experiment);
@@ -369,7 +369,7 @@ export const publicationDetail = async (c: Input, isProd: boolean) => {
   const publicationStatusClass = safeStatusClass(pubData.status);
 
   const content = `
-    ${experimentNav(uuid, "publications")}
+    ${experimentNav(id, "publications")}
     <h1>${publicationTitle}</h1>
     <div class="card">
       <p><strong>Author:</strong> ${publicationAuthor}</p>
@@ -392,7 +392,7 @@ export const publicationDetail = async (c: Input, isProd: boolean) => {
         ${pubData.citations.from
           .map(
             (cit) => `
-          <div class="citation">→ <a href="/experiments/${uuid}/publications/${cit.to}">${sanitizeText(
+          <div class="citation">→ <a href="/experiments/${id}/publications/${cit.to}">${sanitizeText(
             String(cit.to),
           )}</a></div>
         `,
@@ -412,7 +412,7 @@ export const publicationDetail = async (c: Input, isProd: boolean) => {
         ${pubData.citations.to
           .map(
             (cit) => `
-          <div class="citation">← <a href="/experiments/${uuid}/publications/${cit.from}">${sanitizeText(
+          <div class="citation">← <a href="/experiments/${id}/publications/${cit.from}">${sanitizeText(
             String(cit.from),
           )}</a></div>
         `,
@@ -463,15 +463,15 @@ export const publicationDetail = async (c: Input, isProd: boolean) => {
     }
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > <a href="/experiments/${uuid}">${experimentName}</a> > <a href="/experiments/${uuid}/publications">Publications</a> > ${publicationTitle}`;
+  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/publications">Publications</a> > ${publicationTitle}`;
   return c.html(baseTemplate(pubData.title, content, breadcrumb));
 };
 
 // Experiment solutions
-export const solutionList = async (c: Input, isProd: boolean) => {
-  const uuid = c.req.param("uuid");
+export const solutionList = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findByUUID(uuid);
+  const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
   const experimentSolutions =
@@ -483,7 +483,7 @@ export const solutionList = async (c: Input, isProd: boolean) => {
   const chartData = prepareChartData(experimentSolutions);
 
   const content = `
-    ${experimentNav(uuid, "solutions")}
+    ${experimentNav(id, "solutions")}
     ${
       chartData.publicationLines.length > 0
         ? `
@@ -646,7 +646,7 @@ export const solutionList = async (c: Input, isProd: boolean) => {
           ${
             solData.publication
               ? `
-            <a href="/experiments/${uuid}/publications/${solData.publication.id}">${sanitizeText(
+            <a href="/experiments/${id}/publications/${solData.publication.id}">${sanitizeText(
               solData.publication.reference,
             )}</a>`
               : ""
@@ -662,6 +662,6 @@ export const solutionList = async (c: Input, isProd: boolean) => {
       .join("")}
   `;
 
-  const breadcrumb = `<a href="/">${isProd ? "Home" : "Experiments"}</a> > <a href="/experiments/${uuid}">${experimentName}</a> > Solutions`;
+  const breadcrumb = `<a href="/">Home</a> > <a href="/experiments/${id}">${experimentName}</a> > Solutions`;
   return c.html(baseTemplate("Solutions", content, breadcrumb));
 };

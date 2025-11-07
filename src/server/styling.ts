@@ -387,18 +387,18 @@ export const baseTemplate = (
 `;
 
 // Helper to create experiment nav for pages within an experiment
-export const experimentNav = (experimentUUID: string, current: string) => `
+export const experimentNav = (experimentId: number, current: string) => `
   <div class="nav">
-    <a href="/experiments/${experimentUUID}"${
+    <a href="/experiments/${experimentId}"${
       current === "overview" ? ' style="font-weight: bold;"' : ""
     }>Overview</a>
-    <a href="/experiments/${experimentUUID}/agents"${
+    <a href="/experiments/${experimentId}/agents"${
       current === "agents" ? ' style="font-weight: bold;"' : ""
     }>Agents</a>
-    <a href="/experiments/${experimentUUID}/publications"${
+    <a href="/experiments/${experimentId}/publications"${
       current === "publications" ? ' style="font-weight: bold;"' : ""
     }>Publications</a>
-    <a href="/experiments/${experimentUUID}/solutions"${
+    <a href="/experiments/${experimentId}/solutions"${
       current === "solutions" ? ' style="font-weight: bold;"' : ""
     }>Solutions</a>
   </div>
