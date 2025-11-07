@@ -31,16 +31,6 @@ export class ExperimentResource {
     return result[0] ? new ExperimentResource(result[0]) : null;
   }
 
-  static async findByUUID(uuid: string): Promise<ExperimentResource | null> {
-    const result = await db
-      .select()
-      .from(experiments)
-      .where(eq(experiments.uuid, uuid))
-      .limit(1);
-
-    return result[0] ? new ExperimentResource(result[0]) : null;
-  }
-
   static async create(
     data: Omit<
       InferInsertModel<typeof experiments>,
