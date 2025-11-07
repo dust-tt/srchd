@@ -85,6 +85,13 @@
       "when": 1762442006127,
       "tag": "0011_nice_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1762442006127,
+      "tag": "0011_nice_star_brand",
+      "breakpoints": true
     }
   ]
 }
