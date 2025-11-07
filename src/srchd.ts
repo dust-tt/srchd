@@ -20,8 +20,12 @@ import {
   DEFAULT_TOOLS,
   NON_DEFAULT_TOOLS,
 } from "./tools/constants";
-import { Metrics } from "./metrics";
-import { UnifiedMetrics } from "./metrics";
+import {
+  messagesMetricsByExperiment as messageMetricsByExperiment,
+  tokenUsageMetricsByExperiment as tokenMetricsByExperiment,
+  publicationsMetricsByExperiment as publicationMetricsByExperiment,
+} from "./metrics";
+import { ExperimentMetrics } from "./metrics";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -42,10 +46,10 @@ program
 
 const metricsCmd = program.command("metrics").description("Show metrics");
 
-const showMetrics = async <E, A, T extends UnifiedMetrics<E, A>>(
+async function displayMetrics<M>(
   experiment: string,
-  metricsFetcher: (e: ExperimentResource) => Promise<T | undefined>,
-): Promise<void> => {
+  metricsByExperiment: (e: ExperimentResource) => Promise<ExperimentMetrics<M>>,
+): Promise<void> {
   const experimentRes = await ExperimentResource.findByName(experiment);
   if (!experimentRes) {
     return exitWithError(
@@ -58,7 +62,7 @@ const showMetrics = async <E, A, T extends UnifiedMetrics<E, A>>(
     );
   }
 
-  const metrics = await metricsFetcher(experimentRes);
+  const metrics = await metricsByExperiment(experimentRes);
   if (!metrics) {
     return exitWithError(
       new Err(
@@ -87,31 +91,25 @@ const showMetrics = async <E, A, T extends UnifiedMetrics<E, A>>(
     agents.push({ name, ...agentMetrics });
   }
   console.table(agents);
-};
+}
 
 metricsCmd
   .command("messages")
   .description("Show message metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) =>
-    showMetrics(experiment, (e) => Metrics.messages(e)),
-  );
+  .action(async (e) => displayMetrics(e, messageMetricsByExperiment));
 
 metricsCmd
-  .command("token-usage")
+  .command("tokens")
   .description("Show token usage")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) =>
-    showMetrics(experiment, (e) => Metrics.tokenUsage(e)),
-  );
+  .action(async (e) => displayMetrics(e, tokenMetricsByExperiment));
 
 metricsCmd
   .command("publications")
   .description("Calculate publication metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) =>
-    showMetrics(experiment, (e) => Metrics.publications(e)),
-  );
+  .action(async (e) => displayMetrics(e, publicationMetricsByExperiment));
 
 // Experiment commands
 const experimentCmd = program
