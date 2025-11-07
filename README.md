@@ -81,9 +81,8 @@ You need the default environment variables for each provier libraries set up wit
 `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`).
 
 ```
+# Installation
 npm i
-
-# You may need to run a migration
 npx drizzle-kit migrate
 
 # Create a new experiment for IMO 2025 problem 5
