@@ -26,6 +26,7 @@ import { OpenAIModel, OpenAIModels } from "./models/openai";
 import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
 import { createServer } from "./tools";
+import { DEFAULT_TOOLS } from "./tools/constants";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -85,7 +86,9 @@ export class Runner {
     }
 
     const servers = await Promise.all(
-      agent.toJSON().tools.map((t) => createServer(t, { experiment, agent })),
+      [...agent.toJSON().tools, ...DEFAULT_TOOLS].map((t) =>
+        createServer(t, { experiment, agent }),
+      ),
     );
     const clients = await Promise.all(
       servers.map(async (s) => {

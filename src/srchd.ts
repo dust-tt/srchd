@@ -17,9 +17,9 @@ import { serve } from "@hono/node-server";
 import app from "./server";
 import { isMistralModel } from "./models/mistral";
 import {
-  isToolNameList,
   DEFAULT_TOOLS,
   NON_DEFAULT_TOOLS,
+  isNonDefaultToolNameList,
 } from "./tools/constants";
 
 const exitWithError = (err: Err<SrchdError>) => {
@@ -243,7 +243,7 @@ agentCmd
         );
       }
 
-      if (!isToolNameList(tools)) {
+      if (!isNonDefaultToolNameList(tools)) {
         return exitWithError(
           new Err(
             new SrchdError(

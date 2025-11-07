@@ -5,7 +5,6 @@ import { ExperimentResource } from "./experiment";
 import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError } from "../lib/error";
 import { concurrentExecutor } from "../lib/async";
-import { DEFAULT_TOOLS } from "../tools/constants";
 
 export type Agent = InferSelectModel<typeof agents>;
 export type Evolution = InferSelectModel<typeof evolutions>;
@@ -163,10 +162,8 @@ export class AgentResource {
   toJSON() {
     return {
       ...this.data,
-      // DB is only used to store extra tools
-      tools: this.data.tools
-        ? [...this.data.tools, ...DEFAULT_TOOLS]
-        : DEFAULT_TOOLS,
+      // Only non-default tools.
+      tools: this.data.tools ?? [],
       system: this.evolutions[0].system,
       evolutions: this.evolutions,
     };
