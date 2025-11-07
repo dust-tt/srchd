@@ -17,8 +17,8 @@ import app from "./server";
 import { isMistralModel } from "./models/mistral";
 import {
   isToolNameList,
-  NON_DEFAULT_TOOLS,
   DEFAULT_TOOLS,
+  NON_DEFAULT_TOOLS,
 } from "./tools/constants";
 import { Metrics } from "./metrics";
 import { UnifiedMetrics } from "./metrics/types";
