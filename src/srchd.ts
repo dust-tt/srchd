@@ -21,7 +21,7 @@ import {
   NON_DEFAULT_TOOLS,
 } from "./tools/constants";
 import { Metrics } from "./metrics";
-import { UnifiedMetrics } from "./metrics/types";
+import { UnifiedMetrics } from "./metrics";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
