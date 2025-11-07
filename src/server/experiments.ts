@@ -19,7 +19,7 @@ import { Context } from "hono";
 type Input = Context<BlankEnv, any, BlankInput>;
 
 // Experiment overview
-export const experimentOverview = async (c: Input = false) => {
+export const experimentOverview = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
 
   const experiment = await ExperimentResource.findById(id);
