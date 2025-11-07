@@ -28,9 +28,8 @@ export type MessageMetrics = {
 };
 
 export type TokenMetrics = {
-  experiment: TokenUsage;
+  experiment: TokenUsage & { tokensPerSecond?: number };
   agents: { [agentName: string]: TokenUsage };
-  tokenThroughput?: number;
 };
 
 export type Grade = "STRONG_ACCEPT" | "ACCEPT" | "REJECT" | "STRONG_REJECT";

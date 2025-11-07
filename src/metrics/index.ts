@@ -170,21 +170,19 @@ export class Metrics {
   static async tokenUsage(
     experiment: ExperimentResource,
   ): Promise<TokenMetrics | undefined> {
-    const tokenThroughput =
-      await TokenUsageResource.getTokenThroughput(experiment);
-
-    const unifiedMetrics = await Metrics.experimentAndAgentMetrics(
+    return await Metrics.experimentAndAgentMetrics(
       experiment,
-      (e) => TokenUsageResource.getExperimentTokenUsage(e),
+      async (e) => {
+        const usage = await TokenUsageResource.getExperimentTokenUsage(e);
+        const tokensPerSecond =
+          await TokenUsageResource.getTokensPerSecond(experiment);
+        return {
+          ...usage,
+          tokensPerSecond,
+        };
+      },
       (e, a) => TokenUsageResource.getAgentTokenUsage(e, a),
     );
-
-    return unifiedMetrics
-      ? {
-          ...unifiedMetrics,
-          tokenThroughput,
-        }
-      : undefined;
   }
 
   /**

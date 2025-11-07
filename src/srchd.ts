@@ -21,6 +21,7 @@ import {
   DEFAULT_TOOLS,
 } from "./tools/constants";
 import { Metrics } from "./metrics";
+import { UnifiedMetrics } from "./metrics/types";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -41,121 +42,70 @@ program
 
 const metricsCmd = program.command("metrics").description("Show metrics");
 
+const showMetrics = async <E, A, T extends UnifiedMetrics<E, A>>(
+  experiment: string,
+  metricsFetcher: (e: ExperimentResource) => Promise<T | undefined>,
+): Promise<void> => {
+  const experimentRes = await ExperimentResource.findByName(experiment);
+  if (!experimentRes) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  const metrics = await metricsFetcher(experimentRes);
+  if (!metrics) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  if (!metrics) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  console.table([metrics.experiment]);
+  const agents = [];
+  for (const [name, agentMetrics] of Object.entries(metrics.agents)) {
+    agents.push({ name, ...agentMetrics });
+  }
+  console.table(agents);
+};
+
 metricsCmd
   .command("messages")
   .description("Show message metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => {
-    const experimentRes = await ExperimentResource.findByName(experiment);
-    if (!experimentRes) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    const metrics = await Metrics.messages(experimentRes);
-    if (!metrics) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    console.table([metrics.experiment]);
-    const agents = [];
-    for (const [name, agentMetrics] of Object.entries(metrics.agents)) {
-      agents.push({ name, ...agentMetrics });
-    }
-    console.table(agents);
-  });
+  .action(async (experiment) => showMetrics(experiment, Metrics.messages));
 
 metricsCmd
   .command("token-usage")
   .description("Show token usage")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => {
-    const experimentRes = await ExperimentResource.findByName(experiment);
-    if (!experimentRes) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    const metrics = await Metrics.tokenUsage(experimentRes);
-    if (!metrics) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    console.table([
-      {
-        ...metrics.experiment,
-        tokensPerSecond: metrics.tokenThroughput,
-      },
-    ]);
-    const agents = [];
-    for (const [name, usage] of Object.entries(metrics.agents)) {
-      agents.push({ name, ...usage });
-    }
-    console.table(agents);
-  });
+  .action(async (experiment) => showMetrics(experiment, Metrics.tokenUsage));
 
 metricsCmd
   .command("publications")
   .description("Calculate publication metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => {
-    const experimentRes = await ExperimentResource.findByName(experiment);
-    if (!experimentRes) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    const metrics = await Metrics.publications(experimentRes);
-    if (!metrics) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-
-    console.table([metrics.experiment]);
-    const agents = [];
-    for (const [name, publication] of Object.entries(metrics.agents)) {
-      agents.push({ name, ...publication });
-    }
-    console.table(agents);
-  });
+  .action(async (experiment) => showMetrics(experiment, Metrics.publications));
 
 // Experiment commands
 const experimentCmd = program
