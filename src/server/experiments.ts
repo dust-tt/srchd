@@ -343,11 +343,11 @@ export const publicationList = async (c: Input) => {
           )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
           <div class="meta">
-            Author: ${sanitizeText(pubData.author.name)} |
+            Reference: ${sanitizeText(pubData.reference)} |
             <span class="status ${statusClass}">${sanitizeText(
               pubData.status,
             )}</span> |
-            Reference: ${sanitizeText(pubData.reference)} |
+            Author: ${sanitizeText(pubData.author.name)} |
             Created: ${sanitizeText(pubData.created.toLocaleString())} |
             Citations: ${pubData.citations.to.length} |
             Reviews: ${
