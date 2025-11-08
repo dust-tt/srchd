@@ -13,7 +13,7 @@ import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
 import { isGeminiModel } from "./models/gemini";
 import { serve } from "@hono/node-server";
-import app from "./server";
+import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
 import {
   DEFAULT_TOOLS,
@@ -533,6 +533,7 @@ program
   .command("serve")
   .description("Start the web UI server")
   .option("-p, --port <port>", "Port to serve on", "1337")
+  .option("-a, --auth <user:password>", "Require HTTP basic auth credentials")
   .action(async (options) => {
     const port = parseInt(options.port);
     if (isNaN(port) || port < 1 || port > 65535) {
@@ -546,7 +547,40 @@ program
       );
     }
 
+    let authConfig: BasicAuthConfig | undefined;
+    if (options.auth) {
+      const separator = String(options.auth).indexOf(":");
+      if (separator === -1) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              "Auth must be provided as user:password",
+            ),
+          ),
+        );
+      }
+      const username = options.auth.slice(0, separator);
+      const password = options.auth.slice(separator + 1);
+      if (!username || !password) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              "Auth must include both user and password",
+            ),
+          ),
+        );
+      }
+      authConfig = { username, password };
+    }
+
     console.log(`Starting server on http://localhost:${port}`);
+    if (authConfig) {
+      console.log(`Basic auth enabled for user '${authConfig.username}'`);
+    }
+
+    const app = createApp(authConfig);
 
     serve({
       fetch: app.fetch,
