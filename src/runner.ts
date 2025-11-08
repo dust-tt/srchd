@@ -11,7 +11,7 @@ import {
 import { AgentResource } from "./resources/agent";
 import { ExperimentResource } from "./resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { normalizeError, SrchdError } from "./lib/error";
+import { normalizeError, SrchdError, withRetries } from "./lib/error";
 import { Err, Ok, Result } from "./lib/result";
 import { MessageResource } from "./resources/messages";
 import assert from "assert";
@@ -542,12 +542,14 @@ ${this.agent.toJSON().system}`;
       return messagesForModel;
     }
 
-    const res = await this.model.run(
-      messagesForModel.value,
-      systemPrompt,
-      "auto",
-      tools.value,
-    );
+    const res = await withRetries(async () => {
+      return this.model.run(
+        messagesForModel.value,
+        systemPrompt,
+        "auto",
+        tools.value,
+      );
+    })({});
     if (res.isErr()) {
       return res;
     }
