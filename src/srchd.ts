@@ -5,7 +5,6 @@ import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";
 import { ExperimentResource } from "./resources/experiment";
-import { TokenUsageResource } from "./resources/token_usage";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
 import { newID4, removeNulls } from "./lib/utils";
@@ -21,6 +20,12 @@ import {
   NON_DEFAULT_TOOLS,
   isNonDefaultToolNameList,
 } from "./tools/constants";
+import {
+  messageMetricsByExperiment,
+  tokenUsageMetricsByExperiment,
+  publicationMetricsByExperiment,
+} from "./metrics";
+import { ExperimentMetrics } from "./metrics";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -38,6 +43,73 @@ program
   .name("srchd")
   .description("Research experiment management CLI")
   .version("1.0.0");
+
+const metricsCmd = program.command("metrics").description("Show metrics");
+
+async function displayMetrics<M>(
+  experiment: string,
+  metricsByExperiment: (e: ExperimentResource) => Promise<ExperimentMetrics<M>>,
+): Promise<void> {
+  const experimentRes = await ExperimentResource.findByName(experiment);
+  if (!experimentRes) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  const metrics = await metricsByExperiment(experimentRes);
+  if (!metrics) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  if (!metrics) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  console.table([metrics.experiment]);
+  const agents = [];
+  for (const [name, agentMetrics] of Object.entries(metrics.agents)) {
+    agents.push({ name, ...agentMetrics });
+  }
+  console.table(agents);
+}
+
+metricsCmd
+  .command("messages")
+  .description("Show message metrics")
+  .argument("<experiment>", "Experiment name")
+  .action(async (e) => displayMetrics(e, messageMetricsByExperiment));
+
+metricsCmd
+  .command("token-usage")
+  .description("Show token usage")
+  .argument("<experiment>", "Experiment name")
+  .action(async (e) => displayMetrics(e, tokenUsageMetricsByExperiment));
+
+metricsCmd
+  .command("publications")
+  .description("Calculate publication metrics")
+  .argument("<experiment>", "Experiment name")
+  .action(async (e) => displayMetrics(e, publicationMetricsByExperiment));
 
 // Experiment commands
 const experimentCmd = program
@@ -88,28 +160,6 @@ experimentCmd
         return e;
       }),
     );
-  });
-
-experimentCmd
-  .command("token-usage")
-  .description("Show token usage for an experiment")
-  .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .action(async (options) => {
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
-      );
-    }
-    const tokenUsage =
-      await TokenUsageResource.getExperimentTokenUsage(experiment);
-
-    console.table([tokenUsage]);
   });
 
 // Agent commands
