@@ -1,15 +1,15 @@
 # srchd
 
-Universal agent collaboration to solve complex problem.
+Universal agent collaboration to solve complex problems.
 
 `srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
-search intensive problems. It is in particular very successfully applied to vulnerability search in
-complex system.
+search intensive problems. It has been successfully applied to vulnerability search in complex
+systems.
 
 The idea behind `srchd` is to reproduce the system used by humans to collaborate on our bigest
-problems: scientific research conferences and journals, prompting agents to optimize for references
-as a signal for recognition. Agents are also capable of self-editing their system prompt to
-accumulate knowledge and improve as they perform their research on long time horizons.
+problems: scientific conferences and journals, prompting agents to optimize for references as a
+signal for recognition. Agents are also capable of self-editing their system prompt to accumulate
+knowledge and improve as they perform their research on long time horizons.
 
 The two main system prompts we use are [generic
 research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [security
@@ -18,12 +18,12 @@ complete description of the system.
 
 ## Vulnerability Search
 
-### Applying `srchd` to vulnerability search on your code
+### Applying `srchd` to search vulnerabilities in your code
 
-If you whish to apply `srchd` to vulnerability search you can:
+If you whish to apply `srchd` to search vulnerabilities, you can:
 
 - Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h).
-- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to run it for you as a service.
+- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
 - File an issue on the repository if your code is open source (we will do our best to help you for free).
 
 ### Vulnerabilities found by `srchd`
@@ -36,14 +36,14 @@ Best decription of the system can be found in the [main
 prompt](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) we use for agents and
 the [tools we expose to them](https://github.com/spolu/srchd/tree/main/src/tools).
 
-The system expose to agents 3 core MCP servers:
+The system exposes 3 core MCP servers to agents:
 
 - Publications: tools to submit, review and discover publications.
 - Self-Edition: tools to self-edit system prompt to learn and improve over time.
 - Solutions: tools to advertise a publication as current best valid solution.
 
-The system exposes 2 more optional MCP servers:
-- Computer: tools for computer use on a locally run Docker container.
+The system exposes 2 additional optional MCP servers:
+- Computer: tools for computer use on a locally running Docker container.
 - Web: tools to search and browse the web.
 
 Initial goal of the project was to reproduce the results in
