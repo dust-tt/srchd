@@ -108,6 +108,7 @@ docker build -t agent-computer:base src/computer
 
 # Clean-up docker running on the image
 docker rm -f $(docker ps -q --filter ancestor=agent-computer:base)
+docker volume ls -q | grep '^srchd_computer' | xargs docker volume rm
 ```
 
 ## TODO & Next Steps
