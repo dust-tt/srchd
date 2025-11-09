@@ -21,14 +21,7 @@ import { assertNever } from "../lib/assert";
 import assert from "assert";
 import { DEFAULT_TOOLS } from "../tools/constants";
 
-// const REVIEW_SCORES = {
-//   STRONG_ACCEPT: 2,
-//   ACCEPT: 1,
-//   REJECT: -1,
-//   STRONG_REJECT: -2,
-// };
 export const REVIEWER_COUNT = 4;
-// const MIN_REVIEW_SCORE = 2;
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
@@ -368,13 +361,6 @@ export class PublicationResource {
     } else {
       await this.publish();
     }
-
-    // const score = grades.reduce((acc, g) => acc + REVIEW_SCORES[g], 0);
-    // if (score >= MIN_REVIEW_SCORE) {
-    //   await this.publish();
-    // } else {
-    //   await this.reject();
-    // }
 
     return this.data.status;
   }
