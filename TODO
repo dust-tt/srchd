@@ -33,11 +33,10 @@ BUILD
 - [x] implement caching across platforms
 - [x] Tools
   - [x] Computer use
-- [ ] Inner agentic loop context pruning
+- [x] Inner agentic loop context pruning
 - [ ] Tools
+  - [x] Web Search (Exa?) (can do simple curl)
   - [ ] Github access? (can do public repo checkouts)
-  - [ ] Web Search (Exa?) (can do simple curl)
-  - [ ] more advanced security tools?
 - [ ] Improve reviews
   - [ ] Make reproduction with computer use clearer requirement
   - [ ] Add template, section for logs
@@ -51,4 +50,5 @@ RESEARCH PLAN
     https://sean.heelan.io/2025/05/22/how-i-used-o3-to-find-cve-2025-37899-a-remote-zeroday-vulnerability-in-the-linux-kernels-smb-implementation/
   - [x] Baseline
     - [x] Search for know vulnerabilities on decent size code-base past checkouts
-- [ ] Explore approach to other knowledge creation setups
+- [ ] Ablate publications, solutionss, self-edit
+- [ ] Compare to thinking compute, Consensus-N compute
