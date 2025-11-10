@@ -604,8 +604,8 @@ const renderMetricsTable = <M extends object>(
   const agents = Object.entries(metrics.agents);
 
   assert(
-    metricKeys.every((c) => c in exp),
-    `Invalid keys: ${metricKeys.join(", ")}`,
+    metricKeys.every((key) => key in exp),
+    `Invalid keys: ${metricKeys.join(", ")}, expected: ${Object.keys(exp).join(", ")}`,
   );
   assert(
     metricKeys.length === columnNames.length,
@@ -640,7 +640,7 @@ const renderMetricsTable = <M extends object>(
           <tr>
             <td>${sanitizeText(name)}</td>
             ${metricKeys
-              .map((k) => `<td>${sanitizeText(metric[k as keyof M])}</td>`)
+              .map((key) => `<td>${sanitizeText(metric[key as keyof M])}</td>`)
               .join("")}
           </tr>
         `,
