@@ -591,23 +591,27 @@ export const prepareChartData = (solutions: any[]) => {
 
 const renderMetricsTable = <M extends object>(
   metrics: ExperimentMetrics<M>,
-  metricName: string,
-  columns: string[],
+  title: string,
+  metricKeys: string[],
   columnNames: string[],
 ) => {
   const exp = metrics.experiment;
   const agents = Object.entries(metrics.agents);
 
   assert(
-    columns.every((c) => c in exp),
-    `Invalid columns: ${columns.join(", ")}`,
+    metricKeys.every((c) => c in exp),
+    `Invalid keys: ${metricKeys.join(", ")}`,
+  );
+  assert(
+    metricKeys.length === columnNames.length,
+    `Keys and column names must have the same length`,
   );
 
   const experiment = `
     <div class="metrics-grid">
-    ${columns
-      .map((column, i) => {
-        const val = exp[column as keyof M];
+    ${metricKeys
+      .map((key, i) => {
+        const val = exp[key as keyof M];
         const formatted = typeof val === "number" ? val.toLocaleString() : val;
         return `<div class="metric-item">
       <div class="metric-label">${columnNames[i]}</div>
@@ -632,7 +636,7 @@ const renderMetricsTable = <M extends object>(
             ([name, metric]) => `
           <tr>
             <td>${sanitizeText(name)}</td>
-            ${columns
+            ${metricKeys
               .map((c) => `<td>${sanitizeText(metric[c as keyof M])}</td>`)
               .join("")}
           </tr>
@@ -644,7 +648,7 @@ const renderMetricsTable = <M extends object>(
 
   return `
     <div class="card">
-      <h3>${metricName} Metrics</h3>
+      <h3>${title}</h3>
       ${experiment}
       ${agents.length > 0 ? agentsTable : ""}
     </div>
@@ -656,7 +660,7 @@ export const renderMessageMetrics = (
 ) => {
   return renderMetricsTable(
     metrics,
-    "Message",
+    "Message Metrics",
     ["totalMessages", "toolCalls", "thinking", "agentMessages"],
     ["Total Messages", "Tool Calls", "Thinking", "Agent Messages"],
   );
@@ -667,7 +671,7 @@ export const renderTokenUsageMetrics = (
 ) => {
   return renderMetricsTable(
     metrics,
-    "Token Usage",
+    "Token Usage Metrics",
     ["total", "input", "cached", "thinking", "output"],
     [
       "Total Tokens",
@@ -684,7 +688,7 @@ export const renderPublicationMetrics = (
 ) => {
   return renderMetricsTable(
     metrics,
-    "Publication",
+    "Publication Metrics",
     ["totalPublications", "totalPublished"],
     ["Total Publications", "Published"],
   );
