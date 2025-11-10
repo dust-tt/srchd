@@ -12,10 +12,36 @@ import OpenAI from "openai";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
-import { convertThinking, convertToolChoice } from "./openai_utils";
 import { get_encoding } from "tiktoken";
 
 const ENCODING = get_encoding("o200k_base");
+
+export function convertToolChoice(toolChoice: ToolChoice) {
+  switch (toolChoice) {
+    case "none":
+    case "auto":
+      return toolChoice;
+    case "any":
+      return "required";
+    default:
+      assertNever(toolChoice);
+  }
+}
+
+export function convertThinking(thinking: "high" | "low" | "none" | undefined) {
+  switch (thinking) {
+    case "high":
+      return "medium";
+    case "low":
+      return "low";
+    case "none":
+      return "minimal";
+    case undefined:
+      return "low";
+    default:
+      assertNever(thinking);
+  }
+}
 
 export type OpenAIModels =
   | "gpt-5"

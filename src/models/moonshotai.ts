@@ -13,7 +13,7 @@ import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
 import { removeNulls } from "../lib/utils";
-import { convertThinking, convertToolChoice } from "./openai_utils";
+import { convertThinking, convertToolChoice } from "./openai";
 
 export type MoonshotAIModels = "kimi-k2-thinking";
 export function isMoonshotAIModel(model: string): model is MoonshotAIModels {
