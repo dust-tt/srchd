@@ -6,6 +6,7 @@ import {
   PublicationMetric,
 } from "../metrics";
 import { TokenUsage } from "../models";
+import assert from "assert";
 
 export const sanitizeText = (value: unknown): string => {
   const input = value === null || value === undefined ? "" : String(value);
@@ -610,208 +611,119 @@ export const prepareChartData = (solutions: any[]) => {
   };
 };
 
-// Render message metrics as HTML
-export const renderMessageMetrics = (
-  metrics: ExperimentMetrics<MessageMetric>,
+const renderMetricsTable = <T extends object>(
+  metrics: ExperimentMetrics<T>,
+  metricName: string,
+  columns: string[],
+  columnNames: string[],
 ) => {
   const exp = metrics.experiment;
   const agents = Object.entries(metrics.agents);
 
+  assert(
+    columns.every((c) => c in exp),
+    `Invalid columns: ${columns.join(", ")}`,
+  );
+
+  const experiment = `
+    <div class="metrics-grid">
+    ${columns
+      .map(
+        (column, i) => `<div class="metric-item">
+      <div class="metric-label">${columnNames[i]}</div>
+      <div class="metric-value">${sanitizeText(exp[column as keyof T])}</div>
+      </div>`,
+      )
+      .join("")}
+    </div>`;
+
+  const agentsTable = `
+    <table class="metrics-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          ${columnNames
+            .map(
+              (name) => `
+          <th>${name}</th>
+        `,
+            )
+            .join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${agents
+          .map(
+            ([name, data]: [string, T]) => `
+          <tr>
+            <td>${sanitizeText(name)}</td>
+            ${columns
+              .map(
+                (column) => `
+          <td>${sanitizeText(data[column as keyof T])}</td>
+        `,
+              )
+              .join("")}
+          </tr>
+        `,
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+
   return `
     <div class="card">
-      <h3>Message Metrics</h3>
-      <div class="metrics-grid">
-        <div class="metric-item">
-          <div class="metric-label">Total Messages</div>
-          <div class="metric-value">${sanitizeText(exp.totalMessages)}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Agent Messages</div>
-          <div class="metric-value">${sanitizeText(exp.agentMessages)}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Tool Calls</div>
-          <div class="metric-value">${sanitizeText(exp.toolCalls)}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Thinking Blocks</div>
-          <div class="metric-value">${sanitizeText(exp.thinking)}</div>
-        </div>
-      </div>
+      <h3>${metricName} Metrics</h3>
+      ${experiment}
       ${
         agents.length > 0
           ? `
       <h4 style="margin-top: 15px; margin-bottom: 10px;">Per Agent</h4>
-      <table class="metrics-table">
-        <thead>
-          <tr>
-            <th>Agent</th>
-            <th>Messages</th>
-            <th>Tool Calls</th>
-            <th>Thinking</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${agents
-            .map(
-              ([name, data]: [string, MessageMetric]) => `
-            <tr>
-              <td>${sanitizeText(name)}</td>
-              <td>${sanitizeText(data.totalMessages)}</td>
-              <td>${sanitizeText(data.toolCalls)}</td>
-              <td>${sanitizeText(data.thinking)}</td>
-            </tr>
-          `,
-            )
-            .join("")}
-        </tbody>
-      </table>
+      ${agentsTable}
       `
           : ""
       }
     </div>
   `;
+};
+
+export const renderMessageMetrics = (
+  metrics: ExperimentMetrics<MessageMetric>,
+) => {
+  return renderMetricsTable(
+    metrics,
+    "Message",
+    ["totalMessages", "toolCalls", "thinking", "agentMessages"],
+    ["Total Messages", "Tool Calls", "Thinking", "Agent Messages"],
+  );
 };
 
 // Render token usage metrics as HTML with bar charts
 export const renderTokenUsageMetrics = (
   metrics: ExperimentMetrics<TokenUsage>,
 ) => {
-  const exp = metrics.experiment;
-  const agents = Object.entries(metrics.agents);
-  const inputTokens = exp.input;
-  const outputTokens = exp.output;
-  const thinkingTokens = exp.thinking;
-  const cachedTokens = exp.cached;
-  const totalTokens = exp.total;
-
-  if (totalTokens === 0) {
-    return '<div class="card"><h3>Token Usage</h3><p>No token usage recorded yet</p></div>';
-  }
-
-  // Calculate max for chart scaling
-  const agentsWithTotals = agents
-    .map(([name, data]: [string, TokenUsage]) => ({
-      name,
-      total: data.total,
-    }))
-    .filter((agent) => agent.total > 0)
-    .sort((a, b) => b.total - a.total);
-
-  const maxAgentTokens = Math.max(...agentsWithTotals.map((a) => a.total), 1);
-
-  return `
-    <div class="card">
-      <h3>Token Usage</h3>
-      <div class="metrics-grid">
-        <div class="metric-item">
-          <div class="metric-label">Total Tokens</div>
-          <div class="metric-value">${sanitizeText(totalTokens.toLocaleString())}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Input Tokens</div>
-          <div class="metric-value">${sanitizeText(inputTokens.toLocaleString())}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Cached Tokens</div>
-          <div class="metric-value">${sanitizeText(cachedTokens.toLocaleString())}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Thinking Tokens</div>
-          <div class="metric-value">${sanitizeText(thinkingTokens.toLocaleString())}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Output Tokens</div>
-          <div class="metric-value">${sanitizeText(outputTokens.toLocaleString())}</div>
-        </div>
-      </div>
-
-      ${
-        agentsWithTotals.length > 0
-          ? `
-      <div style="margin-top: 20px;">
-        <h4 style="margin-bottom: 15px;">Token Usage by Agent</h4>
-        <svg width="100%" height="${Math.max(agentsWithTotals.length * 35 + 60, 200)}" style="border: 1px solid #ddd; border-radius: 3px; background: white;">
-          <!-- Y-axis labels (agent names) -->
-          ${agentsWithTotals
-            .map(
-              (agent, i) => `
-            <text x="10" y="${35 + i * 35}" class="chart-text" text-anchor="start" dominant-baseline="middle">${sanitizeText(agent.name)}</text>
-          `,
-            )
-            .join("")}
-
-          <!-- Bars -->
-          ${agentsWithTotals
-            .map((agent, i) => {
-              const barWidth = (agent.total / maxAgentTokens) * 65;
-              return `
-            <rect x="30%" y="${25 + i * 35}" width="${barWidth}%" height="20" fill="#4a90e2" rx="2" />
-            <text x="${32 + barWidth}%" y="${35 + i * 35}" class="chart-text" text-anchor="start" dominant-baseline="middle">${sanitizeText(agent.total.toLocaleString())}</text>
-          `;
-            })
-            .join("")}
-
-          <!-- X-axis label -->
-          <text x="50%" y="${agentsWithTotals.length * 35 + 50}" class="chart-text" text-anchor="middle">Total Tokens</text>
-        </svg>
-      </div>
-      `
-          : '<p style="margin-top: 15px; color: #666;">No agent token usage recorded yet</p>'
-      }
-    </div>
-  `;
+  return renderMetricsTable(
+    metrics,
+    "Token Usage",
+    ["total", "input", "cached", "thinking", "output"],
+    [
+      "Total Tokens",
+      "Input Tokens",
+      "Cached Tokens",
+      "Thinking Tokens",
+      "Output Tokens",
+    ],
+  );
 };
 
 // Render publication metrics as HTML
 export const renderPublicationMetrics = (
   metrics: ExperimentMetrics<PublicationMetric>,
 ) => {
-  const exp = metrics.experiment;
-  const agents = Object.entries(metrics.agents);
-
-  return `
-    <div class="card">
-      <h3>Publication Metrics</h3>
-      <div class="metrics-grid">
-        <div class="metric-item">
-          <div class="metric-label">Total Publications</div>
-          <div class="metric-value">${sanitizeText(exp.totalPublications)}</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-label">Published</div>
-          <div class="metric-value">${sanitizeText(exp.totalPublished)}</div>
-        </div>
-      </div>
-      ${
-        agents.length > 0
-          ? `
-      <h4 style="margin-top: 15px; margin-bottom: 10px;">Per Agent</h4>
-      <table class="metrics-table">
-        <thead>
-          <tr>
-            <th>Agent</th>
-            <th>Total</th>
-            <th>Published</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${agents
-            .map(
-              ([name, data]: [string, PublicationMetric]) => `
-            <tr>
-              <td>${sanitizeText(name)}</td>
-              <td>${sanitizeText(data.totalPublications)}</td>
-              <td>${sanitizeText(data.totalPublished)}</td>
-            </tr>
-          `,
-            )
-            .join("")}
-        </tbody>
-      </table>
-      `
-          : ""
-      }
-    </div>
-  `;
+  return renderMetricsTable(
+    metrics,
+    "Publication",
+    ["totalPublications", "totalPublished"],
+    ["Total Publications", "Published"],
+  );
 };

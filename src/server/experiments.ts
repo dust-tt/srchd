@@ -91,7 +91,7 @@ export const experimentOverview = async (c: Input) => {
     ${renderMessageMetrics(messageMetrics)}
     ${renderTokenUsageMetrics(tokenMetrics)}
     ${renderPublicationMetrics(publicationMetrics)}
-    `;
+  `;
 
   const breadcrumb = `<a href="/">Experiments</a> > ${experimentName}`;
   return c.html(baseTemplate(expData.name, content, breadcrumb));
