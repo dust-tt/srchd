@@ -1,8 +1,20 @@
 import sanitizeHtml from "sanitize-html";
 import { marked } from "marked";
+import {
+  ExperimentMetrics,
+  MessageMetric,
+  PublicationMetric,
+} from "../metrics";
+import { TokenUsage } from "../models";
+import assert from "assert";
 
 export const sanitizeText = (value: unknown): string => {
-  const input = value === null || value === undefined ? "" : String(value);
+  const input =
+    value === null || value === undefined
+      ? ""
+      : typeof value === "number"
+        ? value.toLocaleString()
+        : String(value);
   return sanitizeHtml(input, {
     allowedTags: [],
     allowedAttributes: {},
@@ -375,6 +387,48 @@ export const baseTemplate = (
       font-size: 11px;
       font-family: monospace;
     }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .metric-item {
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 3px;
+      border: 1px solid #e0e0e0;
+    }
+    .metric-label {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 3px;
+    }
+    .metric-value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+    }
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 0.9em;
+    }
+    .metrics-table th,
+    .metrics-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .metrics-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+      color: #555;
+    }
+    .metrics-table tr:hover {
+      background: #f8f9fa;
+    }
   </style>
 </head>
 <body>
@@ -538,4 +592,107 @@ export const prepareChartData = (solutions: any[]) => {
     timePoints,
     publicationLines: publicationLinesArray,
   };
+};
+
+const renderMetricsTable = <M extends object>(
+  metrics: ExperimentMetrics<M>,
+  title: string,
+  metricKeys: string[],
+  columnNames: string[],
+) => {
+  const exp = metrics.experiment;
+  const agents = Object.entries(metrics.agents);
+
+  assert(
+    metricKeys.every((key) => key in exp),
+    `Invalid keys: ${metricKeys.join(", ")}, expected: ${Object.keys(exp).join(", ")}`,
+  );
+  assert(
+    metricKeys.length === columnNames.length,
+    `Keys and column names must have the same length`,
+  );
+
+  const experiment = `
+    <div class="metrics-grid">
+    ${metricKeys
+      .map(
+        (key, i) => `<div class="metric-item">
+      <div class="metric-label">${columnNames[i]}</div>
+      <div class="metric-value">${sanitizeText(exp[key as keyof M])}</div>
+      </div>`,
+      )
+      .join("")}
+    </div>`;
+
+  const agentsTable = `
+    <h4 style="margin-top: 15px; margin-bottom: 10px;">Per Agent</h4>
+    <table class="metrics-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          ${columnNames.map((name) => `<th>${name}</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${agents
+          .map(
+            ([name, metric]) => `
+          <tr>
+            <td>${sanitizeText(name)}</td>
+            ${metricKeys
+              .map((key) => `<td>${sanitizeText(metric[key as keyof M])}</td>`)
+              .join("")}
+          </tr>
+        `,
+          )
+          .join("")}
+      </tbody>
+    </table>`;
+
+  return `
+    <div class="card">
+      <h3>${title}</h3>
+      ${experiment}
+      ${agents.length > 0 ? agentsTable : ""}
+    </div>
+  `;
+};
+
+export const renderMessageMetrics = (
+  metrics: ExperimentMetrics<MessageMetric>,
+) => {
+  return renderMetricsTable(
+    metrics,
+    "Message Metrics",
+    ["totalMessages", "toolCalls", "thinking", "agentMessages"],
+    ["Total Messages", "Tool Calls", "Thinking", "Agent Messages"],
+  );
+};
+
+export const renderTokenUsageMetrics = (
+  metrics: ExperimentMetrics<TokenUsage>,
+) => {
+  return renderMetricsTable(
+    metrics,
+    "Token Usage Metrics",
+    ["total", "input", "cached", "thinking", "output"],
+    [
+      "Total Tokens",
+      "Input Tokens",
+      "Cached Tokens",
+      "Thinking Tokens",
+      "Output Tokens",
+    ],
+  );
+};
+
+export const renderPublicationMetrics = (
+  metrics: ExperimentMetrics<PublicationMetric>,
+) => {
+  return renderMetricsTable(
+    metrics,
+    "Publication Metrics",
+    ["totalPublications", "totalPublished"],
+    ["Total Publications", "Published"],
+  );
 };

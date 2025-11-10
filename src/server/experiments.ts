@@ -6,6 +6,9 @@ import {
   baseTemplate,
   experimentNav,
   prepareChartData,
+  renderMessageMetrics,
+  renderPublicationMetrics,
+  renderTokenUsageMetrics,
   safeGradeClass,
   safeReasonClass,
   safeScriptJSON,
@@ -15,6 +18,11 @@ import {
 } from "./styling";
 import { BlankEnv, BlankInput } from "hono/types";
 import { Context } from "hono";
+import {
+  messageMetricsByExperiment,
+  publicationMetricsByExperiment,
+  tokenUsageMetricsByExperiment,
+} from "../metrics";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 
@@ -59,8 +67,12 @@ export const experimentOverview = async (c: Input) => {
     await SolutionResource.listByExperiment(experiment);
 
   const expData = experiment.toJSON();
-
   const experimentName = sanitizeText(expData.name);
+  // Fetch metrics
+  const messageMetrics = await messageMetricsByExperiment(experiment);
+  const tokenMetrics = await tokenUsageMetricsByExperiment(experiment);
+  const publicationMetrics = await publicationMetricsByExperiment(experiment);
+
   const content = `
     ${experimentNav(id, "overview")}
     <div class="card">
@@ -76,6 +88,9 @@ export const experimentOverview = async (c: Input) => {
     <div class="card">
       <div class="content">${sanitizeText(expData.problem)}</div>
     </div>
+    ${renderMessageMetrics(messageMetrics)}
+    ${renderTokenUsageMetrics(tokenMetrics)}
+    ${renderPublicationMetrics(publicationMetrics)}
   `;
 
   const breadcrumb = `<a href="/">Experiments</a> > ${experimentName}`;
