@@ -27,6 +27,7 @@ import { MistralModel, MistralModels } from "./models/mistral";
 import { TokenUsageResource } from "./resources/token_usage";
 import { createServer } from "./tools";
 import { DEFAULT_TOOLS } from "./tools/constants";
+import { MoonshotAIModel, MoonshotAIModels } from "./models/moonshotai";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -127,6 +128,13 @@ export class Runner {
               thinking: agent.toJSON().thinking,
             },
             agent.toJSON().model as MistralModels,
+          );
+        case "moonshotai":
+          return new MoonshotAIModel(
+            {
+              thinking: agent.toJSON().thinking,
+            },
+            agent.toJSON().model as MoonshotAIModels,
           );
         default:
           assertNever(provider);
