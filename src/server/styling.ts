@@ -381,6 +381,70 @@ export const baseTemplate = (
       font-size: 11px;
       font-family: monospace;
     }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .metric-item {
+      background: #f8f9fa;
+      padding: 8px;
+      border-radius: 3px;
+      border: 1px solid #e0e0e0;
+    }
+    .metric-label {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 3px;
+    }
+    .metric-value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #333;
+    }
+    .metric-bar {
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      margin: 5px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .metric-bar-label {
+      position: absolute;
+      left: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.75em;
+      color: #333;
+      font-weight: bold;
+    }
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 0.9em;
+    }
+    .metrics-table th,
+    .metrics-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .metrics-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+      color: #555;
+    }
+    .metrics-table tr:hover {
+      background: #f8f9fa;
+    }
   </style>
 </head>
 <body>
