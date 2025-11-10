@@ -9,7 +9,12 @@ import { TokenUsage } from "../models";
 import assert from "assert";
 
 export const sanitizeText = (value: unknown): string => {
-  const input = value === null || value === undefined ? "" : String(value);
+  const input =
+    value === null || value === undefined
+      ? ""
+      : typeof value === "number"
+        ? value.toLocaleString()
+        : String(value);
   return sanitizeHtml(input, {
     allowedTags: [],
     allowedAttributes: {},
@@ -610,14 +615,12 @@ const renderMetricsTable = <M extends object>(
   const experiment = `
     <div class="metrics-grid">
     ${metricKeys
-      .map((key, i) => {
-        const val = exp[key as keyof M];
-        const formatted = typeof val === "number" ? val.toLocaleString() : val;
-        return `<div class="metric-item">
+      .map(
+        (key, i) => `<div class="metric-item">
       <div class="metric-label">${columnNames[i]}</div>
-      <div class="metric-value">${sanitizeText(formatted)}</div>
-      </div>`;
-      })
+      <div class="metric-value">${sanitizeText(exp[key as keyof M])}</div>
+      </div>`,
+      )
       .join("")}
     </div>`;
 
