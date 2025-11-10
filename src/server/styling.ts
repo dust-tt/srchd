@@ -640,7 +640,7 @@ const renderMetricsTable = <M extends object>(
           <tr>
             <td>${sanitizeText(name)}</td>
             ${metricKeys
-              .map((c) => `<td>${sanitizeText(metric[c as keyof M])}</td>`)
+              .map((k) => `<td>${sanitizeText(metric[k as keyof M])}</td>`)
               .join("")}
           </tr>
         `,
