@@ -404,28 +404,6 @@ export const baseTemplate = (
       font-weight: bold;
       color: #333;
     }
-    .metric-bar {
-      height: 20px;
-      background: #e0e0e0;
-      border-radius: 3px;
-      margin: 5px 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .metric-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.3s ease;
-    }
-    .metric-bar-label {
-      position: absolute;
-      left: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.75em;
-      color: #333;
-      font-weight: bold;
-    }
     .metrics-table {
       width: 100%;
       border-collapse: collapse;
@@ -611,8 +589,8 @@ export const prepareChartData = (solutions: any[]) => {
   };
 };
 
-const renderMetricsTable = <T extends object>(
-  metrics: ExperimentMetrics<T>,
+const renderMetricsTable = <M extends object>(
+  metrics: ExperimentMetrics<M>,
   metricName: string,
   columns: string[],
   columnNames: string[],
@@ -628,41 +606,34 @@ const renderMetricsTable = <T extends object>(
   const experiment = `
     <div class="metrics-grid">
     ${columns
-      .map(
-        (column, i) => `<div class="metric-item">
+      .map((column, i) => {
+        const val = exp[column as keyof M];
+        const formatted = typeof val === "number" ? val.toLocaleString() : val;
+        return `<div class="metric-item">
       <div class="metric-label">${columnNames[i]}</div>
-      <div class="metric-value">${sanitizeText(exp[column as keyof T])}</div>
-      </div>`,
-      )
+      <div class="metric-value">${sanitizeText(formatted)}</div>
+      </div>`;
+      })
       .join("")}
     </div>`;
 
   const agentsTable = `
+    <h4 style="margin-top: 15px; margin-bottom: 10px;">Per Agent</h4>
     <table class="metrics-table">
       <thead>
         <tr>
           <th>Agent</th>
-          ${columnNames
-            .map(
-              (name) => `
-          <th>${name}</th>
-        `,
-            )
-            .join("")}
+          ${columnNames.map((name) => `<th>${name}</th>`).join("")}
         </tr>
       </thead>
       <tbody>
         ${agents
           .map(
-            ([name, data]: [string, T]) => `
+            ([name, metric]) => `
           <tr>
             <td>${sanitizeText(name)}</td>
             ${columns
-              .map(
-                (column) => `
-          <td>${sanitizeText(data[column as keyof T])}</td>
-        `,
-              )
+              .map((c) => `<td>${sanitizeText(metric[c as keyof M])}</td>`)
               .join("")}
           </tr>
         `,
@@ -675,14 +646,7 @@ const renderMetricsTable = <T extends object>(
     <div class="card">
       <h3>${metricName} Metrics</h3>
       ${experiment}
-      ${
-        agents.length > 0
-          ? `
-      <h4 style="margin-top: 15px; margin-bottom: 10px;">Per Agent</h4>
-      ${agentsTable}
-      `
-          : ""
-      }
+      ${agents.length > 0 ? agentsTable : ""}
     </div>
   `;
 };
@@ -698,7 +662,6 @@ export const renderMessageMetrics = (
   );
 };
 
-// Render token usage metrics as HTML with bar charts
 export const renderTokenUsageMetrics = (
   metrics: ExperimentMetrics<TokenUsage>,
 ) => {
@@ -716,7 +679,6 @@ export const renderTokenUsageMetrics = (
   );
 };
 
-// Render publication metrics as HTML
 export const renderPublicationMetrics = (
   metrics: ExperimentMetrics<PublicationMetric>,
 ) => {
