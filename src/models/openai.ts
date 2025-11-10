@@ -12,6 +12,7 @@ import OpenAI from "openai";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
+import { convertThinking, convertToolChoice } from "./openai_utils";
 import { get_encoding } from "tiktoken";
 
 const ENCODING = get_encoding("o200k_base");
@@ -35,6 +36,12 @@ export function isOpenAIModel(model: string): model is OpenAIModels {
 export class OpenAIModel extends BaseModel {
   private client: OpenAI;
   private model: OpenAIModels;
+
+  constructor(config: ModelConfig, model: OpenAIModels = "gpt-5-mini") {
+    super(config);
+    this.client = new OpenAI();
+    this.model = model;
+  }
 
   messages(messages: Message[]) {
     const inputItems: ResponseInputItem[] = messages
@@ -130,39 +137,6 @@ export class OpenAIModel extends BaseModel {
     return inputItems;
   }
 
-  constructor(config: ModelConfig, model: OpenAIModels = "gpt-5-mini") {
-    super(config);
-    this.client = new OpenAI();
-    this.model = model;
-  }
-
-  convertToolChoice(toolChoice: ToolChoice) {
-    switch (toolChoice) {
-      case "none":
-      case "auto":
-        return toolChoice;
-      case "any":
-        return "required";
-      default:
-        assertNever(toolChoice);
-    }
-  }
-
-  convertThinking(thinking: "high" | "low" | "none" | undefined) {
-    switch (thinking) {
-      case "high":
-        return "medium";
-      case "low":
-        return "low";
-      case "none":
-        return "minimal";
-      case undefined:
-        return "low";
-      default:
-        assertNever(thinking);
-    }
-  }
-
   async run(
     messages: Message[],
     prompt: string,
@@ -173,26 +147,19 @@ export class OpenAIModel extends BaseModel {
   > {
     try {
       const input = this.messages(messages);
-      // console.log("----------------------------------------------");
-      // console.log("OpenAI input:");
-      // console.log(JSON.stringify(input, null, 2));
-      // console.log("----------------------------------------------");
-      // console.log("Tools:");
-      // console.log(JSON.stringify(tools, null, 2));
-      // console.log("----------------------------------------------");
 
       const response = await this.client.responses.create({
         model: this.model,
         instructions: prompt,
         input,
-        tool_choice: this.convertToolChoice(toolChoice),
+        tool_choice: convertToolChoice(toolChoice),
         include:
           this.model === "gpt-4.1" ? [] : ["reasoning.encrypted_content"],
         reasoning:
           this.model === "gpt-4.1"
             ? undefined
             : {
-                effort: this.convertThinking(this.config.thinking),
+                effort: convertThinking(this.config.thinking),
                 summary: "auto",
               },
         tools: tools.map((tool) => ({
@@ -202,39 +169,7 @@ export class OpenAIModel extends BaseModel {
           parameters: tool.inputSchema as any,
           strict: false,
         })),
-        // background: true,
       });
-
-      // while (
-      //   response.status === "queued" ||
-      //   response.status === "in_progress"
-      // ) {
-      //   await new Promise((resolve) => setTimeout(resolve, 2000)); // wait 2 seconds
-      //   response = await this.client.responses.retrieve(response.id);
-      //   console.log(
-      //     "Current status: " + response.status + " [" + response.id + "]"
-      //   );
-      //   console.log(response);
-      // }
-
-      // if (response.status === "failed") {
-      //   return new Err(
-      //     new SrchdError(
-      //       "model_error",
-      //       "Model response failed",
-      //       response.error
-      //         ? normalizeError(
-      //             `[${response.error.code}] ` + response.error.message
-      //           )
-      //         : undefined
-      //     )
-      //   );
-      // }
-
-      // console.log("==============================================");
-      // console.log("OpenAI response");
-      // console.log(JSON.stringify(response.output, null, 2));
-      // console.log("==============================================");
 
       const content = response.output
         .map((output) => {
@@ -291,8 +226,6 @@ export class OpenAIModel extends BaseModel {
           }
         })
         .flat();
-
-      // console.log(response.usage);
 
       const tokenUsage = response.usage
         ? {
@@ -356,7 +289,6 @@ export class OpenAIModel extends BaseModel {
 
     return new Ok(tokenCount);
   }
-
   maxTokens(): number {
     switch (this.model) {
       case "gpt-5":

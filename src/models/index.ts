@@ -3,9 +3,16 @@ import { Result } from "../lib/result";
 import { SrchdError } from "../lib/error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
-export type provider = "gemini" | "anthropic" | "openai" | "mistral";
+export type provider =
+  | "gemini"
+  | "anthropic"
+  | "openai"
+  | "mistral"
+  | "moonshotai";
 export function isProvider(str: string): str is provider {
-  return ["gemini", "anthropic", "openai", "mistral"].includes(str);
+  return ["gemini", "anthropic", "openai", "mistral", "moonshotai"].includes(
+    str,
+  );
 }
 
 export type ProviderData = Partial<Record<provider, any>>;
