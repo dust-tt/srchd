@@ -13,7 +13,10 @@ export async function createServer(
   {
     experiment,
     agent,
-  }: { experiment: ExperimentResource; agent: AgentResource },
+  }: {
+    experiment: ExperimentResource;
+    agent: AgentResource;
+  },
 ): Promise<McpServer> {
   switch (tool) {
     case "computer":

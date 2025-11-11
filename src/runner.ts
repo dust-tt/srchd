@@ -29,11 +29,17 @@ import { createServer } from "./tools";
 import { DEFAULT_TOOLS } from "./tools/constants";
 import { MoonshotAIModel, MoonshotAIModels } from "./models/moonshotai";
 
+export type RunnerConfig = {
+  reviewerCount: number;
+};
+
 export class Runner {
   private experiment: ExperimentResource;
   private agent: AgentResource;
   private mcpClients: Client[];
   private model: BaseModel;
+  private config: RunnerConfig;
+
   private contextPruning: {
     lastAgentLoopStartIdx: number;
     lastAgentLoopInnerStartIdx: number;
@@ -45,11 +51,14 @@ export class Runner {
     agent: AgentResource,
     mcpClients: Client[],
     model: BaseModel,
+    config: RunnerConfig,
   ) {
     this.experiment = experiment;
     this.agent = agent;
     this.mcpClients = mcpClients;
     this.model = model;
+    this.config = config;
+
     this.messages = [];
     this.contextPruning = {
       lastAgentLoopStartIdx: 0,
@@ -60,6 +69,7 @@ export class Runner {
   public static async builder(
     experimentName: string,
     agentName: string,
+    config: RunnerConfig,
   ): Promise<
     Result<
       { experiment: ExperimentResource; agent: AgentResource; runner: Runner },
@@ -141,7 +151,13 @@ export class Runner {
       }
     })();
 
-    const runner = await Runner.initialize(experiment, agent, clients, model);
+    const runner = await Runner.initialize(
+      experiment,
+      agent,
+      clients,
+      model,
+      config,
+    );
     if (runner.isErr()) {
       return runner;
     }
@@ -158,8 +174,9 @@ export class Runner {
     agent: AgentResource,
     mcpClients: Client[],
     model: BaseModel,
+    config: RunnerConfig,
   ): Promise<Result<Runner, SrchdError>> {
-    const runner = new Runner(experiment, agent, mcpClients, model);
+    const runner = new Runner(experiment, agent, mcpClients, model, config);
 
     const messages = await MessageResource.listMessagesByAgent(
       runner.experiment,

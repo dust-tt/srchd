@@ -12,6 +12,7 @@ import { isProvider, isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
 import { isGeminiModel } from "./models/gemini";
+import { isMoonshotAIModel } from "./models/moonshotai";
 import { serve } from "@hono/node-server";
 import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
@@ -26,7 +27,7 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
-import { isMoonshotAIModel } from "./models/moonshotai";
+import { REVIEWER_COUNT } from "./resources/publication";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -471,7 +472,11 @@ agentCmd
     }
 
     const builders = await Promise.all(
-      agents.map((a) => Runner.builder(options.experiment, a)),
+      agents.map((a) =>
+        Runner.builder(options.experiment, a, {
+          reviewerCount: REVIEWER_COUNT,
+        }),
+      ),
     );
     for (const res of builders) {
       if (res.isErr()) {
