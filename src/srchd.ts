@@ -137,7 +137,10 @@ experimentCmd
       problem: problem.value,
     });
 
-    console.table([experiment.toJSON()]);
+    const e = experiment.toJSON();
+    e.problem =
+      e.problem.substring(0, 32) + (e.problem.length > 32 ? "..." : "");
+    console.table([e]);
   });
 
 experimentCmd
