@@ -26,6 +26,7 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
+import { isMoonshotAIModel } from "./models/moonshotai";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -272,7 +273,8 @@ agentCmd
           isAnthropicModel(model) ||
           isOpenAIModel(model) ||
           isGeminiModel(model) ||
-          isMistralModel(model)
+          isMistralModel(model) ||
+          isMoonshotAIModel(model)
         )
       ) {
         return exitWithError(

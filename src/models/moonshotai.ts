@@ -30,7 +30,7 @@ export class MoonshotAIModel extends BaseModel {
   ) {
     super(config);
     this.client = new OpenAI({
-      apiKey: process.env.MOONSHOT_API_KEY,
+      apiKey: process.env.MOONSHOTAI_API_KEY,
       baseURL: "https://api.moonshot.ai/v1",
     });
     this.model = model;
@@ -218,7 +218,7 @@ export class MoonshotAIModel extends BaseModel {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.MOONSHOT_API_KEY}`,
+            Authorization: `Bearer ${process.env.MOONSHOTAI_API_KEY}`,
           },
           body: JSON.stringify({
             model: this.model,
