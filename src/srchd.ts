@@ -27,7 +27,6 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
-import { REVIEWER_COUNT } from "./resources/publication";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -38,6 +37,8 @@ const exitWithError = (err: Err<SrchdError>) => {
   }
   process.exit(1);
 };
+
+const DEFAULT_REVIEWERS_COUNT = 4;
 
 const program = new Command();
 
@@ -446,7 +447,11 @@ agentCmd
   .command("run <name>")
   .description("Run an agent")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .option("-t, --tick", "Run on tick only")
+  .option(
+    "-r, --reviewers",
+    "Number of reviewers for each publication (default: 4",
+  )
+  .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
     let agents: string[] = [];
 
@@ -471,10 +476,25 @@ agentCmd
       agents = [name];
     }
 
+    let reviewers = DEFAULT_REVIEWERS_COUNT;
+    if (options.reviewers) {
+      reviewers = parseInt(options.reviewers);
+      if (isNaN(reviewers) || reviewers < 0) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              "Reviewers must be a valid integer greater than 0",
+            ),
+          ),
+        );
+      }
+    }
+
     const builders = await Promise.all(
       agents.map((a) =>
         Runner.builder(options.experiment, a, {
-          reviewerCount: REVIEWER_COUNT,
+          reviewers,
         }),
       ),
     );
@@ -526,8 +546,29 @@ agentCmd
   .command("replay <name> <message>")
   .description("Replay an agent message (warning: tools side effects)")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
+  .option(
+    "-r, --reviewers",
+    "Number of reviewers for each publication (default: 4",
+  )
   .action(async (name, message, options) => {
-    const res = await Runner.builder(options.experiment, name);
+    let reviewers = DEFAULT_REVIEWERS_COUNT;
+    if (options.reviewers) {
+      reviewers = parseInt(options.reviewers);
+      if (isNaN(reviewers) || reviewers < 0) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              "Reviewers must be a valid integer greater than 0",
+            ),
+          ),
+        );
+      }
+    }
+
+    const res = await Runner.builder(options.experiment, name, {
+      reviewers,
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }

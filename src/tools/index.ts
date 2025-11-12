@@ -7,15 +7,18 @@ import { ToolName } from "./constants";
 import type { AgentResource } from "../resources/agent";
 import type { ExperimentResource } from "../resources/experiment";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
+import { RunConfig } from "../runner/config";
 
 export async function createServer(
   tool: ToolName,
   {
     experiment,
     agent,
+    config,
   }: {
     experiment: ExperimentResource;
     agent: AgentResource;
+    config: RunConfig;
   },
 ): Promise<McpServer> {
   switch (tool) {
@@ -24,7 +27,7 @@ export async function createServer(
     case "goal_solution":
       return createGoalSolutionServer(experiment, agent);
     case "publications":
-      return createPublicationsServer(experiment, agent);
+      return createPublicationsServer(experiment, agent, config);
     case "system_prompt_self_edit":
       return createSystemPromptSelfEditServer(agent);
     case "web":

@@ -2,14 +2,11 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentResource } from "../resources/agent";
 import { errorToCallToolResult } from "../lib/mcp";
-import {
-  PublicationResource,
-  Review,
-  REVIEWER_COUNT,
-} from "../resources/publication";
+import { PublicationResource, Review } from "../resources/publication";
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "../tools/constants";
+import { RunConfig } from "../runner/config";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -67,6 +64,7 @@ export const renderListOfPublications = (
 export async function createPublicationsServer(
   experiment: ExperimentResource,
   agent: AgentResource,
+  config: RunConfig,
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
@@ -217,14 +215,14 @@ ${r.content}`;
 
       const agents = await AgentResource.listByExperiment(experiment);
       const pool = agents.filter((a) => a.toJSON().id !== agent.toJSON().id);
-      if (pool.length < REVIEWER_COUNT) {
+      if (pool.length < config.reviewers) {
         return errorToCallToolResult(
           new SrchdError("publication_error", "Not enough reviewers available"),
         );
       }
       const reviewers = pool
         .sort(() => 0.5 - Math.random())
-        .slice(0, REVIEWER_COUNT);
+        .slice(0, config.reviewers);
 
       const publication = await PublicationResource.submit(experiment, agent, {
         title,
@@ -238,6 +236,9 @@ ${r.content}`;
       const reviews = await publication.value.requestReviewers(reviewers);
       if (reviews.isErr()) {
         return errorToCallToolResult(reviews.error);
+      }
+      if (reviewers.length === 0) {
+        await publication.value.maybePublishOrReject();
       }
 
       const res = publication.value.toJSON();
