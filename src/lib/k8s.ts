@@ -6,24 +6,25 @@ import * as k8s from "@kubernetes/client-node";
 export const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+export const rbacApi = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
 export const K8S_NAMESPACE = process.env.NAMESPACE ?? "default";
 
-export const podName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}`;
+export const podName = (namespace: string, computerId: string) =>
+  `srchd-${namespace}-${computerId}`;
 
-export function namespaceLabels(workspaceId: string) {
+export function namespaceLabels(namespace: string) {
   return {
     app: "srchd",
-    workspace: workspaceId,
-    "srchd.io/workspace": workspaceId,
+    namespace,
+    "srchd.io/namespace": namespace,
   };
 }
 
-export function defineNamespace(workspaceId: string): k8s.V1Namespace {
+export function defineNamespace(namespace: string): k8s.V1Namespace {
   return {
     metadata: {
-      name: workspaceId,
-      labels: namespaceLabels(workspaceId),
+      name: namespace,
+      labels: namespaceLabels(namespace),
     },
   };
 }
@@ -56,15 +57,15 @@ export async function ensure(
 }
 
 export async function ensurePodRunning(
-  workspaceId: string,
+  namespace: string,
   computerId: string,
   timeoutSeconds: number = 60,
 ): Promise<Result<void, SrchdError>> {
   // Give a minute to check for pod to be instantiated.
   for (let i = 0; i < timeoutSeconds; i++) {
     const podStatus = await k8sApi.readNamespacedPod({
-      name: podName(workspaceId, computerId),
-      namespace: workspaceId,
+      name: podName(namespace, computerId),
+      namespace,
     });
     if (
       podStatus.status?.phase === "Running" &&
@@ -77,27 +78,27 @@ export async function ensurePodRunning(
   return new Err(
     new SrchdError(
       "pod_initialization_error",
-      `Pod ${podName(workspaceId, computerId)} failed to become ready within timeout`,
+      `Pod ${podName(namespace, computerId)} failed to become ready within timeout`,
     ),
   );
 }
 
 export async function ensureNamespace(
-  workspaceId: string,
+  namespace: string,
 ): Promise<Result<void, SrchdError>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespace({
-        name: workspaceId,
+        name: namespace,
       });
     },
     async () => {
       await k8sApi.createNamespace({
-        body: defineNamespace(workspaceId),
+        body: defineNamespace(namespace),
       });
     },
     "Namespace",
-    workspaceId,
+    namespace,
   );
 }
 
