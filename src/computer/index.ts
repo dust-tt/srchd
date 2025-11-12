@@ -11,9 +11,6 @@ import { AgentResource } from "../resources/agent";
 import { podName } from "../lib/k8s";
 import { computerExec, ensureComputerPod } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
-import path from "path";
-
-export const COMPUTER_DOCKERFILE_PATH = path.join(__dirname, "Dockerfile");
 
 export function computerId(
   experiment: ExperimentResource,

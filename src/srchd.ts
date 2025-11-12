@@ -27,7 +27,11 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
-import { buildImage, dockerFile, dockerFileForIdentity } from "./lib/image";
+import {
+  buildComputerImage,
+  dockerFile,
+  dockerFileForIdentity,
+} from "./computer/image";
 import { Computer, computerId } from "./computer";
 
 const exitWithError = (err: Err<SrchdError>) => {
@@ -606,7 +610,7 @@ imageCmd
     "Path to SSH private key for Git access",
   )
   .action(async (options) => {
-    const res = await buildImage("computer", options.identity);
+    const res = await buildComputerImage(options.identity);
     if (res.isErr()) {
       return exitWithError(res);
     }
@@ -629,7 +633,7 @@ imageCmd
       }
       console.log(res.value);
     } else {
-      console.log(await dockerFile("computer"));
+      console.log(await dockerFile());
     }
   });
 
