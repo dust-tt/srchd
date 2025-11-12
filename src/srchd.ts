@@ -32,6 +32,7 @@ import {
   dockerFile,
   dockerFileForIdentity,
 } from "./computer/image";
+import { Computer, computerId } from "./computer";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -458,27 +459,34 @@ agentCmd
   )
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
-    let agents: string[] = [];
+    let agents: AgentResource[] = [];
+    const experiment = await ExperimentResource.findByName(options.experiment);
+    if (!experiment) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "not_found_error",
+            `Experiment '${options.experiment}' not found.`,
+          ),
+        ),
+      );
+    }
 
     if (name === "all") {
-      const experiment = await ExperimentResource.findByName(
-        options.experiment,
-      );
-      if (!experiment) {
+      agents = await AgentResource.listByExperiment(experiment);
+    } else {
+      const agent = await AgentResource.findByName(experiment, name);
+      if (!agent) {
         return exitWithError(
           new Err(
             new SrchdError(
               "not_found_error",
-              `Experiment '${options.experiment}' not found.`,
+              `Agent '${options.name}' not found.`,
             ),
           ),
         );
       }
-      agents = (await AgentResource.listByExperiment(experiment)).map(
-        (a) => a.toJSON().name,
-      );
-    } else {
-      agents = [name];
+      agents = [agent];
     }
 
     let reviewers = DEFAULT_REVIEWERS_COUNT;
@@ -496,9 +504,16 @@ agentCmd
       }
     }
 
+    // Ensure all agents with computer tool have computers
+    for (const agent of agents.filter((a) =>
+      a.toJSON().tools.includes("computer"),
+    )) {
+      await Computer.ensure(computerId(experiment, agent));
+    }
+
     const builders = await Promise.all(
       agents.map((a) =>
-        Runner.builder(options.experiment, a, {
+        Runner.builder(options.experiment, a.toJSON().name, {
           reviewers,
         }),
       ),
