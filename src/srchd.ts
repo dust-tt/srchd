@@ -27,8 +27,12 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
+import {
+  buildComputerImage,
+  dockerFile,
+  dockerFileForIdentity,
+} from "./computer/image";
 import { Computer, computerId } from "./computer";
-import { buildImage, dockerFile, dockerFileForIdentity } from "./lib/image";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -600,30 +604,28 @@ const imageCmd = program.command("image").description("Docker image utils");
 
 imageCmd
   .command("build")
-  .description("Build a Docker image")
-  .argument("[image]: computer | srchd", "Image to build (default: computer)")
-  .option(
-    "-i, --identity <private_key_path>",
-    "Path to SSH private key for Git access (Only for computer image)",
-  )
-  .action(async (image, options) => {
-    const res = await buildImage(image, options.identity);
-    if (res.isErr()) {
-      return exitWithError(res);
-    }
-
-    console.log(`${image} Docker image built successfully.`);
-  });
-
-imageCmd
-  .command("show")
-  .description("Dump the Docker image")
-  .argument("[image]: computer | srchd", "Image to dump (default: computer)")
+  .description("Build a computer Docker image")
   .option(
     "-i, --identity <private_key_path>",
     "Path to SSH private key for Git access",
   )
-  .action(async (image, options) => {
+  .action(async (options) => {
+    const res = await buildComputerImage(options.identity);
+    if (res.isErr()) {
+      return exitWithError(res);
+    }
+
+    console.log(`computer Docker image built successfully.`);
+  });
+
+imageCmd
+  .command("show")
+  .description("Dump the computer Docker image")
+  .option(
+    "-i, --identity <private_key_path>",
+    "Path to SSH private key for Git access",
+  )
+  .action(async (options) => {
     if (options.identity) {
       const res = await dockerFileForIdentity(options.identity);
       if (res.isErr()) {
@@ -631,7 +633,7 @@ imageCmd
       }
       console.log(res.value);
     } else {
-      console.log(await dockerFile(image));
+      console.log(await dockerFile());
     }
   });
 

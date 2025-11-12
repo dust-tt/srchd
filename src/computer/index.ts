@@ -5,15 +5,13 @@ import {
   k8sApi,
   ensureNamespace,
   ensurePodRunning,
+  podExec,
 } from "../lib/k8s";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
 import { podName } from "../lib/k8s";
-import { ensureComputerPod, computerExec } from "./k8s";
+import { ensureComputerPod } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
-import path from "path";
-
-export const COMPUTER_DOCKERFILE_PATH = path.join(__dirname, "Dockerfile");
 
 export function computerId(
   experiment: ExperimentResource,
@@ -23,45 +21,46 @@ export function computerId(
 }
 
 export class Computer {
-  private workspaceId: string;
+  private namespace: string;
   private computerId: string;
   private podName: string;
 
-  private constructor(workspaceId: string, computerId: string) {
-    this.workspaceId = workspaceId;
+  private constructor(namespace: string, computerId: string) {
+    this.namespace = namespace;
     this.computerId = computerId;
-    this.podName = podName(workspaceId, computerId);
+    this.podName = podName(namespace, computerId);
   }
 
   static async create(
     computerId: string,
-    workspaceId: string = K8S_NAMESPACE,
+    namespace: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    let res = await ensureNamespace(workspaceId);
-    if (res.isErr()) {
-      return res;
-    }
-    res = await ensureComputerPod(workspaceId, computerId);
+    let res = await ensureNamespace(namespace);
     if (res.isErr()) {
       return res;
     }
 
-    res = await ensurePodRunning(workspaceId, computerId);
+    res = await ensureComputerPod(namespace, computerId);
     if (res.isErr()) {
       return res;
     }
 
-    return new Ok(new Computer(workspaceId, computerId));
+    res = await ensurePodRunning(namespace, computerId);
+    if (res.isErr()) {
+      return res;
+    }
+
+    return new Ok(new Computer(namespace, computerId));
   }
 
   static async findById(
     computerId: string,
-    workspaceId: string = K8S_NAMESPACE,
+    namespace: string = K8S_NAMESPACE,
   ): Promise<Computer | null> {
-    const name = podName(workspaceId, computerId);
+    const name = podName(namespace, computerId);
     try {
-      await k8sApi.readNamespacedPod({ name, namespace: workspaceId });
-      return new Computer(workspaceId, computerId);
+      await k8sApi.readNamespacedPod({ name, namespace: namespace });
+      return new Computer(namespace, computerId);
     } catch (_err) {
       return null;
     }
@@ -69,28 +68,28 @@ export class Computer {
 
   static async ensure(
     computerId: string,
-    workspaceId: string = K8S_NAMESPACE,
+    namespace: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    const c = await Computer.findById(computerId, workspaceId);
+    const c = await Computer.findById(computerId, namespace);
     if (c) {
       const status = await c.status();
       if (status !== "Running") {
         // Pod is not running, recreate it
         await c.terminate();
-        return Computer.create(computerId, workspaceId);
+        return Computer.create(computerId, namespace);
       }
       return new Ok(c);
     }
-    return Computer.create(computerId, workspaceId);
+    return Computer.create(computerId, namespace);
   }
 
   static async listComputerIds(
-    workspaceId: string = K8S_NAMESPACE,
+    namespace: string = K8S_NAMESPACE,
   ): Promise<Result<string[], SrchdError>> {
     try {
       const response = await k8sApi.listNamespacedPod({
-        namespace: workspaceId,
-        labelSelector: `srchd.io/workspace=${workspaceId}`,
+        namespace: namespace,
+        labelSelector: `srchd.io/namespace=${namespace}`,
       });
 
       const computerIds = response.items
@@ -110,7 +109,7 @@ export class Computer {
     try {
       const pod = await k8sApi.readNamespacedPod({
         name: this.podName,
-        namespace: this.workspaceId,
+        namespace: this.namespace,
       });
       return pod.status?.phase ?? "Unknown";
     } catch (_err) {
@@ -124,7 +123,7 @@ export class Computer {
       try {
         await k8sApi.deleteNamespacedPod({
           name: this.podName,
-          namespace: this.workspaceId,
+          namespace: this.namespace,
           gracePeriodSeconds: 0,
         });
       } catch (_err) {
@@ -136,7 +135,7 @@ export class Computer {
           try {
             await k8sApi.readNamespacedPod({
               name: this.podName,
-              namespace: this.workspaceId,
+              namespace: this.namespace,
             });
           } catch (err: any) {
             if (err.code === 404) {
@@ -199,9 +198,9 @@ export class Computer {
     }
     fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
-    const execPromise = computerExec(
+    const execPromise = podExec(
       ["/bin/bash", "-lc", fullCmd],
-      this.workspaceId,
+      this.namespace,
       this.computerId,
       options?.timeoutMs,
     );

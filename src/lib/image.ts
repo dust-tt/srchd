@@ -1,74 +1,11 @@
-import { stat, readFile, readdir } from "fs/promises";
+import { readFile, readdir } from "fs/promises";
 import path from "path";
 import { Err, Ok, Result } from "./result";
 import { SrchdError } from "./error";
 import Docker from "dockerode";
 import tar from "tar-stream";
-import { COMPUTER_DOCKERFILE_PATH } from "../computer";
 
-export const SRCHD_DOCKERFILE_PATH = path.resolve(
-  __dirname,
-  "../../Dockerfile",
-);
-
-export type Image = "computer" | "srchd";
-const IDENTITY_FILES_COPY_PLACEHOLDER = "# IDENTITY_FILES_COPY_PLACEHOLDER";
-
-export async function dockerFile(image: Image): Promise<string> {
-  const filePath =
-    image === "computer" ? COMPUTER_DOCKERFILE_PATH : SRCHD_DOCKERFILE_PATH;
-  return await readFile(filePath, "utf8");
-}
-
-export async function dockerFileForIdentity(
-  privateKeyPath: string,
-): Promise<Result<string, SrchdError>> {
-  const publicKeyPath = privateKeyPath + ".pub";
-  // check that both files exist
-  const stats = await Promise.all([
-    stat(privateKeyPath)
-      .then(() => true)
-      .catch(() => false),
-    stat(publicKeyPath)
-      .then(() => true)
-      .catch(() => false),
-  ]);
-
-  if (stats.some((exists) => !exists)) {
-    return new Err(
-      new SrchdError(
-        "image_error",
-        `Identity files not found at paths: ${privateKeyPath}, ${publicKeyPath}`,
-      ),
-    );
-  }
-
-  const privateKeyFilename = path.basename(privateKeyPath);
-  const publicKeyFilename = path.basename(publicKeyPath);
-
-  const copyCommand = `
-COPY --chown=agent:agent ${privateKeyFilename} ${publicKeyFilename} /home/agent/.ssh/
-RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
-    chmod 644 /home/agent/.ssh/${publicKeyFilename}
-`;
-
-  const df = await dockerFile("computer");
-
-  if (!df.includes(IDENTITY_FILES_COPY_PLACEHOLDER)) {
-    return new Err(
-      new SrchdError(
-        "image_error",
-        `Dockerfile is missing identity files placeholder.`,
-      ),
-    );
-  }
-
-  const dfId = df.replace(IDENTITY_FILES_COPY_PLACEHOLDER, copyCommand);
-
-  return new Ok(dfId);
-}
-
-async function addDirectoryToTar(
+export async function addDirectoryToTar(
   pack: tar.Pack,
   dirPath: string,
   basePath: string = "",
@@ -88,6 +25,61 @@ async function addDirectoryToTar(
   }
 }
 
+export async function buildImage(
+  imageName: string,
+  dockerFile: string,
+  filePacker?: (pack: tar.Pack) => Promise<void>,
+): Promise<Result<void, SrchdError>> {
+  const docker = new Docker();
+
+  const pack = tar.pack();
+  pack.entry({ name: "Dockerfile" }, dockerFile);
+
+  if (filePacker) {
+    await filePacker(pack);
+  }
+
+  pack.finalize();
+  const stream = await docker.buildImage(pack, { t: imageName });
+
+  return new Promise((resolve) => {
+    docker.modem.followProgress(
+      stream,
+      (err, res) => {
+        if (err) {
+          resolve(
+            new Err(
+              new SrchdError(
+                "image_error",
+                `Failed to build Docker image: ${err.message}`,
+              ),
+            ),
+          );
+        } else {
+          if (res.some((r) => r.error)) {
+            const error = res.find((r) => r.error);
+            resolve(
+              new Err(
+                new SrchdError(
+                  "image_error",
+                  `Failed to build Docker image: ${error.error}`,
+                ),
+              ),
+            );
+          } else {
+            resolve(new Ok(undefined));
+          }
+        }
+      },
+      (event) => {
+        const output = event.stream ?? event.status ?? "";
+        if (output) process.stdout.write(output);
+      },
+    );
+  });
+}
+
+/*
 export async function buildImage(
   image: Image,
   privateKeyPath: string | null,
@@ -202,3 +194,4 @@ export async function buildImage(
     );
   });
 }
+*/

@@ -18,17 +18,9 @@ COPY src src
 
 ENV DATABASE_PATH="/data/db.sqlite"
 
-# Environment variables for API keys
-ENV ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-ENV OPENAI_API_KEY=${OPENAI_API_KEY}
-ENV GOOGLE_API_KEY=${GOOGLE_API_KEY}
-ENV MISTRAL_API_KEY=${MISTRAL_API_KEY}
-ENV FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
-
 EXPOSE 1337
 
 # Create DB, run migrations, and start server
-
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT [ "/entrypoint.sh" ]
