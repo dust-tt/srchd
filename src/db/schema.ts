@@ -11,6 +11,7 @@ import { GeminiModels } from "../models/gemini";
 import { OpenAIModels } from "../models/openai";
 import { MistralModels } from "../models/mistral";
 import { ToolName } from "../tools/constants";
+import { MoonshotAIModels } from "../models/moonshotai";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -74,7 +75,13 @@ export const agents = sqliteTable(
     name: text("name").notNull(),
     provider: text("provider").$type<provider>().notNull(),
     model: text("model")
-      .$type<AnthropicModels | GeminiModels | OpenAIModels | MistralModels>()
+      .$type<
+        | AnthropicModels
+        | GeminiModels
+        | OpenAIModels
+        | MistralModels
+        | MoonshotAIModels
+      >()
       .notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
     tools: text("tools", { mode: "json" }).$type<ToolName[]>(),
