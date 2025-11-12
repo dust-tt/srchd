@@ -12,9 +12,6 @@ import OpenAI from "openai";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
-import { get_encoding } from "tiktoken";
-
-const ENCODING = get_encoding("o200k_base");
 
 export function convertToolChoice(toolChoice: ToolChoice) {
   switch (toolChoice) {
@@ -288,32 +285,44 @@ export class OpenAIModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<Result<number, SrchdError>> {
-    const tokenCount =
-      ENCODING.encode(prompt).length +
-      ENCODING.encode(JSON.stringify(tools)).length +
-      messages
-        .map((msg) => {
-          return msg.content.map((content) => {
-            switch (content.type) {
-              case "text": {
-                return ENCODING.encode(content.text).length;
-              }
-              case "tool_use": {
-                return ENCODING.encode(JSON.stringify(content.input)).length;
-              }
-              case "tool_result": {
-                return ENCODING.encode(JSON.stringify(content.content)).length;
-              }
-              case "thinking": {
-                return ENCODING.encode(content.thinking).length;
-              }
-            }
-          });
-        })
-        .flat()
-        .reduce((a, b) => a + b, 0);
-
-    return new Ok(tokenCount);
+    try {
+      const input = this.messages(messages);
+      // @ts-ignore - input_tokens exists on the response but not typed on unknown
+      const { input_tokens } = await this.client.post(
+        "/responses/input_tokens",
+        {
+          body: {
+            instructions: prompt,
+            model: this.model,
+            input,
+            tool_choice: convertToolChoice(toolChoice),
+            reasoning:
+              this.model === "gpt-4.1"
+                ? undefined
+                : {
+                    effort: convertThinking(this.config.thinking),
+                    summary: "auto",
+                  },
+            tools: tools.map((tool) => ({
+              type: "function",
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.inputSchema as any,
+              strict: false,
+            })),
+          },
+        },
+      );
+      return new Ok(input_tokens);
+    } catch (error) {
+      return new Err(
+        new SrchdError(
+          "model_error",
+          "Failed to run model",
+          normalizeError(error),
+        ),
+      );
+    }
   }
   maxTokens(): number {
     switch (this.model) {
