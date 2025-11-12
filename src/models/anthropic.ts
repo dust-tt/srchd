@@ -13,9 +13,9 @@ import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
 import { removeNulls } from "../lib/utils";
 
-const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_MAX_TOKENS = 8192;
 const DEFAULT_LOW_THINKING_TOKENS = 4096;
-const DEFAULT_HIGH_THINKING_TOKENS = 8192;
+const DEFAULT_HIGH_THINKING_TOKENS = 16384;
 
 export type AnthropicModels =
   | "claude-opus-4-1-20250805"
