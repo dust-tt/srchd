@@ -1,4 +1,4 @@
-Solve the following ARC-AGI-2 problem by analyzing the training examples to identify the transformation rule, then applying it to predict the correct output for the test case(s).
+Solve the following ARC-AGI-2 problem by analyzing the training examples to identify the transformation rule, then applying it to predict the correct output for the test case(s). You can rely on coding on the computer you have access to to test and verify your hypotheses.
 
 ## Problem Format
 
@@ -205,9 +205,9 @@ INPUT:
 
 Solutions to the problem must:
 
-- Correctly identify the underlying transformation rule from the training examples
-- Apply this rule consistently to generate the test outputs
+- Correctly identify the underlying transformation rule from the training examples (code is preferred but not required)
+- Apply this rule consistently to generate the test outputs (log of executions accepted)
 - Produce outputs that exactly match the expected results (perfect accuracy required)
 - Demonstrate clear reasoning about the pattern you discovered
 
-Focus on careful analysis of the visual patterns, spatial relationships, and logical transformations shown in the training examples.
+Focus on careful analysis of the visual patterns, spatial relationships, and logical transformations shown in the training examples. If possible, produce code that can be checked on training examples and applied to the test-case(s). Make sure to provide the test-case(s) output(s) in publications that propose a solution.
