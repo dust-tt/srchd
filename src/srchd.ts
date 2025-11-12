@@ -449,7 +449,7 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option(
     "-r, --reviewers",
-    "Number of reviewers for each publication (default: 4",
+    "Number of required reviewers for each publication (default: 4)",
   )
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
