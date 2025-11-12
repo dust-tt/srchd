@@ -7,33 +7,35 @@ import {
   Tool,
   ToolResult,
   ToolUse,
-} from "./models";
-import { AgentResource } from "./resources/agent";
-import { ExperimentResource } from "./resources/experiment";
+} from "../models";
+import { AgentResource } from "../resources/agent";
+import { ExperimentResource } from "../resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { normalizeError, SrchdError, withRetries } from "./lib/error";
-import { Err, Ok, Result } from "./lib/result";
-import { MessageResource } from "./resources/messages";
+import { normalizeError, SrchdError, withRetries } from "../lib/error";
+import { Err, Ok, Result } from "../lib/result";
+import { MessageResource } from "../resources/messages";
 import assert from "assert";
-import { PublicationResource } from "./resources/publication";
-import { renderListOfPublications } from "./tools/publications";
-import { createClientServerPair, errorToCallToolResult } from "./lib/mcp";
-import { concurrentExecutor } from "./lib/async";
-import { AnthropicModel, AnthropicModels } from "./models/anthropic";
-import { assertNever } from "./lib/assert";
-import { GeminiModel, GeminiModels } from "./models/gemini";
-import { OpenAIModel, OpenAIModels } from "./models/openai";
-import { MistralModel, MistralModels } from "./models/mistral";
-import { TokenUsageResource } from "./resources/token_usage";
-import { createServer } from "./tools";
-import { DEFAULT_TOOLS } from "./tools/constants";
-import { MoonshotAIModel, MoonshotAIModels } from "./models/moonshotai";
+import { PublicationResource } from "../resources/publication";
+import { renderListOfPublications } from "../tools/publications";
+import { createClientServerPair, errorToCallToolResult } from "../lib/mcp";
+import { concurrentExecutor } from "../lib/async";
+import { AnthropicModel, AnthropicModels } from "../models/anthropic";
+import { assertNever } from "../lib/assert";
+import { GeminiModel, GeminiModels } from "../models/gemini";
+import { OpenAIModel, OpenAIModels } from "../models/openai";
+import { MistralModel, MistralModels } from "../models/mistral";
+import { TokenUsageResource } from "../resources/token_usage";
+import { createServer } from "../tools";
+import { DEFAULT_TOOLS } from "../tools/constants";
+import { MoonshotAIModel, MoonshotAIModels } from "../models/moonshotai";
+import { RunConfig } from "./config";
 
 export class Runner {
   private experiment: ExperimentResource;
   private agent: AgentResource;
   private mcpClients: Client[];
   private model: BaseModel;
+
   private contextPruning: {
     lastAgentLoopStartIdx: number;
     lastAgentLoopInnerStartIdx: number;
@@ -50,6 +52,7 @@ export class Runner {
     this.agent = agent;
     this.mcpClients = mcpClients;
     this.model = model;
+
     this.messages = [];
     this.contextPruning = {
       lastAgentLoopStartIdx: 0,
@@ -60,6 +63,7 @@ export class Runner {
   public static async builder(
     experimentName: string,
     agentName: string,
+    config: RunConfig,
   ): Promise<
     Result<
       { experiment: ExperimentResource; agent: AgentResource; runner: Runner },
@@ -88,7 +92,7 @@ export class Runner {
 
     const servers = await Promise.all(
       [...agent.toJSON().tools, ...DEFAULT_TOOLS].map((t) =>
-        createServer(t, { experiment, agent }),
+        createServer(t, { experiment, agent, config }),
       ),
     );
     const clients = await Promise.all(

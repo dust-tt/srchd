@@ -21,8 +21,6 @@ import { assertNever } from "../lib/assert";
 import assert from "assert";
 import { DEFAULT_TOOLS } from "../tools/constants";
 
-export const REVIEWER_COUNT = 4;
-
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
   author: Agent;
