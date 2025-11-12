@@ -455,7 +455,7 @@ This is an automated system message and there is no user available to respond. P
         return res;
       }
       tokenCount = res.value;
-      // console.log("TOKEN COUNT: " + tokenCount);
+      console.log("TOKEN COUNT: " + tokenCount);
 
       if (tokenCount > this.model.maxTokens()) {
         const res = this.shiftContextPruning();
