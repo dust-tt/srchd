@@ -4,24 +4,24 @@ import { podName } from "../lib/k8s";
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";
 
-export function defineComputerLabels(workspaceId: string, computerId: string) {
+export function defineComputerLabels(namespace: string, computerId: string) {
   return {
     app: "srchd",
-    workspace: workspaceId,
+    namespace,
     computer: computerId,
-    "srchd.io/workspace": workspaceId,
+    "srchd.io/namespace": namespace,
     "srchd.io/computer": computerId,
   };
 }
 
 export function defineComputerPod(
-  workspaceId: string,
+  namespace: string,
   computerId: string,
 ): k8s.V1Pod {
   return {
     metadata: {
-      name: podName(workspaceId, computerId),
-      labels: defineComputerLabels(workspaceId, computerId),
+      name: podName(namespace, computerId),
+      labels: defineComputerLabels(namespace, computerId),
     },
     spec: {
       restartPolicy: "Never",
