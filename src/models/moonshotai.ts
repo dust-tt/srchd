@@ -1,4 +1,7 @@
-import { ChatCompletionMessageParam } from "openai/resources/chat";
+import {
+  ChatCompletionAssistantMessageParam,
+  ChatCompletionMessageParam,
+} from "openai/resources/chat";
 import {
   BaseModel,
   ModelConfig,
@@ -61,34 +64,34 @@ export class MoonshotAIModel extends BaseModel {
                   }
                 });
               case "agent":
-                return msg.content.map((c) => {
+                const message: ChatCompletionAssistantMessageParam & {
+                  reasoning_content?: string;
+                } = {
+                  role: "assistant",
+                  content: null,
+                };
+                msg.content.forEach((c) => {
                   switch (c.type) {
                     case "text":
-                      return { role: "assistant" as const, content: c.text };
+                      message.content = c.text;
+                      break;
                     case "thinking":
-                      return {
-                        role: "assistant" as const,
-                        reasoning_content: c.thinking,
-                      };
+                      message.reasoning_content = c.thinking;
+                      break;
                     case "tool_use":
-                      return {
-                        role: "assistant" as const,
-                        content: null,
-                        tool_calls: [
-                          {
-                            type: "function" as const,
-                            id: c.id,
-                            function: {
-                              name: c.name,
-                              arguments: JSON.stringify(c.input),
-                            },
-                          },
-                        ],
-                      };
-                    default:
-                      return undefined;
+                      message.tool_calls = message.tool_calls ?? [];
+                      message.tool_calls.push({
+                        type: "function" as const,
+                        id: c.id,
+                        function: {
+                          name: c.name,
+                          arguments: JSON.stringify(c.input),
+                        },
+                      });
+                      break;
                   }
                 });
+                return [message];
             }
           })
           .flat(),
