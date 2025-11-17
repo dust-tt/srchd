@@ -17,11 +17,35 @@ import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
 import { removeNulls } from "../lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
+import { CompletionUsage } from "openai/resources/completions";
 
 export type MoonshotAIModels = "kimi-k2-thinking";
 export function isMoonshotAIModel(model: string): model is MoonshotAIModels {
   return ["kimi-k2-thinking"].includes(model);
 }
+
+type MoonshotAITokenPrices = {
+  input: number;
+  cacheHits: number;
+  output: number;
+};
+
+function normalizeTokenPrices(
+  costPerMillionInputTokens: number,
+  costPerMillionOutputTokens: number,
+  costPerMillionCacheTokens: number,
+): MoonshotAITokenPrices {
+  return {
+    input: costPerMillionInputTokens / 1_000_000,
+    output: costPerMillionOutputTokens / 1_000_000,
+    cacheHits: costPerMillionCacheTokens / 1_000_000,
+  };
+}
+
+// https://platform.moonshot.ai/docs/pricing/chat#product-pricing
+const TOKEN_PRICING: Record<MoonshotAIModels, MoonshotAITokenPrices> = {
+  "kimi-k2-thinking": normalizeTokenPrices(0.6, 2.5, 0.15),
+};
 
 export class MoonshotAIModel extends BaseModel {
   private client: OpenAI;
@@ -107,7 +131,10 @@ export class MoonshotAIModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
+    Result<
+      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
+      SrchdError
+    >
   > {
     try {
       const input = this.messages(prompt, messages);
@@ -184,6 +211,7 @@ export class MoonshotAIModel extends BaseModel {
             cached: response.usage.prompt_tokens_details?.cached_tokens ?? 0,
             thinking:
               response.usage.completion_tokens_details?.reasoning_tokens ?? 0,
+            cost: this.cost(response.usage),
           }
         : undefined;
 
@@ -204,6 +232,15 @@ export class MoonshotAIModel extends BaseModel {
         ),
       );
     }
+  }
+
+  private cost(usage: CompletionUsage): number {
+    const pricing = TOKEN_PRICING[this.model];
+    const c =
+      (usage.prompt_tokens ?? 0) * pricing.input +
+      (usage.completion_tokens ?? 0) * pricing.output +
+      (usage.prompt_tokens_details?.cached_tokens ?? 0) * pricing.cacheHits;
+    return c;
   }
 
   async tokens(
