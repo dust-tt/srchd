@@ -12,11 +12,40 @@ import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
 import { removeNulls } from "../lib/utils";
+import { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
 const DEFAULT_TIMEOUT = 600000 * 2; // 20 minutes (double the default)
 const DEFAULT_MAX_TOKENS = 8192;
 const DEFAULT_LOW_THINKING_TOKENS = 4096;
 const DEFAULT_HIGH_THINKING_TOKENS = 16384;
+
+type AnthropicTokenPrices = {
+  baseInput: number;
+  cache5m: number;
+  cache1h: number;
+  cacheHits: number;
+  output: number;
+};
+
+function normalizeTokenPrices(
+  costPerMillionInputTokens: number,
+  costPerMillionOutputTokens: number,
+): AnthropicTokenPrices {
+  return {
+    baseInput: costPerMillionInputTokens / 1_000_000,
+    cache5m: (costPerMillionInputTokens * 1.25) / 1_000_000,
+    cache1h: (costPerMillionInputTokens * 2) / 1_000_000,
+    cacheHits: (costPerMillionInputTokens * 0.1) / 1_000_000,
+    output: costPerMillionOutputTokens / 1_000_000,
+  };
+}
+
+// https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
+const TOKEN_PRICING: Record<AnthropicModels, AnthropicTokenPrices> = {
+  "claude-opus-4-1-20250805": normalizeTokenPrices(15, 75),
+  "claude-sonnet-4-5-20250929": normalizeTokenPrices(15, 75),
+  "claude-haiku-4-5-20251001": normalizeTokenPrices(1, 5),
+};
 
 export type AnthropicModels =
   | "claude-opus-4-1-20250805"
@@ -160,7 +189,10 @@ export class AnthropicModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
+    Result<
+      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
+      SrchdError
+    >
   > {
     try {
       const message = await this.client.beta.messages.create({
@@ -229,6 +261,7 @@ export class AnthropicModel extends BaseModel {
         output: message.usage.output_tokens,
         cached: message.usage.cache_read_input_tokens ?? 0,
         thinking: 0,
+        cost: this.cost(message.usage),
       };
       // console.log(message.usage);
 
@@ -354,6 +387,18 @@ export class AnthropicModel extends BaseModel {
         ),
       );
     }
+  }
+
+  private cost(usage: BetaUsage): number {
+    const pricing = TOKEN_PRICING[this.model];
+    let c = usage.input_tokens * pricing.baseInput;
+    c += usage.output_tokens * pricing.output;
+    c += (usage.cache_read_input_tokens ?? 0) * pricing.cacheHits;
+    c +=
+      (usage.cache_creation?.ephemeral_5m_input_tokens ?? 0) * pricing.cache5m;
+    c +=
+      (usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) * pricing.cache1h;
+    return c;
   }
 
   maxTokens(): number {
