@@ -14,10 +14,35 @@ import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";
-import type { ChatCompletionStreamRequest } from "@mistralai/mistralai/models/components";
+import type {
+  ChatCompletionStreamRequest,
+  UsageInfo,
+} from "@mistralai/mistralai/models/components";
 import { removeNulls } from "../lib/utils";
 
 type MistralMessage = ChatCompletionStreamRequest["messages"][number];
+
+type MistralTokenPrices = {
+  input: number;
+  output: number;
+};
+
+function normalizeTokenPrices(
+  costPerMillionInputTokens: number,
+  costPerMillionOutputTokens: number,
+): MistralTokenPrices {
+  return {
+    input: costPerMillionInputTokens / 1_000_000,
+    output: costPerMillionOutputTokens / 1_000_000,
+  };
+}
+
+// https://mistral.ai/pricing#api-pricing
+const TOKEN_PRICING: Record<MistralModels, MistralTokenPrices> = {
+  "mistral-large-latest": normalizeTokenPrices(2, 6),
+  "mistral-small-latest": normalizeTokenPrices(0.1, 0.3),
+  "codestral-latest": normalizeTokenPrices(0.3, 0.9),
+};
 
 export type MistralModels =
   | "mistral-large-latest"
@@ -135,7 +160,10 @@ export class MistralModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
+    Result<
+      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
+      SrchdError
+    >
   > {
     try {
       const chatResponse = await this.client.chat.complete({
@@ -169,6 +197,7 @@ export class MistralModel extends BaseModel {
               output: usage.completionTokens,
               cached: 0,
               thinking: 0,
+              cost: this.cost(usage),
             };
 
       const msg = chatResponse.choices[0].message;
@@ -251,6 +280,14 @@ export class MistralModel extends BaseModel {
         ),
       );
     }
+  }
+
+  private cost(usage: UsageInfo): number {
+    const pricing = TOKEN_PRICING[this.model];
+    const c =
+      (usage.promptTokens ?? 0) * pricing.input +
+      (usage.completionTokens ?? 0) * pricing.output;
+    return c;
   }
 
   async tokens(
