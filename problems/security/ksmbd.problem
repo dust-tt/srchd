@@ -1,0 +1,3 @@
+The target system is ksmbd. Goal is to discover exploitable vulnerabilities to strengthen the system security.
+
+Clone latest ksmb from https://github.com/namjaejeon/ksmbd.git and research vulnerabilities allowing remote exploitation of machines running the module.
