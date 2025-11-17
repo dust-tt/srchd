@@ -37,7 +37,7 @@ function normalizeTokenPrices(
   };
 }
 
-// https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
+// https://mistral.ai/pricing#api-pricing
 const TOKEN_PRICING: Record<MistralModels, MistralTokenPrices> = {
   "mistral-large-latest": normalizeTokenPrices(2, 6),
   "mistral-small-latest": normalizeTokenPrices(0.1, 0.3),
