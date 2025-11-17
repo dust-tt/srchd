@@ -12,7 +12,7 @@ research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [s
 research](https://github.com/spolu/srchd/blob/main/prompts/security.md). Refer to them for a
 complete description of the system.
 
-Talk on `srchd` (DotAI 2025/11) 📺 [The Outer-Loop Era - Stanislas Polu](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
+📺 Talk on `srchd` (DotAI 2025/11)[The Outer-Loop Era - Stanislas Polu](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
 
 ## Vulnerability Search
 
