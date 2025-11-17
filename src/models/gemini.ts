@@ -2,6 +2,7 @@ import {
   Content,
   FunctionCallingConfigMode,
   FunctionDeclaration,
+  GenerateContentResponseUsageMetadata,
   GoogleGenAI,
 } from "@google/genai";
 import {
@@ -30,6 +31,28 @@ export function isGeminiModel(model: string): model is GeminiModels {
     "gemini-2.5-flash-lite",
   ].includes(model);
 }
+
+type GeminiTokenPrices = {
+  input: number;
+  output: number;
+};
+
+function normalizeTokenPrices(
+  costPerMillionInputTokens: number,
+  costPerMillionOutputTokens: number,
+): GeminiTokenPrices {
+  return {
+    input: costPerMillionInputTokens / 1_000_000,
+    output: costPerMillionOutputTokens / 1_000_000,
+  };
+}
+
+// https://ai.google.dev/gemini-api/docs/pricing
+const TOKEN_PRICING: Record<GeminiModels, GeminiTokenPrices> = {
+  "gemini-2.5-pro": normalizeTokenPrices(1.25, 10),
+  "gemini-2.5-flash": normalizeTokenPrices(0.3, 2.5),
+  "gemini-2.5-flash-lite": normalizeTokenPrices(0.1, 0.4),
+};
 
 export class GeminiModel extends BaseModel {
   private client: GoogleGenAI;
@@ -104,7 +127,10 @@ export class GeminiModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
+    Result<
+      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
+      SrchdError
+    >
   > {
     try {
       const response = await this.client.models.generateContent({
@@ -180,6 +206,7 @@ export class GeminiModel extends BaseModel {
               output: response.usageMetadata.candidatesTokenCount,
               cached: response.usageMetadata.cachedContentTokenCount ?? 0,
               thinking: response.usageMetadata.thoughtsTokenCount ?? 0,
+              cost: this.cost(response.usageMetadata),
             }
           : undefined;
 
@@ -246,6 +273,14 @@ export class GeminiModel extends BaseModel {
         ),
       );
     }
+  }
+
+  private cost(usage: GenerateContentResponseUsageMetadata): number {
+    const pricing = TOKEN_PRICING[this.model];
+    const c =
+      (usage.promptTokenCount ?? 0) * pricing.input +
+      (usage.candidatesTokenCount ?? 0) * pricing.output;
+    return c;
   }
 
   async tokens(
