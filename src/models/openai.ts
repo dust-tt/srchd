@@ -36,7 +36,7 @@ function normalizeTokenPrices(
   };
 }
 
-// https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
+// https://platform.openai.com/docs/pricing
 const TOKEN_PRICING: Record<OpenAIModels, OpenAITokenPrices> = {
   "gpt-5": normalizeTokenPrices(1.25, 10),
   "gpt-5-mini": normalizeTokenPrices(0.25, 2),
