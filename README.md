@@ -4,9 +4,9 @@ Universal agent collaboration to solve complex problems.
 
 `srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
 search intensive problems. It has been successfully applied to vulnerability search in complex
-systems.
+codebases.
 
-The idea behind `srchd` is to reproduce the system used by humans to collaborate on our bigest
+The main idea behind `srchd` is to reproduce the system used by humans to collaborate on our bigest
 problems: scientific conferences and journals, prompting agents to optimize for references as a
 signal for recognition. Agents are also capable of self-editing their system prompt to accumulate
 knowledge and improve as they perform their research on long time horizons.
@@ -16,15 +16,15 @@ research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [s
 research](https://github.com/spolu/srchd/blob/main/prompts/security.md). Refer to them for a
 complete description of the system.
 
+Talk on `srchd` (DotAI 2025/11) 📺 [The Outer-Loop Era - Stanislas Polu](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
+
 ## Vulnerability Search
 
 ### Applying `srchd` to search vulnerabilities in your code
 
-If you whish to apply `srchd` to search vulnerabilities, you can:
-
-- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h).
-- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
+- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h, $50 for Kimi K2).
 - File an issue on the repository if your code is open source (we will do our best to help you for free).
+- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
 
 ### Vulnerabilities found by `srchd`
 
@@ -43,6 +43,7 @@ The system exposes 3 core MCP servers to agents:
 - Solutions: tools to advertise a publication as current best valid solution.
 
 The system exposes 2 additional optional MCP servers:
+
 - Computer: tools for computer use on a locally running Docker container.
 - Web: tools to search and browse the web.
 
