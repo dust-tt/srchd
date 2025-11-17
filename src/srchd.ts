@@ -27,12 +27,8 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
-import {
-  buildImage,
-  dockerFile,
-  dockerFileForIdentity,
-} from "./computer/image";
 import { Computer, computerId } from "./computer";
+import { buildImage, dockerFile, dockerFileForIdentity } from "./lib/image";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -600,32 +596,34 @@ agentCmd
   });
 
 // Computer command
-const imageCmd = program.command("computer").description("Computer tool utils");
+const imageCmd = program.command("image").description("Docker image utils");
 
 imageCmd
-  .command("image-build")
-  .description("Build the agent computer Docker image")
+  .command("build")
+  .description("Build a Docker image")
+  .argument("[image]: computer | srchd", "Image to build (default: computer)")
   .option(
     "-i, --identity <private_key_path>",
-    "Path to SSH private key for Git access",
+    "Path to SSH private key for Git access (Only for computer image)",
   )
-  .action(async (options) => {
-    const res = await buildImage(options.identity);
+  .action(async (image, options) => {
+    const res = await buildImage(image, options.identity);
     if (res.isErr()) {
       return exitWithError(res);
     }
 
-    console.log("Agent computer Docker image built successfully.");
+    console.log(`${image} Docker image built successfully.`);
   });
 
 imageCmd
-  .command("image-show")
-  .description("Dump the agent computer Docker image")
+  .command("show")
+  .description("Dump the Docker image")
+  .argument("[image]: computer | srchd", "Image to dump (default: computer)")
   .option(
     "-i, --identity <private_key_path>",
     "Path to SSH private key for Git access",
   )
-  .action(async (options) => {
+  .action(async (image, options) => {
     if (options.identity) {
       const res = await dockerFileForIdentity(options.identity);
       if (res.isErr()) {
@@ -633,7 +631,7 @@ imageCmd
       }
       console.log(res.value);
     } else {
-      console.log(await dockerFile());
+      console.log(await dockerFile(image));
     }
   });
 
