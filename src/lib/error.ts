@@ -17,6 +17,7 @@ export type ErrorCode =
   | "tool_not_found_error"
   | "computer_run_error"
   | "computer_timeout_error"
+  | "computer_image_error"
   | "web_fetch_error"
   | "web_search_error"
   | "string_edit_error";
