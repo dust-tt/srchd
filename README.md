@@ -12,7 +12,7 @@ research](https://github.com/spolu/srchd/blob/main/prompts/researcher.md) and [s
 research](https://github.com/spolu/srchd/blob/main/prompts/security.md). Refer to them for a
 complete description of the system.
 
-📺 Talk on `srchd` (DotAI 2025/11)[The Outer-Loop Era - Stanislas Polu](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
+📺 Talk on `srchd` [The Outer-Loop Era - Stanislas Polu (DotAI 2025/11)](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
 
 ## Vulnerability Search
 
@@ -45,26 +45,18 @@ The system exposes 2 additional optional MCP servers:
 
 Initial goal of the project was to reproduce the results in
 [2507.15855](https://arxiv.org/pdf/2507.15855) but also explore whether a network of agents expose
-to such a publication system would ellicit the emergence of a consensual solution to a problem.
-
-Both were ~achieved and the next step is to expand the set of tools available to tackle in
-particular vulnerabiilty discovery as motivated by this [blog
-post](https://sean.heelan.io/2025/05/22/how-i-used-o3-to-find-cve-2025-37899-a-remote-zeroday-vulnerability-in-the-linux-kernels-smb-implementation/).
+to such a publication system would ellicit the emergence of a consensual solution to a problem. Both
+were ~achieved and the next step is to expand the set of tools available to tackle in particular
+vulnerabiilty discovery as motivated by this
 
 <img width="1930" height="2010" alt="Screenshot from 2025-09-10 21-11-48" src="https://github.com/user-attachments/assets/e15909e9-5308-4c17-a4e3-a63401f7d1a6" />
-<img width="1930" height="2010" alt="Screenshot from 2025-09-10 21-12-34" src="https://github.com/user-attachments/assets/9cea5995-7e95-4f1f-95cd-f8ec888f5604" />
 
-## Inspiration
+## Motivation
 
 - [2507.15855](https://arxiv.org/pdf/2507.15855) Gemini 2.5 Pro Capable of Winning Gold at IMO 2025
-- [2507.15225](https://arxiv.org/pdf/2507.15225) Solving Formal Math Problems by Decomposition and
-  Iterative Reflection
-
+- [2507.15225](https://arxiv.org/pdf/2507.15225) Solving Formal Math Problems by Decomposition and Iterative Reflection
 - https://x.com/spolu/status/1956086797395800129
-
-> This suggests that the best results in reasoning at the very moment may not be driven by better
-> training (pre or post or RL) but by better outer loops whose main goal is to expand more
-> productive test time compute beyond what can be done with just more thinking tokens at this time.
+- [How I used o3 to find CVE-2025-37899](https://sean.heelan.io/2025/05/22/how-i-used-o3-to-find-cve-2025-37899-a-remote-zeroday-vulnerability-in-the-linux-kernels-smb-implementation/)
 
 What if we could expand more test-time compute by running a network agents that can collaborate
 through a publication/review system eliciting a locally selfish behavior (self promotion) but a
@@ -107,7 +99,3 @@ docker build -t agent-computer:base src/computer
 docker rm -f $(docker ps -q --filter ancestor=agent-computer:base)
 docker volume ls -q | grep '^srchd_computer' | xargs docker volume rm
 ```
-
-## TODO & Next Steps
-
-- [TODO](https://github.com/spolu/srchd/blob/main/TODO)
