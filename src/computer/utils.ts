@@ -22,12 +22,13 @@ export function compErr(msg: string, err?: Error): Err<SrchdError> {
   return new Err(new SrchdError("computer_run_error", msg, err));
 }
 
-export async function isPodReady(
+export async function ensurePodRunning(
   instanceId: string,
   computerId: string,
+  timeoutSeconds: number = 60,
 ): Promise<Result<void, SrchdError>> {
   // Give a minute to check for pod to be instantiated.
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < timeoutSeconds; i++) {
     const podStatus = await k8sApi.readNamespacedPod({
       name: podName(instanceId, computerId),
       namespace: instanceId,
@@ -40,7 +41,12 @@ export async function isPodReady(
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  return compErr("Pod not ready yet");
+  return new Err(
+    new SrchdError(
+      "pod_initialization_error",
+      "Pod failed to become ready within timeout",
+    ),
+  );
 }
 
 async function ensure(
@@ -223,27 +229,16 @@ export async function k8Exec(
 async function timeout(
   timeoutMs: number = 60000,
 ): Promise<Result<void, SrchdError>> {
-  let timeoutHandle: NodeJS.Timeout;
-  try {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => {
-        reject(
+  return await new Promise<Result<void, SrchdError>>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        new Err(
           new SrchdError(
             "computer_timeout_error",
             "Command execution interrupted by timeout, the command is likely still running.",
           ),
-        );
-      }, timeoutMs);
-    });
-    await timeoutPromise;
-  } catch (err: any) {
-    if (err instanceof SrchdError) {
-      return new Err(err);
-    } else {
-      return new Err(new SrchdError("computer_timeout_error", err));
-    }
-  } finally {
-    clearTimeout(timeoutHandle!);
-  }
-  return new Ok(undefined);
+        ),
+      );
+    }, timeoutMs);
+  });
 }

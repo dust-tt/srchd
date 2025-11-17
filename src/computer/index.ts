@@ -7,7 +7,7 @@ import {
   k8Exec,
   compErr,
   ensureNamespace,
-  isPodReady,
+  ensurePodRunning,
   ensurePod,
 } from "./utils";
 import { ExperimentResource } from "../resources/experiment";
@@ -49,14 +49,9 @@ export class Computer {
       return res;
     }
 
-    res = await isPodReady(instanceId, computerId);
+    res = await ensurePodRunning(instanceId, computerId);
     if (res.isErr()) {
-      return new Err(
-        new SrchdError(
-          "pod_initialization_error",
-          "Pod failed to become ready within timeout",
-        ),
-      );
+      return res;
     }
 
     return new Ok(new Computer(instanceId, computerId));
@@ -124,7 +119,7 @@ export class Computer {
     }
   }
 
-  async terminate(removeVolume = true): Promise<Result<boolean, SrchdError>> {
+  async terminate(deletePVC = true): Promise<Result<boolean, SrchdError>> {
     const pvc = pvcName(this.instanceId, this.computerId);
 
     try {
@@ -139,7 +134,6 @@ export class Computer {
         // ignore if pod doesn't exist
       }
 
-      // Wait for pod to be deleted
       const waitForDeletion = withRetries(
         async (): Promise<Result<void, SrchdError>> => {
           try {
@@ -147,7 +141,6 @@ export class Computer {
               name: this.podName,
               namespace: this.instanceId,
             });
-            await new Promise((resolve) => setTimeout(resolve, 1000));
           } catch (err: any) {
             if (err.code === 404) {
               return new Ok(undefined);
@@ -164,8 +157,7 @@ export class Computer {
         return deleted;
       }
 
-      // Delete PVC if requested
-      if (removeVolume) {
+      if (deletePVC) {
         try {
           await k8sApi.deleteNamespacedPersistentVolumeClaim({
             name: pvc,
