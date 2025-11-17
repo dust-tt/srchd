@@ -31,7 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Search Tools
     ripgrep \
     # RE tools
-    afl gdb valgrind ltrace strace
+    afl gdb valgrind ltrace strace \
+    # Qemu
+    qemu-system
 
 # Install radare2
 RUN git clone https://github.com/radareorg/radare2 && cd radare2 && sys/install.sh
@@ -42,9 +44,15 @@ RUN groupadd -g 1000 agent && \
     # Give agent sudo access (for permissive mode)
     echo 'agent ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Install Python packages as agent user
+RUN mkdir -p /home/agent/.ssh && \
+    chown -R agent:agent /home/agent/.ssh && \
+    chmod 700 /home/agent/.ssh
+
 USER agent
+# IDENTITY_FILES_COPY_PLACEHOLDER
 WORKDIR /home/agent
+
+RUN ssh-keyscan github.com >> /home/agent/.ssh/known_hosts
 
 # Create Python virtual environment and install common packages
 RUN python3 -m venv /home/agent/.venv && \

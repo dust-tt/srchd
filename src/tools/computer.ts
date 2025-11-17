@@ -9,9 +9,8 @@ import {
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { Computer } from "../computer";
-import { readFile } from "fs/promises";
-import { join } from "path";
 import { COMPUTER_SERVER_NAME as SERVER_NAME } from "../tools/constants";
+import { dockerFile } from "../computer/image";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -23,10 +22,7 @@ export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
 ): Promise<McpServer> {
-  const dockerFile = await readFile(
-    join(__dirname, "../computer/Dockerfile"),
-    "utf8",
-  );
+  const df = await dockerFile();
 
   const server = new McpServer({
     name: SERVER_NAME,
@@ -36,7 +32,7 @@ Tools to interact with a computer (docker container).
 
 Dockerfile used to create the computer:
 \`\`\`
-${dockerFile}
+${df}
 \`\`\`
 
 Additional programs can be installed using apt-get (with sudo) or source download/compilation.`,

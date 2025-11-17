@@ -92,8 +92,8 @@ npx tsx --watch src/srchd.ts serve
 ## Computer Use
 
 ```
-# Build the base computer image
-docker build -t agent-computer:base src/computer
+# Build the base computer image before adding the computer tools to srchd
+npx tsx src/srchd.ts computer image-build
 
 # Clean-up docker running on the image
 docker rm -f $(docker ps -q --filter ancestor=agent-computer:base)

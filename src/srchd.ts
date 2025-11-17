@@ -27,6 +27,11 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
+import {
+  buildImage,
+  dockerFile,
+  dockerFileForIdentity,
+} from "./computer/image";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -576,6 +581,44 @@ agentCmd
     const replay = await res.value.runner.replayAgentMessage(parseInt(message));
     if (replay.isErr()) {
       return exitWithError(replay);
+    }
+  });
+
+// Computer command
+const imageCmd = program.command("computer").description("Computer tool utils");
+
+imageCmd
+  .command("image-build")
+  .description("Build the agent computer Docker image")
+  .option(
+    "-i, --identity <private_key_path>",
+    "Path to SSH private key for Git access",
+  )
+  .action(async (options) => {
+    const res = await buildImage(options.identity);
+    if (res.isErr()) {
+      return exitWithError(res);
+    }
+
+    console.log("Agent computer Docker image built successfully.");
+  });
+
+imageCmd
+  .command("image-show")
+  .description("Dump the agent computer Docker image")
+  .option(
+    "-i, --identity <private_key_path>",
+    "Path to SSH private key for Git access",
+  )
+  .action(async (options) => {
+    if (options.identity) {
+      const res = await dockerFileForIdentity(options.identity);
+      if (res.isErr()) {
+        return exitWithError(res);
+      }
+      console.log(res.value);
+    } else {
+      console.log(await dockerFile());
     }
   });
 
