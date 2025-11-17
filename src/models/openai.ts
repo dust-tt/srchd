@@ -1,4 +1,7 @@
-import { ResponseInputItem } from "openai/resources/responses/responses";
+import {
+  ResponseInputItem,
+  ResponseUsage,
+} from "openai/resources/responses/responses";
 import {
   BaseModel,
   ModelConfig,
@@ -12,6 +15,35 @@ import OpenAI from "openai";
 import { normalizeError, SrchdError } from "../lib/error";
 import { Err, Ok, Result } from "../lib/result";
 import { assertNever } from "../lib/assert";
+
+type OpenAITokenPrices = {
+  input: number;
+  cached: number;
+  output: number;
+};
+
+function normalizeTokenPrices(
+  costPerMillionInputTokens: number,
+  costPerMillionOutputTokens: number,
+  costPerMillionCachedTokens?: number,
+): OpenAITokenPrices {
+  return {
+    input: costPerMillionInputTokens / 1_000_000,
+    cached:
+      (costPerMillionCachedTokens ?? costPerMillionInputTokens * 0.1) /
+      1_000_000,
+    output: costPerMillionOutputTokens / 1_000_000,
+  };
+}
+
+// https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
+const TOKEN_PRICING: Record<OpenAIModels, OpenAITokenPrices> = {
+  "gpt-5": normalizeTokenPrices(1.25, 10),
+  "gpt-5-mini": normalizeTokenPrices(0.25, 2),
+  "gpt-5-nano": normalizeTokenPrices(0.05, 0.4),
+  "gpt-4.1": normalizeTokenPrices(2, 8, 0.5),
+  "gpt-5-codex": normalizeTokenPrices(1.25, 10),
+};
 
 export function convertToolChoice(toolChoice: ToolChoice) {
   switch (toolChoice) {
@@ -166,7 +198,10 @@ export class OpenAIModel extends BaseModel {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>
+    Result<
+      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
+      SrchdError
+    >
   > {
     try {
       const input = this.messages(messages);
@@ -258,6 +293,7 @@ export class OpenAIModel extends BaseModel {
             cached: response.usage.input_tokens_details?.cached_tokens ?? 0,
             thinking:
               response.usage.output_tokens_details?.reasoning_tokens ?? 0,
+            cost: this.cost(response.usage),
           }
         : undefined;
 
@@ -277,6 +313,16 @@ export class OpenAIModel extends BaseModel {
         ),
       );
     }
+  }
+
+  private cost(usage: ResponseUsage): number {
+    const pricing = TOKEN_PRICING[this.model];
+    let c = usage.input_tokens_details.cached_tokens * pricing.cached;
+    c += usage.output_tokens * pricing.output;
+    c +=
+      (usage.input_tokens - usage.input_tokens_details.cached_tokens) *
+      pricing.input;
+    return c;
   }
 
   async tokens(
