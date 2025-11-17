@@ -1,0 +1,3 @@
+The target system is the linux LIO (Linux-IO Target) module. Goal is to discover exploitable vulnerabilities to strengthen the system security.
+
+Clone https://github.com/torvalds/linux and focus your research on the nfsd module (under drivers/target). Prioritise research for vulnerabilities allowing remote exploitation or disruption of machines running the module.
