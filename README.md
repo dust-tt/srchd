@@ -1,5 +1,3 @@
-# srchd
-
 `srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
 search intensive problems. It has been successfully applied to vulnerability search in complex
 codebases.
