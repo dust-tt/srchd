@@ -5,7 +5,14 @@ import {
   MessageMetric,
   PublicationMetric,
 } from "../metrics";
-import { TokenUsage } from "../models";
+import {
+  Message,
+  TextContent,
+  Thinking,
+  TokenUsage,
+  ToolResult,
+  ToolUse,
+} from "../models";
 import assert from "assert";
 
 export const sanitizeText = (value: unknown): string => {
@@ -429,6 +436,98 @@ export const baseTemplate = (
     .metrics-table tr:hover {
       background: #f8f9fa;
     }
+    .subtitle {
+      color: #666;
+      font-size: 0.95em;
+      margin-bottom: 20px;
+    }
+    .activity-feed {
+      margin-top: 20px;
+    }
+    .message-card {
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      margin-bottom: 12px;
+      background: #fafafa;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .message-card:hover {
+      background: #f0f0f0;
+      border-color: #0066cc;
+    }
+    .message-card.expanded {
+      background: #fff;
+      border-color: #0066cc;
+      box-shadow: 0 2px 8px rgba(0,102,204,0.1);
+    }
+    .message-header {
+      padding: 10px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f5f5f5;
+    }
+    .message-card.expanded .message-header {
+      background: #e8f0fe;
+    }
+    .message-role {
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+    .message-user .message-role {
+      color: #2e7d32;
+    }
+    .message-agent .message-role {
+      color: #1565c0;
+    }
+    .message-meta {
+      font-size: 0.8em;
+      color: #666;
+    }
+    .message-content {
+      padding: 10px;
+    }
+    .content-block {
+      margin-bottom: 10px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+    }
+    .content-block.tool-error {
+      border-left: 3px solid #dc3545;
+      background: #fff5f5;
+    }
+    .content-block.tool-success {
+      border-left: 3px solid #28a745;
+      background: #f0fff4;
+    }
+    .content-type {
+      font-size: 0.85em;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .content-preview {
+      font-size: 0.9em;
+      color: #555;
+      font-family: monospace;
+    }
+    .content-full {
+      font-size: 0.9em;
+      margin-top: 8px;
+    }
+    .content-full pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+      margin: 5px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
   </style>
 </head>
 <body>
@@ -695,4 +794,113 @@ export const renderPublicationMetrics = (
     ["totalPublications", "totalPublished"],
     ["Total Publications", "Published"],
   );
+};
+
+const renderContentBlock = (
+  maxPreviewLength = 150,
+  icon: string,
+  typeLabel: string,
+  tags: Record<string, string>,
+  content: string,
+  blockClass?: string,
+) => {
+  // Helper to truncate content
+  const truncate = (text: string) => {
+    if (text.length <= maxPreviewLength) {
+      return { preview: text, isTruncated: false };
+    }
+    return { preview: text.substring(0, maxPreviewLength), isTruncated: true };
+  };
+
+  const { preview, isTruncated } = truncate(content);
+  const tagContent =
+    Object.keys(tags).length > 0
+      ? `
+    ${Object.entries(tags)
+      .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
+      .join("")}
+  `
+      : "";
+  const fullContent = `<pre>${sanitizeText(content)}</pre>`;
+  const previewContent = `${sanitizeText(preview)}${isTruncated ? "..." : ""}`;
+
+  return `
+    <div class="content-block ${blockClass ?? ""}">
+      <div class="content-type">${icon} ${typeLabel}</div>
+      <div class="content-preview">${previewContent}</div>
+      <div class="content-full" style="display: none;">
+        ${tagContent}
+        ${fullContent}
+      </div>
+    </div>
+  `;
+};
+
+const renderText = (c: TextContent, maxPreviewLength = 150) => {
+  return renderContentBlock(maxPreviewLength, "💬", "Text", {}, c.text);
+};
+const renderThinking = (c: Thinking, maxPreviewLength = 150) => {
+  return renderContentBlock(maxPreviewLength, "💭", "Thinking", {}, c.thinking);
+};
+const renderToolUse = (c: ToolUse, maxPreviewLength = 150) => {
+  return renderContentBlock(
+    maxPreviewLength,
+    "🔧",
+    "Tool Use",
+    {
+      toolId: c.id,
+      toolName: c.name,
+    },
+    JSON.stringify(c.input, null, 2),
+  );
+};
+const renderToolResult = (c: ToolResult, maxPreviewLength = 150) => {
+  return renderContentBlock(
+    maxPreviewLength,
+    "📊",
+    "Tool Result",
+    {
+      toolId: c.toolUseId,
+      toolName: c.toolUseName,
+      status: c.isError ? "❌" : "✅",
+    },
+    JSON.stringify(c.content, null, 2),
+    c.isError ? "tool-error" : "tool-success",
+  );
+};
+
+export const renderMessage = (
+  message: Message,
+  index: number,
+  maxPreviewLength = 150,
+) => {
+  const roleClass = message.role === "user" ? "message-user" : "message-agent";
+  const roleIcon = message.role === "user" ? "👤" : "🤖";
+
+  const contentBlocks = message.content
+    .map((c) => {
+      switch (c.type) {
+        case "text":
+          return renderText(c, maxPreviewLength);
+        case "thinking":
+          return renderThinking(c, maxPreviewLength);
+        case "tool_use":
+          return renderToolUse(c, maxPreviewLength);
+        case "tool_result":
+          return renderToolResult(c, maxPreviewLength);
+      }
+    })
+    .join("");
+
+  return `
+    <div class="message-card ${roleClass}" onclick="toggleMessageCard(this)">
+      <div class="message-header">
+        <span class="message-role">${roleIcon} ${sanitizeText(message.role.toUpperCase())}</span>
+        <span class="message-meta">Position: ${index} | Blocks: ${message.content.length}</span>
+      </div>
+      <div class="message-content">
+        ${contentBlocks}
+      </div>
+    </div>
+  `;
 };

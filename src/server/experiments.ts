@@ -1,11 +1,13 @@
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
+import { MessageResource } from "../resources/messages";
 import { PublicationResource } from "../resources/publication";
 import { SolutionResource } from "../resources/solutions";
 import {
   baseTemplate,
   experimentNav,
   prepareChartData,
+  renderMessage,
   renderMessageMetrics,
   renderPublicationMetrics,
   renderTokenUsageMetrics,
@@ -155,6 +157,9 @@ export const agentOverview = async (c: Input) => {
     agent,
   );
   const agentSolutions = await SolutionResource.listByAgent(experiment, agent);
+  const agentMessages = (
+    await MessageResource.listMessagesByAgent(experiment, agent)
+  ).reverse();
 
   const agentData = agent.toJSON();
   const expData = experiment.toJSON();
@@ -327,6 +332,34 @@ export const agentOverview = async (c: Input) => {
       `;
       })
       .join("")}
+
+    <h2>Activity Feed <span class="count">(${agentMessages.length})</span></h2>
+    <p class="subtitle">Showing ${agentMessages.length} messages (newest first). Click any card to expand details.</p>
+
+    <div class="activity-feed">
+      ${agentMessages
+        .map((msg) => {
+          const msgData = msg.toJSON();
+          return renderMessage(msgData, msg.position());
+        })
+        .join("")}
+    </div>
+
+    <script>
+      function toggleMessageCard(card) {
+        card.classList.toggle('expanded');
+        const fullContents = card.querySelectorAll('.content-full');
+        const previews = card.querySelectorAll('.content-preview');
+
+        if (card.classList.contains('expanded')) {
+          fullContents.forEach(el => el.style.display = 'block');
+          previews.forEach(el => el.style.display = 'none');
+        } else {
+          fullContents.forEach(el => el.style.display = 'none');
+          previews.forEach(el => el.style.display = 'block');
+        }
+      }
+    </script>
   `;
 
   const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/agents">Agents</a> > ${agentName}`;
