@@ -6,12 +6,12 @@ import {
   index,
 } from "drizzle-orm/sqlite-core";
 import { Message, provider, ThinkingConfig } from "../models";
-import { AnthropicModels } from "../models/anthropic";
-import { GeminiModels } from "../models/gemini";
-import { OpenAIModels } from "../models/openai";
-import { MistralModels } from "../models/mistral";
+import { AnthropicModel } from "../models/anthropic";
+import { GeminiModel } from "../models/gemini";
+import { OpenAIModel } from "../models/openai";
+import { MistralModel } from "../models/mistral";
 import { ToolName } from "../tools/constants";
-import { MoonshotAIModels } from "../models/moonshotai";
+import { MoonshotAIModel } from "../models/moonshotai";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -76,11 +76,11 @@ export const agents = sqliteTable(
     provider: text("provider").$type<provider>().notNull(),
     model: text("model")
       .$type<
-        | AnthropicModels
-        | GeminiModels
-        | OpenAIModels
-        | MistralModels
-        | MoonshotAIModels
+        | AnthropicModel
+        | GeminiModel
+        | OpenAIModel
+        | MistralModel
+        | MoonshotAIModel
       >()
       .notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),

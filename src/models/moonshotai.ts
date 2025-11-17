@@ -3,7 +3,7 @@ import {
   ChatCompletionMessageParam,
 } from "openai/resources/chat";
 import {
-  BaseModel,
+  LLM,
   ModelConfig,
   Message,
   Tool,
@@ -19,8 +19,8 @@ import { removeNulls } from "../lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type MoonshotAIModels = "kimi-k2-thinking";
-export function isMoonshotAIModel(model: string): model is MoonshotAIModels {
+export type MoonshotAIModel = "kimi-k2-thinking";
+export function isMoonshotAIModel(model: string): model is MoonshotAIModel {
   return ["kimi-k2-thinking"].includes(model);
 }
 
@@ -43,17 +43,17 @@ function normalizeTokenPrices(
 }
 
 // https://platform.moonshot.ai/docs/pricing/chat#product-pricing
-const TOKEN_PRICING: Record<MoonshotAIModels, MoonshotAITokenPrices> = {
+const TOKEN_PRICING: Record<MoonshotAIModel, MoonshotAITokenPrices> = {
   "kimi-k2-thinking": normalizeTokenPrices(0.6, 2.5, 0.15),
 };
 
-export class MoonshotAIModel extends BaseModel {
+export class MoonshotAILLM extends LLM {
   private client: OpenAI;
-  private model: MoonshotAIModels;
+  private model: MoonshotAIModel;
 
   constructor(
     config: ModelConfig,
-    model: MoonshotAIModels = "kimi-k2-thinking",
+    model: MoonshotAIModel = "kimi-k2-thinking",
   ) {
     super(config);
     this.client = new OpenAI({

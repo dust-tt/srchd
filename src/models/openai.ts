@@ -3,7 +3,7 @@ import {
   ResponseUsage,
 } from "openai/resources/responses/responses";
 import {
-  BaseModel,
+  LLM,
   ModelConfig,
   Message,
   Tool,
@@ -37,7 +37,7 @@ function normalizeTokenPrices(
 }
 
 // https://platform.openai.com/docs/pricing
-const TOKEN_PRICING: Record<OpenAIModels, OpenAITokenPrices> = {
+const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
   "gpt-5": normalizeTokenPrices(1.25, 10),
   "gpt-5-mini": normalizeTokenPrices(0.25, 2),
   "gpt-5-nano": normalizeTokenPrices(0.05, 0.4),
@@ -72,13 +72,13 @@ export function convertThinking(thinking: "high" | "low" | "none" | undefined) {
   }
 }
 
-export type OpenAIModels =
+export type OpenAIModel =
   | "gpt-5"
   | "gpt-5-mini"
   | "gpt-5-nano"
   | "gpt-4.1"
   | "gpt-5-codex";
-export function isOpenAIModel(model: string): model is OpenAIModels {
+export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
     "gpt-5-codex",
     "gpt-5",
@@ -88,11 +88,11 @@ export function isOpenAIModel(model: string): model is OpenAIModels {
   ].includes(model);
 }
 
-export class OpenAIModel extends BaseModel {
+export class OpenAILLM extends LLM {
   private client: OpenAI;
-  private model: OpenAIModels;
+  private model: OpenAIModel;
 
-  constructor(config: ModelConfig, model: OpenAIModels = "gpt-5-mini") {
+  constructor(config: ModelConfig, model: OpenAIModel = "gpt-5-mini") {
     super(config);
     this.client = new OpenAI();
     this.model = model;

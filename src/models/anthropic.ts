@@ -1,6 +1,6 @@
 import { MessageParam } from "@anthropic-ai/sdk/resources/messages";
 import {
-  BaseModel,
+  LLM,
   ModelConfig,
   Message,
   Tool,
@@ -41,17 +41,17 @@ function normalizeTokenPrices(
 }
 
 // https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
-const TOKEN_PRICING: Record<AnthropicModels, AnthropicTokenPrices> = {
+const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
   "claude-opus-4-1-20250805": normalizeTokenPrices(15, 75),
   "claude-sonnet-4-5-20250929": normalizeTokenPrices(15, 75),
   "claude-haiku-4-5-20251001": normalizeTokenPrices(1, 5),
 };
 
-export type AnthropicModels =
+export type AnthropicModel =
   | "claude-opus-4-1-20250805"
   | "claude-sonnet-4-5-20250929"
   | "claude-haiku-4-5-20251001";
-export function isAnthropicModel(model: string): model is AnthropicModels {
+export function isAnthropicModel(model: string): model is AnthropicModel {
   return [
     "claude-opus-4-1-20250805",
     "claude-sonnet-4-5-20250929",
@@ -59,13 +59,13 @@ export function isAnthropicModel(model: string): model is AnthropicModels {
   ].includes(model);
 }
 
-export class AnthropicModel extends BaseModel {
+export class AnthropicLLM extends LLM {
   private client: Anthropic;
-  private model: AnthropicModels;
+  private model: AnthropicModel;
 
   constructor(
     config: ModelConfig,
-    model: AnthropicModels = "claude-sonnet-4-5-20250929",
+    model: AnthropicModel = "claude-sonnet-4-5-20250929",
   ) {
     super(config);
     this.client = new Anthropic({
