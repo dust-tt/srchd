@@ -504,6 +504,14 @@ export const baseTemplate = (
       border-left: 3px solid #28a745;
       background: #f0fff4;
     }
+    .content-block.tool-call {
+      border-left: 3px solid #ff8c00;
+      background: #fff8f0;
+    }
+    .content-block.thinking {
+      border-left: 3px solid #9467bd;
+      background: #f8f4ff;
+    }
     .content-type {
       font-size: 0.85em;
       font-weight: bold;
@@ -798,7 +806,6 @@ export const renderPublicationMetrics = (
 
 const renderContentBlock = (
   maxPreviewLength = 150,
-  icon: string,
   typeLabel: string,
   tags: Record<string, string>,
   content: string,
@@ -826,7 +833,7 @@ const renderContentBlock = (
 
   return `
     <div class="content-block ${blockClass ?? ""}">
-      <div class="content-type">${icon} ${typeLabel}</div>
+      <div class="content-type">${typeLabel}</div>
       <div class="content-preview">${previewContent}</div>
       <div class="content-full" style="display: none;">
         ${tagContent}
@@ -837,32 +844,37 @@ const renderContentBlock = (
 };
 
 const renderText = (c: TextContent, maxPreviewLength = 150) => {
-  return renderContentBlock(maxPreviewLength, "💬", "Text", {}, c.text);
+  return renderContentBlock(maxPreviewLength, "Text", {}, c.text);
 };
 const renderThinking = (c: Thinking, maxPreviewLength = 150) => {
-  return renderContentBlock(maxPreviewLength, "💭", "Thinking", {}, c.thinking);
+  return renderContentBlock(
+    maxPreviewLength,
+    "Thinking",
+    {},
+    c.thinking,
+    "thinking",
+  );
 };
 const renderToolUse = (c: ToolUse, maxPreviewLength = 150) => {
   return renderContentBlock(
     maxPreviewLength,
-    "🔧",
-    "Tool Use",
+    `Tool Use: ${c.name}`,
     {
       toolId: c.id,
       toolName: c.name,
     },
     JSON.stringify(c.input, null, 2),
+    "tool-call",
   );
 };
 const renderToolResult = (c: ToolResult, maxPreviewLength = 150) => {
   return renderContentBlock(
     maxPreviewLength,
-    "📊",
-    "Tool Result",
+    `Tool Result: ${c.toolUseName}`,
     {
       toolId: c.toolUseId,
       toolName: c.toolUseName,
-      status: c.isError ? "❌" : "✅",
+      status: c.isError ? "Error" : "Success",
     },
     JSON.stringify(c.content, null, 2),
     c.isError ? "tool-error" : "tool-success",
@@ -875,7 +887,6 @@ export const renderMessage = (
   maxPreviewLength = 150,
 ) => {
   const roleClass = message.role === "user" ? "message-user" : "message-agent";
-  const roleIcon = message.role === "user" ? "👤" : "🤖";
 
   const contentBlocks = message.content
     .map((c) => {
@@ -895,7 +906,7 @@ export const renderMessage = (
   return `
     <div class="message-card ${roleClass}" onclick="toggleMessageCard(this)">
       <div class="message-header">
-        <span class="message-role">${roleIcon} ${sanitizeText(message.role.toUpperCase())}</span>
+        <span class="message-role">${sanitizeText(message.role.toUpperCase())}</span>
         <span class="message-meta">Position: ${index} | Blocks: ${message.content.length}</span>
       </div>
       <div class="message-content">
