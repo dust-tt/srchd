@@ -255,12 +255,18 @@ export class AnthropicModel extends BaseModel {
         betas: ["interleaved-thinking-2025-05-14"],
       });
 
+      const input =
+        message.usage.input_tokens +
+        (message.usage.cache_read_input_tokens ?? 0) +
+        (message.usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) +
+        (message.usage.cache_creation?.ephemeral_5m_input_tokens ?? 0);
+
       const tokenUsage = {
-        total: message.usage.output_tokens + message.usage.input_tokens,
-        input: message.usage.input_tokens,
+        total: message.usage.output_tokens + input,
+        input,
         output: message.usage.output_tokens,
         cached: message.usage.cache_read_input_tokens ?? 0,
-        thinking: 0,
+        thinking: 0, // Anthropic doesn't give thinking token usage
         cost: this.cost(message.usage),
       };
       // console.log(message.usage);
