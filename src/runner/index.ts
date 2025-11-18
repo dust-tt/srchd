@@ -1,6 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 import {
-  BaseModel,
+  LLM,
   Message,
   TextContent,
   Thinking,
@@ -19,22 +19,22 @@ import { PublicationResource } from "../resources/publication";
 import { renderListOfPublications } from "../tools/publications";
 import { createClientServerPair, errorToCallToolResult } from "../lib/mcp";
 import { concurrentExecutor } from "../lib/async";
-import { AnthropicModel, AnthropicModels } from "../models/anthropic";
+import { AnthropicLLM, AnthropicModel } from "../models/anthropic";
 import { assertNever } from "../lib/assert";
-import { GeminiModel, GeminiModels } from "../models/gemini";
-import { OpenAIModel, OpenAIModels } from "../models/openai";
-import { MistralModel, MistralModels } from "../models/mistral";
+import { GeminiLLM, GeminiModel } from "../models/gemini";
+import { OpenAILLM, OpenAIModel } from "../models/openai";
+import { MistralLLM, MistralModel } from "../models/mistral";
 import { TokenUsageResource } from "../resources/token_usage";
 import { createServer } from "../tools";
 import { DEFAULT_TOOLS } from "../tools/constants";
-import { MoonshotAIModel, MoonshotAIModels } from "../models/moonshotai";
+import { MoonshotAILLM, MoonshotAIModel } from "../models/moonshotai";
 import { RunConfig } from "./config";
 
 export class Runner {
   private experiment: ExperimentResource;
   private agent: AgentResource;
   private mcpClients: Client[];
-  private model: BaseModel;
+  private model: LLM;
 
   private contextPruning: {
     lastAgentLoopStartIdx: number;
@@ -46,7 +46,7 @@ export class Runner {
     experiment: ExperimentResource,
     agent: AgentResource,
     mcpClients: Client[],
-    model: BaseModel,
+    model: LLM,
   ) {
     this.experiment = experiment;
     this.agent = agent;
@@ -106,39 +106,39 @@ export class Runner {
       const provider = agent.toJSON().provider;
       switch (provider) {
         case "anthropic":
-          return new AnthropicModel(
+          return new AnthropicLLM(
             {
               thinking: agent.toJSON().thinking,
             },
-            agent.toJSON().model as AnthropicModels,
+            agent.toJSON().model as AnthropicModel,
           );
         case "gemini":
-          return new GeminiModel(
+          return new GeminiLLM(
             {
               thinking: agent.toJSON().thinking,
             },
-            agent.toJSON().model as GeminiModels,
+            agent.toJSON().model as GeminiModel,
           );
         case "openai":
-          return new OpenAIModel(
+          return new OpenAILLM(
             {
               thinking: agent.toJSON().thinking,
             },
-            agent.toJSON().model as OpenAIModels,
+            agent.toJSON().model as OpenAIModel,
           );
         case "mistral":
-          return new MistralModel(
+          return new MistralLLM(
             {
               thinking: agent.toJSON().thinking,
             },
-            agent.toJSON().model as MistralModels,
+            agent.toJSON().model as MistralModel,
           );
         case "moonshotai":
-          return new MoonshotAIModel(
+          return new MoonshotAILLM(
             {
               thinking: agent.toJSON().thinking,
             },
-            agent.toJSON().model as MoonshotAIModels,
+            agent.toJSON().model as MoonshotAIModel,
           );
         default:
           assertNever(provider);
@@ -161,7 +161,7 @@ export class Runner {
     experiment: ExperimentResource,
     agent: AgentResource,
     mcpClients: Client[],
-    model: BaseModel,
+    model: LLM,
   ): Promise<Result<Runner, SrchdError>> {
     const runner = new Runner(experiment, agent, mcpClients, model);
 

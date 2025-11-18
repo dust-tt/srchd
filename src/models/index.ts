@@ -76,7 +76,7 @@ export interface Tool {
 
 export type ToolChoice = "auto" | "any" | "none";
 
-export abstract class BaseModel {
+export abstract class LLM {
   protected config: ModelConfig;
 
   constructor(config: ModelConfig) {

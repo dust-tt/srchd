@@ -1,5 +1,5 @@
 import {
-  BaseModel,
+  LLM,
   ModelConfig,
   Message,
   Tool,
@@ -38,18 +38,18 @@ function normalizeTokenPrices(
 }
 
 // https://mistral.ai/pricing#api-pricing
-const TOKEN_PRICING: Record<MistralModels, MistralTokenPrices> = {
+const TOKEN_PRICING: Record<MistralModel, MistralTokenPrices> = {
   "mistral-large-latest": normalizeTokenPrices(2, 6),
   "mistral-small-latest": normalizeTokenPrices(0.1, 0.3),
   "codestral-latest": normalizeTokenPrices(0.3, 0.9),
 };
 
-export type MistralModels =
+export type MistralModel =
   | "mistral-large-latest"
   | "mistral-small-latest"
   | "codestral-latest";
 
-export function isMistralModel(model: string): model is MistralModels {
+export function isMistralModel(model: string): model is MistralModel {
   return [
     "mistral-large-latest",
     "mistral-small-latest",
@@ -74,13 +74,13 @@ function validateName(name: string): { valid: boolean; reason?: string } {
   return { valid: true };
 }
 
-export class MistralModel extends BaseModel {
+export class MistralLLM extends LLM {
   private client: Mistral;
-  private model: MistralModels;
+  private model: MistralModel;
 
   constructor(
     config: ModelConfig,
-    model: MistralModels = "mistral-large-latest",
+    model: MistralModel = "mistral-large-latest",
   ) {
     super(config);
     this.client = new Mistral();

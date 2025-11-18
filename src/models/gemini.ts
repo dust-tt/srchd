@@ -6,7 +6,7 @@ import {
   GoogleGenAI,
 } from "@google/genai";
 import {
-  BaseModel,
+  LLM,
   ModelConfig,
   Message,
   Tool,
@@ -20,11 +20,11 @@ import { normalizeError, SrchdError } from "../lib/error";
 import { assertNever } from "../lib/assert";
 import { removeNulls } from "../lib/utils";
 
-export type GeminiModels =
+export type GeminiModel =
   | "gemini-2.5-pro"
   | "gemini-2.5-flash"
   | "gemini-2.5-flash-lite";
-export function isGeminiModel(model: string): model is GeminiModels {
+export function isGeminiModel(model: string): model is GeminiModel {
   return [
     "gemini-2.5-pro",
     "gemini-2.5-flash",
@@ -48,19 +48,19 @@ function normalizeTokenPrices(
 }
 
 // https://ai.google.dev/gemini-api/docs/pricing
-const TOKEN_PRICING: Record<GeminiModels, GeminiTokenPrices> = {
+const TOKEN_PRICING: Record<GeminiModel, GeminiTokenPrices> = {
   "gemini-2.5-pro": normalizeTokenPrices(1.25, 10),
   "gemini-2.5-flash": normalizeTokenPrices(0.3, 2.5),
   "gemini-2.5-flash-lite": normalizeTokenPrices(0.1, 0.4),
 };
 
-export class GeminiModel extends BaseModel {
+export class GeminiLLM extends LLM {
   private client: GoogleGenAI;
-  private model: GeminiModels;
+  private model: GeminiModel;
 
   constructor(
     config: ModelConfig,
-    model: GeminiModels = "gemini-2.5-flash-lite",
+    model: GeminiModel = "gemini-2.5-flash-lite",
   ) {
     super(config);
     this.client = new GoogleGenAI({});
