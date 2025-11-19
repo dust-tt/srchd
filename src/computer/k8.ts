@@ -18,10 +18,6 @@ kc.loadFromDefault();
 export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 const k8sExec = new k8s.Exec(kc);
 
-export function compErr(msg: string, err?: Error): Err<SrchdError> {
-  return new Err(new SrchdError("computer_run_error", msg, err));
-}
-
 export async function ensurePodRunning(
   instanceId: string,
   computerId: string,
@@ -43,7 +39,7 @@ export async function ensurePodRunning(
   }
   return new Err(
     new SrchdError(
-      "pod_initialization_error",
+      "computer_initialization_error",
       "Pod failed to become ready within timeout",
     ),
   );
@@ -65,12 +61,18 @@ async function ensure(
       console.log(`Created ${kind}: ${name}`);
       return new Ok(undefined);
     } else {
-      return compErr(`Failed to create ${kind}: ${name}`, err);
+      return new Err(
+        new SrchdError(
+          "computer_run_error",
+          `Failed to create ${kind}: ${name}`,
+          err,
+        ),
+      );
     }
   }
 }
 
-export async function ensurePVC(
+export async function ensureVolume(
   instanceId: string,
   computerId: string,
 ): Promise<Result<void, SrchdError>> {
@@ -135,7 +137,7 @@ export async function ensureNamespace(
   );
 }
 
-export async function k8Exec(
+export async function podExec(
   cmd: string[],
   podName: string,
   instanceId: string,
@@ -200,7 +202,7 @@ export async function k8Exec(
           resolve();
         },
       )
-      .catch((_err) => {
+      .catch((_err: any) => {
         exitCode = 1;
         resolve();
       });
@@ -216,7 +218,13 @@ export async function k8Exec(
     if (err instanceof SrchdError) {
       return new Err(err);
     }
-    return compErr(errorMsg ?? `Failed to execute ${cmd.join(" ")}`, err);
+    return new Err(
+      new SrchdError(
+        "computer_run_error",
+        errorMsg ?? `Failed to execute ${cmd.join(" ")}`,
+        err,
+      ),
+    );
   }
 
   return new Ok({

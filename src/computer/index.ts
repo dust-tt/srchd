@@ -2,14 +2,13 @@ import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError, withRetries } from "../lib/error";
 import {
   INSTANCE_ID,
-  ensurePVC,
+  ensureVolume,
   k8sApi,
-  k8Exec,
-  compErr,
+  podExec,
   ensureNamespace,
   ensurePodRunning,
   ensurePod,
-} from "./utils";
+} from "./k8";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
 import { DEFAULT_WORKDIR, podName, pvcName } from "./definitions";
@@ -40,7 +39,7 @@ export class Computer {
     if (res.isErr()) {
       return res;
     }
-    res = await ensurePVC(instanceId, computerId);
+    res = await ensureVolume(instanceId, computerId);
     if (res.isErr()) {
       return res;
     }
@@ -103,7 +102,9 @@ export class Computer {
       return new Ok(computerIds);
     } catch (err) {
       const error = normalizeError(err);
-      return compErr("Failed to list computers", error);
+      return new Err(
+        new SrchdError("computer_run_error", "Failed to list computers", error),
+      );
     }
   }
 
@@ -119,7 +120,7 @@ export class Computer {
     }
   }
 
-  async terminate(deletePVC = true): Promise<Result<boolean, SrchdError>> {
+  async terminate(deleteVolume = true): Promise<Result<boolean, SrchdError>> {
     const pvc = pvcName(this.instanceId, this.computerId);
 
     try {
@@ -147,7 +148,7 @@ export class Computer {
             }
           }
           return new Err(
-            new SrchdError("pod_deletion_error", "Pod not yet deleted..."),
+            new SrchdError("computer_deletion_error", "Pod not yet deleted..."),
           );
         },
       );
@@ -157,7 +158,7 @@ export class Computer {
         return deleted;
       }
 
-      if (deletePVC) {
+      if (deleteVolume) {
         try {
           await k8sApi.deleteNamespacedPersistentVolumeClaim({
             name: pvc,
@@ -171,7 +172,13 @@ export class Computer {
       return new Ok(true);
     } catch (err) {
       const error = normalizeError(err);
-      return compErr("Failed to terminate computer", error);
+      return new Err(
+        new SrchdError(
+          "computer_run_error",
+          "Failed to terminate computer",
+          error,
+        ),
+      );
     }
   }
 
@@ -207,7 +214,7 @@ export class Computer {
     }
     fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
-    const execPromise = k8Exec(
+    const execPromise = podExec(
       ["/bin/bash", "-lc", fullCmd],
       this.podName,
       this.instanceId,

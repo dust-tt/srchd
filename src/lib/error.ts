@@ -20,8 +20,8 @@ export type ErrorCode =
   | "computer_image_error"
   | "web_fetch_error"
   | "web_search_error"
-  | "pod_deletion_error"
-  | "pod_initialization_error"
+  | "computer_deletion_error"
+  | "computer_initialization_error"
   | "string_edit_error";
 
 export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
