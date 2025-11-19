@@ -453,7 +453,7 @@ agentCmd
   .description("Run an agent")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option(
-    "-r, --reviewers",
+    "-r, --reviewers <reviewers>",
     "Number of required reviewers for each publication (default: 4)",
   )
   .option("-t, --tick", "Run one tick only")
