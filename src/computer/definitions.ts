@@ -3,49 +3,49 @@ import * as k8s from "@kubernetes/client-node";
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";
 
-export const podName = (instanceId: string, computerId: string) =>
-  `srchd-${instanceId}-${computerId}`;
+export const podName = (workspaceId: string, computerId: string) =>
+  `srchd-${workspaceId}-${computerId}`;
 
-export const pvcName = (instanceId: string, computerId: string) =>
-  `srchd-${instanceId}-${computerId}-pvc`;
+export const pvcName = (workspaceId: string, computerId: string) =>
+  `srchd-${workspaceId}-${computerId}-pvc`;
 
-export function podLabels(instanceId: string, computerId: string) {
+export function podLabels(workspaceId: string, computerId: string) {
   return {
     app: "srchd",
-    instance: instanceId,
+    instance: workspaceId,
     computer: computerId,
-    "srchd.io/instance": instanceId,
+    "srchd.io/instance": workspaceId,
     "srchd.io/computer": computerId,
   };
 }
 
-export function namespaceLabels(instanceId: string) {
+export function namespaceLabels(workspaceId: string) {
   return {
     app: "srchd",
-    instance: instanceId,
-    "srchd.io/instance": instanceId,
+    instance: workspaceId,
+    "srchd.io/instance": workspaceId,
   };
 }
 
-export function defineNamespace(instanceId: string): k8s.V1Namespace {
+export function defineNamespace(workspaceId: string): k8s.V1Namespace {
   return {
     metadata: {
-      name: instanceId,
-      labels: namespaceLabels(instanceId),
+      name: workspaceId,
+      labels: namespaceLabels(workspaceId),
     },
   };
 }
 
-export function definePVC(
-  instanceId: string,
+export function defineComputerVolume(
+  workspaceId: string,
   computerId: string,
 ): k8s.V1PersistentVolumeClaim {
   return {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",
     metadata: {
-      name: pvcName(instanceId, computerId),
-      labels: podLabels(instanceId, computerId),
+      name: pvcName(workspaceId, computerId),
+      labels: podLabels(workspaceId, computerId),
     },
     spec: {
       accessModes: ["ReadWriteOnce"],
@@ -58,11 +58,14 @@ export function definePVC(
   };
 }
 
-export function definePod(instanceId: string, computerId: string): k8s.V1Pod {
+export function defineComputerPod(
+  workspaceId: string,
+  computerId: string,
+): k8s.V1Pod {
   return {
     metadata: {
-      name: podName(instanceId, computerId),
-      labels: podLabels(instanceId, computerId),
+      name: podName(workspaceId, computerId),
+      labels: podLabels(workspaceId, computerId),
     },
     spec: {
       restartPolicy: "Never",
@@ -77,7 +80,9 @@ export function definePod(instanceId: string, computerId: string): k8s.V1Pod {
       volumes: [
         {
           name: "workspace",
-          persistentVolumeClaim: { claimName: pvcName(instanceId, computerId) },
+          persistentVolumeClaim: {
+            claimName: pvcName(workspaceId, computerId),
+          },
         },
       ],
     },

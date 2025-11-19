@@ -1,17 +1,17 @@
 import { Readable, Writable } from "stream";
-import { Err, Ok, Result } from "../lib/result";
-import { SrchdError } from "../lib/error";
+import { Err, Ok, Result } from "./result";
+import { SrchdError } from "./error";
 
 import * as k8s from "@kubernetes/client-node";
 import {
   defineNamespace,
-  definePod,
-  definePVC,
+  defineComputerPod,
+  defineComputerVolume,
   podName,
   pvcName,
-} from "./definitions";
+} from "../computer/definitions";
 
-export const INSTANCE_ID = process.env.INSTANCE_ID ?? "default";
+export const K8S_NAMESPACE = process.env.NAMESPACE ?? "default";
 
 export const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -19,15 +19,15 @@ export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 const k8sExec = new k8s.Exec(kc);
 
 export async function ensurePodRunning(
-  instanceId: string,
+  workspaceId: string,
   computerId: string,
   timeoutSeconds: number = 60,
 ): Promise<Result<void, SrchdError>> {
   // Give a minute to check for pod to be instantiated.
   for (let i = 0; i < timeoutSeconds; i++) {
     const podStatus = await k8sApi.readNamespacedPod({
-      name: podName(instanceId, computerId),
-      namespace: instanceId,
+      name: podName(workspaceId, computerId),
+      namespace: workspaceId,
     });
     if (
       podStatus.status?.phase === "Running" &&
@@ -39,7 +39,7 @@ export async function ensurePodRunning(
   }
   return new Err(
     new SrchdError(
-      "computer_initialization_error",
+      "pod_initialization_error",
       "Pod failed to become ready within timeout",
     ),
   );
@@ -72,22 +72,22 @@ async function ensure(
   }
 }
 
-export async function ensureVolume(
-  instanceId: string,
+export async function ensureComputerVolume(
+  workspaceId: string,
   computerId: string,
 ): Promise<Result<void, SrchdError>> {
-  const name = pvcName(instanceId, computerId);
+  const name = pvcName(workspaceId, computerId);
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPersistentVolumeClaim({
         name,
-        namespace: instanceId,
+        namespace: workspaceId,
       });
     },
     async () => {
       await k8sApi.createNamespacedPersistentVolumeClaim({
-        namespace: instanceId,
-        body: definePVC(instanceId, computerId),
+        namespace: workspaceId,
+        body: defineComputerVolume(workspaceId, computerId),
       });
     },
     "PVC",
@@ -95,22 +95,22 @@ export async function ensureVolume(
   );
 }
 
-export async function ensurePod(
-  instanceId: string,
+export async function ensureComputerPod(
+  workspaceId: string,
   computerId: string,
 ): Promise<Result<void, SrchdError>> {
-  const name = podName(instanceId, computerId);
+  const name = podName(workspaceId, computerId);
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPod({
-        namespace: instanceId,
+        namespace: workspaceId,
         name,
       });
     },
     async () => {
       await k8sApi.createNamespacedPod({
-        namespace: instanceId,
-        body: definePod(instanceId, computerId),
+        namespace: workspaceId,
+        body: defineComputerPod(workspaceId, computerId),
       });
     },
     "Pod",
@@ -119,28 +119,28 @@ export async function ensurePod(
 }
 
 export async function ensureNamespace(
-  instanceId: string,
+  workspaceId: string,
 ): Promise<Result<void, SrchdError>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespace({
-        name: instanceId,
+        name: workspaceId,
       });
     },
     async () => {
       await k8sApi.createNamespace({
-        body: defineNamespace(instanceId),
+        body: defineNamespace(workspaceId),
       });
     },
     "Namespace",
-    instanceId,
+    workspaceId,
   );
 }
 
 export async function podExec(
   cmd: string[],
-  podName: string,
-  instanceId: string,
+  computerId: string,
+  workspaceId: string,
   {
     timeoutMs,
     errorMsg,
@@ -181,8 +181,8 @@ export async function podExec(
 
     k8sExec
       .exec(
-        instanceId,
-        podName,
+        workspaceId,
+        podName(workspaceId, computerId),
         "computer",
         cmd,
         stdoutStream,

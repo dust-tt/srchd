@@ -1,14 +1,14 @@
 import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError, withRetries } from "../lib/error";
 import {
-  INSTANCE_ID,
-  ensureVolume,
+  K8S_NAMESPACE,
+  ensureComputerVolume,
   k8sApi,
   podExec,
   ensureNamespace,
   ensurePodRunning,
-  ensurePod,
-} from "./k8";
+  ensureComputerPod,
+} from "../lib/k8s";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
 import { DEFAULT_WORKDIR, podName, pvcName } from "./definitions";
@@ -21,49 +21,49 @@ export function computerId(
 }
 
 export class Computer {
-  private instanceId: string;
+  private workspaceId: string;
   private computerId: string;
   private podName: string;
 
-  private constructor(instanceId: string, computerId: string) {
-    this.instanceId = instanceId;
+  private constructor(workspaceId: string, computerId: string) {
+    this.workspaceId = workspaceId;
     this.computerId = computerId;
-    this.podName = podName(instanceId, computerId);
+    this.podName = podName(workspaceId, computerId);
   }
 
   static async create(
     computerId: string,
-    instanceId: string = INSTANCE_ID,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    let res = await ensureNamespace(instanceId);
+    let res = await ensureNamespace(workspaceId);
     if (res.isErr()) {
       return res;
     }
-    res = await ensureVolume(instanceId, computerId);
+    res = await ensureComputerVolume(workspaceId, computerId);
     if (res.isErr()) {
       return res;
     }
-    res = await ensurePod(instanceId, computerId);
-    if (res.isErr()) {
-      return res;
-    }
-
-    res = await ensurePodRunning(instanceId, computerId);
+    res = await ensureComputerPod(workspaceId, computerId);
     if (res.isErr()) {
       return res;
     }
 
-    return new Ok(new Computer(instanceId, computerId));
+    res = await ensurePodRunning(workspaceId, computerId);
+    if (res.isErr()) {
+      return res;
+    }
+
+    return new Ok(new Computer(workspaceId, computerId));
   }
 
   static async findById(
     computerId: string,
-    instanceId: string = INSTANCE_ID,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Computer | null> {
-    const name = podName(instanceId, computerId);
+    const name = podName(workspaceId, computerId);
     try {
-      await k8sApi.readNamespacedPod({ name, namespace: instanceId });
-      return new Computer(instanceId, computerId);
+      await k8sApi.readNamespacedPod({ name, namespace: workspaceId });
+      return new Computer(workspaceId, computerId);
     } catch (_err) {
       return null;
     }
@@ -71,28 +71,28 @@ export class Computer {
 
   static async ensure(
     computerId: string,
-    instanceId: string = INSTANCE_ID,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    const c = await Computer.findById(computerId, instanceId);
+    const c = await Computer.findById(computerId, workspaceId);
     if (c) {
       const status = await c.status();
       if (status !== "Running") {
         // Pod is not running, recreate it
         await c.terminate(false);
-        return Computer.create(computerId, instanceId);
+        return Computer.create(computerId, workspaceId);
       }
       return new Ok(c);
     }
-    return Computer.create(computerId, instanceId);
+    return Computer.create(computerId, workspaceId);
   }
 
   static async listComputerIds(
-    instanceId: string = INSTANCE_ID,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<string[], SrchdError>> {
     try {
       const response = await k8sApi.listNamespacedPod({
-        namespace: instanceId,
-        labelSelector: `srchd.io/instance=${instanceId}`,
+        namespace: workspaceId,
+        labelSelector: `srchd.io/instance=${workspaceId}`,
       });
 
       const computerIds = response.items
@@ -112,7 +112,7 @@ export class Computer {
     try {
       const pod = await k8sApi.readNamespacedPod({
         name: this.podName,
-        namespace: this.instanceId,
+        namespace: this.workspaceId,
       });
       return pod.status?.phase ?? "Unknown";
     } catch (_err) {
@@ -121,14 +121,14 @@ export class Computer {
   }
 
   async terminate(deleteVolume = true): Promise<Result<boolean, SrchdError>> {
-    const pvc = pvcName(this.instanceId, this.computerId);
+    const pvc = pvcName(this.workspaceId, this.computerId);
 
     try {
       // Delete pod
       try {
         await k8sApi.deleteNamespacedPod({
           name: this.podName,
-          namespace: this.instanceId,
+          namespace: this.workspaceId,
           gracePeriodSeconds: 0,
         });
       } catch (_err) {
@@ -140,7 +140,7 @@ export class Computer {
           try {
             await k8sApi.readNamespacedPod({
               name: this.podName,
-              namespace: this.instanceId,
+              namespace: this.workspaceId,
             });
           } catch (err: any) {
             if (err.code === 404) {
@@ -148,7 +148,7 @@ export class Computer {
             }
           }
           return new Err(
-            new SrchdError("computer_deletion_error", "Pod not yet deleted..."),
+            new SrchdError("pod_deletion_error", "Pod not yet deleted..."),
           );
         },
       );
@@ -162,7 +162,7 @@ export class Computer {
         try {
           await k8sApi.deleteNamespacedPersistentVolumeClaim({
             name: pvc,
-            namespace: this.instanceId,
+            namespace: this.workspaceId,
           });
         } catch (_err) {
           // ignore if PVC doesn't exist
@@ -217,7 +217,7 @@ export class Computer {
     const execPromise = podExec(
       ["/bin/bash", "-lc", fullCmd],
       this.podName,
-      this.instanceId,
+      this.workspaceId,
       {
         timeoutMs: options?.timeoutMs,
       },

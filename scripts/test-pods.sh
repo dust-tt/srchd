@@ -1,7 +1,7 @@
 #!/bin/sh
 
-export INSTANCE_ID="test"
-echo Using INSTANCE_ID=$INSTANCE_ID
+export NAMESPACE="test"
+echo Using NAMESPACE=$NAMESPACE
 
 alias srchd="npx tsx src/srchd.ts"
 function check_pod() {
@@ -46,8 +46,8 @@ import signal
 import time
 
 env = os.environ.copy()
-env['INSTANCE_ID'] = '$INSTANCE_ID'
-print(f\"Instance Id: {env['INSTANCE_ID']}\")
+env['NAMESPACE'] = '$NAMESPACE'
+print(f\"Namespace: {env['NAMESPACE']}\")
 
 # Start process in new process group
 proc = subprocess.Popen(
