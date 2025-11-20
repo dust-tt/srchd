@@ -64,6 +64,7 @@ export async function computerExec(
   let stdout = "";
   let stderr = "";
   let exitCode = 0;
+  let failReason: "commandRunFailed" | "executionFailed" | undefined;
   const execPromise = new Promise<void>((resolve, reject) => {
     const stdoutStream = new Writable({
       write(chunk, _enc, callback) {
@@ -79,12 +80,14 @@ export async function computerExec(
       },
     });
 
+    const cmdWithExitCode = [...cmd, ";", "echo", "EXITCODE:$?"];
+
     k8sExec
       .exec(
         workspaceId,
         podName(workspaceId, computerId),
         "computer",
-        cmd,
+        cmdWithExitCode,
         stdoutStream,
         stderrStream,
         null,
@@ -93,18 +96,37 @@ export async function computerExec(
           stdoutStream.end();
           stderrStream.end();
 
+          /* Error Status example:
+          {
+            "metadata": {},
+            "status": "Failure",
+            "message": "command terminated with non-zero exit code: command terminated with exit code 127",
+            "reason": "NonZeroExitCode",
+            "details": {
+              "causes": [
+                {
+                  "reason": "ExitCode",
+                  "message": "127"
+                }
+              ]
+            }
+          }
+          */
+
           if (status.status === "Success") {
             exitCode = 0;
           } else {
-            reject(new Error(status.status));
-            exitCode = 1;
+            reject(new Error(status.message));
+            const tryToNumber = Number(status.details?.causes?.[0]?.message);
+            exitCode = isNaN(tryToNumber) ? 1 : tryToNumber;
+            failReason = "commandRunFailed";
           }
           resolve();
         },
       )
-      .catch((_err: any) => {
-        exitCode = 1;
-        reject(new Error(_err));
+      .catch((err: any) => {
+        failReason = "executionFailed";
+        reject(new Error(err));
       });
   });
 
@@ -114,13 +136,24 @@ export async function computerExec(
     } else {
       await Promise.race([execPromise, timeout(timeoutMs)]);
     }
-  } catch (_err: any) {
-    // The error returned is always `Failure` which is not helpful
+  } catch (err: any) {
+    if (failReason === "commandRunFailed") {
+      return new Ok({
+        exitCode,
+        stdout,
+        stderr,
+      });
+    }
+
+    if (err instanceof Err) {
+      return err;
+    }
+
     return new Err(
       new SrchdError(
         "computer_run_error",
         `Failed to execute ${cmd.join(" ")}`,
-        new Error(stderr),
+        new Error(err),
       ),
     );
   }
