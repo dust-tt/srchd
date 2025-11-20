@@ -2,16 +2,15 @@ import { Err, Ok, Result } from "../lib/result";
 import { normalizeError, SrchdError, withRetries } from "../lib/error";
 import {
   K8S_NAMESPACE,
-  ensureComputerVolume,
   k8sApi,
-  podExec,
   ensureNamespace,
   ensurePodRunning,
-  ensureComputerPod,
 } from "../lib/k8s";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
-import { DEFAULT_WORKDIR, podName, pvcName } from "./definitions";
+import { podName, volumeName } from "../lib/k8s";
+import { ensureComputerPod, ensureComputerVolume, computerExec } from "./k8s";
+import { DEFAULT_WORKDIR } from "./definitions";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -92,7 +91,7 @@ export class Computer {
     try {
       const response = await k8sApi.listNamespacedPod({
         namespace: workspaceId,
-        labelSelector: `srchd.io/instance=${workspaceId}`,
+        labelSelector: `srchd.io/workspace=${workspaceId}`,
       });
 
       const computerIds = response.items
@@ -121,7 +120,7 @@ export class Computer {
   }
 
   async terminate(deleteVolume = true): Promise<Result<boolean, SrchdError>> {
-    const pvc = pvcName(this.workspaceId, this.computerId);
+    const pvc = volumeName(this.workspaceId, this.computerId);
 
     try {
       // Delete pod
@@ -214,13 +213,11 @@ export class Computer {
     }
     fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
-    const execPromise = podExec(
+    const execPromise = computerExec(
       ["/bin/bash", "-lc", fullCmd],
-      this.podName,
       this.workspaceId,
-      {
-        timeoutMs: options?.timeoutMs,
-      },
+      this.computerId,
+      options?.timeoutMs,
     );
     const res = await execPromise;
     if (res.isErr()) {

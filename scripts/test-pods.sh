@@ -1,5 +1,7 @@
 #!/bin/sh
 
+TIMEOUT=${1:-30}
+
 export NAMESPACE="test"
 echo Using NAMESPACE=$NAMESPACE
 
@@ -37,7 +39,7 @@ srchd agent create -p openai -m gpt-5 -t high --tool web --tool computer -s prom
 srchd agent create -p gemini -m gemini-2.5-flash -t low --tool web --tool computer -s prompts/researcher.md -e test -n gemini
 srchd agent create -p mistral -m mistral-large-latest -t none --tool web --tool computer -s prompts/researcher.md -e test -n mistral
 
-echo Running agents for 30 seconds.
+echo Running agents for $TIMEOUT seconds.
 python3 -c "
 import subprocess
 import sys
@@ -57,7 +59,7 @@ proc = subprocess.Popen(
 )
 
 try:
-    proc.wait(timeout=30)
+    proc.wait(timeout=$TIMEOUT)
 except subprocess.TimeoutExpired:
     print('Timeout reached, stopping agents...')
     # Kill entire process group

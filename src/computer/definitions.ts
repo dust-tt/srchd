@@ -1,38 +1,16 @@
 import * as k8s from "@kubernetes/client-node";
+import { podName, volumeName } from "../lib/k8s";
 
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";
 
-export const podName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}`;
-
-export const pvcName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}-pvc`;
-
-export function podLabels(workspaceId: string, computerId: string) {
+export function defineComputerLabels(workspaceId: string, computerId: string) {
   return {
     app: "srchd",
-    instance: workspaceId,
+    workspace: workspaceId,
     computer: computerId,
-    "srchd.io/instance": workspaceId,
+    "srchd.io/workspace": workspaceId,
     "srchd.io/computer": computerId,
-  };
-}
-
-export function namespaceLabels(workspaceId: string) {
-  return {
-    app: "srchd",
-    instance: workspaceId,
-    "srchd.io/instance": workspaceId,
-  };
-}
-
-export function defineNamespace(workspaceId: string): k8s.V1Namespace {
-  return {
-    metadata: {
-      name: workspaceId,
-      labels: namespaceLabels(workspaceId),
-    },
   };
 }
 
@@ -44,8 +22,8 @@ export function defineComputerVolume(
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",
     metadata: {
-      name: pvcName(workspaceId, computerId),
-      labels: podLabels(workspaceId, computerId),
+      name: volumeName(workspaceId, computerId),
+      labels: defineComputerLabels(workspaceId, computerId),
     },
     spec: {
       accessModes: ["ReadWriteOnce"],
@@ -65,7 +43,7 @@ export function defineComputerPod(
   return {
     metadata: {
       name: podName(workspaceId, computerId),
-      labels: podLabels(workspaceId, computerId),
+      labels: defineComputerLabels(workspaceId, computerId),
     },
     spec: {
       restartPolicy: "Never",
@@ -81,7 +59,7 @@ export function defineComputerPod(
         {
           name: "workspace",
           persistentVolumeClaim: {
-            claimName: pvcName(workspaceId, computerId),
+            claimName: volumeName(workspaceId, computerId),
           },
         },
       ],
