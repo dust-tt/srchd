@@ -5,11 +5,12 @@ import {
   k8sApi,
   ensureNamespace,
   ensurePodRunning,
+  podExec,
 } from "../lib/k8s";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
 import { podName, volumeName } from "../lib/k8s";
-import { ensureComputerPod, ensureComputerVolume, computerExec } from "./k8s";
+import { ensureComputerPod, ensureComputerVolume } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 import path from "path";
 
@@ -216,7 +217,7 @@ export class Computer {
     }
     fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
-    const execPromise = computerExec(
+    const execPromise = podExec(
       ["/bin/bash", "-lc", fullCmd],
       this.workspaceId,
       this.computerId,

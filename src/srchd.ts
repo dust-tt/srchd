@@ -36,6 +36,7 @@ import {
   listWorkspaces,
 } from "./workspace";
 import { startPortForward } from "./workspace";
+import { podExec } from "./lib/k8s";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -764,6 +765,31 @@ workspaceCmd
     if (res.isErr()) {
       console.error(res.error.message);
       process.exit(1);
+    }
+  });
+
+workspaceCmd
+  .enablePositionalOptions()
+  .command("exec")
+  .argument("<name>")
+  .description("Execute a command in a Srchd workspace")
+  .allowExcessArguments()
+  .allowUnknownOption()
+  .action(async (name, _options, command) => {
+    console.log(`Executing command in workspace: ${name}`);
+
+    const args = command.args.slice(1);
+    const res = await podExec(["npx", "tsx", "src/srchd.ts", ...args], name);
+    if (res.isErr()) {
+      console.error(res.error.message);
+      process.exit(1);
+    } else {
+      const { exitCode, stdout, stderr } = res.value;
+      console.log(stdout);
+      if (stderr.length > 0) {
+        console.error(stderr);
+      }
+      process.exit(exitCode);
     }
   });
 
