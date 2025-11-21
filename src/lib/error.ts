@@ -15,11 +15,14 @@ export type ErrorCode =
   | "agent_loop_overflow_error"
   | "tool_execution_error"
   | "tool_not_found_error"
+  | "pod_run_error"
   | "computer_run_error"
-  | "computer_timeout_error"
+  | "pod_timeout_error"
   | "computer_image_error"
   | "web_fetch_error"
   | "web_search_error"
+  | "pod_deletion_error"
+  | "pod_initialization_error"
   | "string_edit_error";
 
 export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {

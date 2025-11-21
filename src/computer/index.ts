@@ -1,121 +1,68 @@
-import Docker, { Container } from "dockerode";
-import { Writable } from "stream";
 import { Err, Ok, Result } from "../lib/result";
-import { normalizeError, SrchdError } from "../lib/error";
+import { normalizeError, SrchdError, withRetries } from "../lib/error";
+import {
+  K8S_NAMESPACE,
+  k8sApi,
+  ensureNamespace,
+  ensurePodRunning,
+} from "../lib/k8s";
+import { ExperimentResource } from "../resources/experiment";
+import { AgentResource } from "../resources/agent";
+import { podName, volumeName } from "../lib/k8s";
+import { ensureComputerPod, ensureComputerVolume, computerExec } from "./k8s";
+import { DEFAULT_WORKDIR } from "./definitions";
 
-const docker = new Docker();
-const COMPUTER_IMAGE = "agent-computer:base";
-const VOLUME_PREFIX = "srchd_computer_";
-const NAME_PREFIX = "srchd-computer-";
-const DEFAULT_WORKDIR = "/home/agent";
-
-function containerName(id: string) {
-  return `${NAME_PREFIX}${id}`;
-}
-function volumeName(id: string) {
-  return `${VOLUME_PREFIX}${id}`;
-}
-
-async function ensureImage(image: string) {
-  try {
-    await docker.getImage(image).inspect();
-  } catch {
-    throw new Error(`image not found: ${image}`);
-  }
-}
-
-async function ensureVolume(name: string) {
-  try {
-    await docker.getVolume(name).inspect();
-  } catch {
-    await docker.createVolume({ Name: name });
-  }
+export function computerId(
+  experiment: ExperimentResource,
+  agent: AgentResource,
+) {
+  return `${experiment.toJSON().name}-${agent.toJSON().name}`;
 }
 
 export class Computer {
-  private id: string;
-  private container: Container;
+  private workspaceId: string;
+  private computerId: string;
+  private podName: string;
 
-  private constructor(id: string, container: Container) {
-    this.id = id;
-    this.container = container;
+  private constructor(workspaceId: string, computerId: string) {
+    this.workspaceId = workspaceId;
+    this.computerId = computerId;
+    this.podName = podName(workspaceId, computerId);
   }
 
   static async create(
     computerId: string,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    try {
-      const name = containerName(computerId);
-      const volume = volumeName(computerId);
-
-      await ensureImage(COMPUTER_IMAGE);
-      await ensureVolume(volume);
-
-      const privileged = false;
-      const usernsMode = "1000:100000:65536";
-
-      const container = await docker.createContainer({
-        name,
-        Image: COMPUTER_IMAGE,
-        WorkingDir: DEFAULT_WORKDIR,
-        Env: undefined,
-        ExposedPorts: undefined,
-        Tty: true,
-        User: "agent:agent",
-        // ReadonlyRootfs: readonlyRootfs,
-        HostConfig: {
-          Binds: [`${volume}:${DEFAULT_WORKDIR}:rw`],
-          PortBindings: undefined,
-          Memory: 512 * 1024 * 1024, // Default 512MB limit
-          MemorySwap: 1024 * 1024 * 1024, // Swap limit
-          NanoCpus: 1e9, // Default 1 vCPU limit
-          CpuShares: 512, // Lower priority
-          PidsLimit: 4096, // Limit number of processes
-          Ulimits: [
-            { Name: "nproc", Soft: 65535, Hard: 65535 },
-            { Name: "nofile", Soft: 1048576, Hard: 1048576 },
-          ],
-
-          CapAdd: [],
-          CapDrop: [],
-          SecurityOpt: [],
-          Privileged: privileged,
-          UsernsMode: usernsMode, // Proper user namespace isolation
-          NetworkMode: "bridge", // Isolated network
-          IpcMode: "", // Don't share IPC
-          PidMode: "", // Don't share PID namespace
-          // Prevent access to sensitive host paths
-          Tmpfs: {
-            "/tmp": "rw,noexec,nosuid,size=100m",
-            "/var/tmp": "rw,noexec,nosuid,size=100m",
-          },
-        },
-        Cmd: ["/bin/bash"],
-      });
-
-      await container.start();
-      await container.inspect();
-
-      return new Ok(new Computer(computerId, container));
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError(
-          "computer_run_error",
-          `Failed to create computer: ${error.message}`,
-          error,
-        ),
-      );
+    let res = await ensureNamespace(workspaceId);
+    if (res.isErr()) {
+      return res;
     }
+    res = await ensureComputerVolume(workspaceId, computerId);
+    if (res.isErr()) {
+      return res;
+    }
+    res = await ensureComputerPod(workspaceId, computerId);
+    if (res.isErr()) {
+      return res;
+    }
+
+    res = await ensurePodRunning(workspaceId, computerId);
+    if (res.isErr()) {
+      return res;
+    }
+
+    return new Ok(new Computer(workspaceId, computerId));
   }
 
-  static async findById(computerId: string): Promise<Computer | null> {
-    const name = containerName(computerId);
+  static async findById(
+    computerId: string,
+    workspaceId: string = K8S_NAMESPACE,
+  ): Promise<Computer | null> {
+    const name = podName(workspaceId, computerId);
     try {
-      const container = docker.getContainer(name);
-      // This will raise an error if the container does not exist which will in turn return null.
-      await container.inspect();
-      return new Computer(computerId, container);
+      await k8sApi.readNamespacedPod({ name, namespace: workspaceId });
+      return new Computer(workspaceId, computerId);
     } catch (_err) {
       return null;
     }
@@ -123,72 +70,111 @@ export class Computer {
 
   static async ensure(
     computerId: string,
+    workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
-    const c = await Computer.findById(computerId);
+    const c = await Computer.findById(computerId, workspaceId);
     if (c) {
       const status = await c.status();
-      if (status !== "running") {
-        await c.container.start();
-        if ((await c.status()) !== "running") {
-          return new Err(
-            new SrchdError(
-              "computer_run_error",
-              "Computer `ensure` failed set the computer as running",
-            ),
-          );
-        }
+      if (status !== "Running") {
+        // Pod is not running, recreate it
+        await c.terminate(false);
+        return Computer.create(computerId, workspaceId);
       }
       return new Ok(c);
     }
-    return Computer.create(computerId);
+    return Computer.create(computerId, workspaceId);
   }
 
-  static async listComputerIds() {
+  static async listComputerIds(
+    workspaceId: string = K8S_NAMESPACE,
+  ): Promise<Result<string[], SrchdError>> {
     try {
-      const list = await docker.listContainers({
-        all: true,
-        filters: { name: [NAME_PREFIX] },
+      const response = await k8sApi.listNamespacedPod({
+        namespace: workspaceId,
+        labelSelector: `srchd.io/workspace=${workspaceId}`,
       });
-      return new Ok(
-        list.map((c) => c.Names?.[0]?.slice(NAME_PREFIX.length + 1)),
-      );
+
+      const computerIds = response.items
+        .map((pod: any) => pod.metadata?.labels?.["srchd.io/computer"])
+        .filter((id: any): id is string => !!id);
+
+      return new Ok(computerIds);
     } catch (err) {
       const error = normalizeError(err);
       return new Err(
-        new SrchdError(
-          "computer_run_error",
-          `Failed to list computers: ${error.message}`,
-          error,
-        ),
+        new SrchdError("computer_run_error", "Failed to list computers", error),
       );
     }
   }
 
   async status(): Promise<string> {
-    const i = await this.container.inspect();
-    return i.State.Status;
+    try {
+      const pod = await k8sApi.readNamespacedPod({
+        name: this.podName,
+        namespace: this.workspaceId,
+      });
+      return pod.status?.phase ?? "Unknown";
+    } catch (_err) {
+      return "NotFound";
+    }
   }
 
-  async terminate(removeVolume = true): Promise<Result<boolean, SrchdError>> {
-    const volume = volumeName(this.id);
+  async terminate(deleteVolume = true): Promise<Result<boolean, SrchdError>> {
+    const pvc = volumeName(this.workspaceId, this.computerId);
 
     try {
+      // Delete pod
       try {
-        await this.container.stop({ t: 5 });
+        await k8sApi.deleteNamespacedPod({
+          name: this.podName,
+          namespace: this.workspaceId,
+          gracePeriodSeconds: 0,
+        });
       } catch (_err) {
-        // ignore
+        // ignore if pod doesn't exist
       }
-      await this.container.remove({ v: removeVolume, force: true });
-      if (removeVolume) {
-        await docker.getVolume(volume).remove();
+
+      const waitForDeletion = withRetries(
+        async (): Promise<Result<void, SrchdError>> => {
+          try {
+            await k8sApi.readNamespacedPod({
+              name: this.podName,
+              namespace: this.workspaceId,
+            });
+          } catch (err: any) {
+            if (err.code === 404) {
+              return new Ok(undefined);
+            }
+          }
+          return new Err(
+            new SrchdError("pod_deletion_error", "Pod not yet deleted..."),
+          );
+        },
+      );
+
+      const deleted = await waitForDeletion(undefined);
+      if (deleted.isErr()) {
+        return deleted;
       }
+
+      if (deleteVolume) {
+        try {
+          await k8sApi.deleteNamespacedPersistentVolumeClaim({
+            name: pvc,
+            namespace: this.workspaceId,
+          });
+        } catch (_err) {
+          // ignore if PVC doesn't exist
+        }
+      }
+
       return new Ok(true);
     } catch (err) {
       const error = normalizeError(err);
       return new Err(
         new SrchdError(
           "computer_run_error",
-          `Failed to terminate computer: ${error.message}`,
+          "Failed to terminate computer",
           error,
         ),
       );
@@ -213,123 +199,34 @@ export class Computer {
       SrchdError
     >
   > {
-    const timeoutMs = options?.timeoutMs ?? 60000;
+    const cwd = options?.cwd ?? DEFAULT_WORKDIR;
 
-    try {
-      // Sanitize command to prevent injection
-      // const sanitizedCmd = cmd.replace(/[;&|`$(){}[\]\\]/g, "\\$&");
-      // const shellCmd = `timeout ${timeout} ${DEFAULT_SHELL} "${sanitizedCmd}" 2>&1`;
+    const startTs = Date.now();
 
-      const exec = await this.container.exec({
-        Cmd: ["/bin/bash", "-lc", cmd],
-        AttachStdout: true,
-        AttachStderr: true,
-        WorkingDir: options?.cwd ?? DEFAULT_WORKDIR,
-        Env: options?.env
-          ? Object.entries(options.env).map(([k, v]) => `${k}=${v}`)
-          : undefined,
-        User: "agent:agent", // Force non-root execution
-      });
+    // Build the command with environment variables and working directory
+    let fullCmd = "";
+    if (options?.env) {
+      const envVars = Object.entries(options.env)
+        .map(([k, v]) => `export ${k}="${v.replace(/"/g, '\\"')}"`)
+        .join("; ");
+      fullCmd += envVars + "; ";
+    }
+    fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
-      const startTs = Date.now();
-      const stream = await exec.start({ hijack: true, stdin: false });
-
-      let stdout = "";
-      let stderr = "";
-
-      try {
-        const streamPromise = new Promise<void>((resolve, reject) => {
-          if (
-            this.container.modem &&
-            typeof this.container.modem.demuxStream === "function"
-          ) {
-            const outChunks: Buffer[] = [];
-            const errChunks: Buffer[] = [];
-
-            const outStream = new Writable({
-              write(chunk, encoding, callback) {
-                outChunks.push(Buffer.from(chunk, encoding));
-                callback();
-              },
-            });
-
-            const errStream = new Writable({
-              write(chunk, encoding, callback) {
-                errChunks.push(Buffer.from(chunk, encoding));
-                callback();
-              },
-            });
-
-            this.container.modem.demuxStream(stream, outStream, errStream);
-
-            stream.on("end", () => {
-              stdout = Buffer.concat(outChunks).toString("utf-8");
-              stderr = Buffer.concat(errChunks).toString("utf-8");
-              resolve();
-            });
-
-            stream.on("error", (e: Error) => {
-              reject(e);
-            });
-          } else {
-            // Fallback for non-demuxed streams
-            const chunks: Buffer[] = [];
-            stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-            stream.on("end", () => {
-              stdout = Buffer.concat(chunks).toString("utf-8");
-              resolve();
-            });
-            stream.on("error", (e: Error) => {
-              reject(e);
-            });
-          }
-        });
-
-        let timeoutHandle: NodeJS.Timeout;
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutHandle = setTimeout(() => {
-            stream.destroy();
-            reject(
-              new SrchdError(
-                "computer_timeout_error",
-                "Command execution interrupted by timeout, the comand is likely still running.",
-              ),
-            );
-          }, timeoutMs);
-        });
-
-        try {
-          await Promise.race([streamPromise, timeoutPromise]);
-        } finally {
-          // @ts-ignore tiemeoutHandle is set
-          clearTimeout(timeoutHandle);
-        }
-      } catch (err) {
-        // Return the timeout error as is
-        if (err instanceof SrchdError) {
-          return new Err(err);
-        }
-        throw err;
-      }
-
-      const inspect = await exec.inspect();
-      const exitCode = inspect.ExitCode ?? 127;
-
+    const execPromise = computerExec(
+      ["/bin/bash", "-lc", fullCmd],
+      this.workspaceId,
+      this.computerId,
+      options?.timeoutMs,
+    );
+    const res = await execPromise;
+    if (res.isErr()) {
+      return res;
+    } else {
       return new Ok({
-        exitCode,
-        stdout,
-        stderr,
+        ...res.value,
         durationMs: Date.now() - startTs,
       });
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError(
-          "computer_run_error",
-          `Failed to execute on computer: ${error.message}`,
-          error,
-        ),
-      );
     }
   }
 }

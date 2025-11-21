@@ -4,15 +4,11 @@ import { AgentResource } from "../resources/agent";
 import { errorToCallToolResult } from "../lib/mcp";
 import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
-import { Computer } from "../computer";
+import { Computer, computerId } from "../computer";
 import { COMPUTER_SERVER_NAME as SERVER_NAME } from "../tools/constants";
 import { dockerFile } from "../computer/image";
 
 const SERVER_VERSION = "0.1.0";
-
-function computerId(experiment: ExperimentResource, agent: AgentResource) {
-  return `${experiment.toJSON().name}-${agent.toJSON().name}`;
-}
 
 export async function createComputerServer(
   experiment: ExperimentResource,

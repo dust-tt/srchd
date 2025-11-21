@@ -91,6 +91,11 @@ npx tsx --watch src/srchd.ts serve
 
 ## Computer Use
 
+Computer use is a feature that allows agents to run on a locally running kubernetes pod.
+
+Make sure you have kubernetes installed and configured. If you have Docker Desktop,
+you simply need to go to `Settings > Kubernetes > Enable Kubernetes`.
+
 ```
 # Build the base computer image before adding the computer tools to srchd
 npx tsx src/srchd.ts computer image-build
