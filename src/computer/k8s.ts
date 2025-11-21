@@ -80,14 +80,12 @@ export async function computerExec(
       },
     });
 
-    const cmdWithExitCode = [...cmd, ";", "echo", "EXITCODE:$?"];
-
     k8sExec
       .exec(
         workspaceId,
         podName(workspaceId, computerId),
         "computer",
-        cmdWithExitCode,
+        cmd,
         stdoutStream,
         stderrStream,
         null,
