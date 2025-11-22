@@ -18,7 +18,7 @@ export type ErrorCode =
   | "pod_run_error"
   | "computer_run_error"
   | "pod_timeout_error"
-  | "computer_image_error"
+  | "image_error"
   | "web_fetch_error"
   | "web_search_error"
   | "pod_deletion_error"

@@ -6,7 +6,7 @@ import { ExperimentResource } from "../resources/experiment";
 import { SrchdError } from "../lib/error";
 import { Computer, computerId } from "../computer";
 import { COMPUTER_SERVER_NAME as SERVER_NAME } from "../tools/constants";
-import { dockerFile } from "../computer/image";
+import { dockerFile } from "../lib/image";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -14,7 +14,7 @@ export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
 ): Promise<McpServer> {
-  const df = await dockerFile();
+  const df = await dockerFile("computer");
 
   const server = new McpServer({
     name: SERVER_NAME,
