@@ -27,8 +27,15 @@ import {
   publicationMetricsByExperiment,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
-import { Computer, computerId } from "./computer";
 import { buildImage, dockerFile, dockerFileForIdentity } from "./lib/image";
+import { Computer, computerId } from "./computer";
+import {
+  createWorkspace,
+  deleteWorkspace,
+  listComputers,
+  listWorkspaces,
+} from "./workspace";
+import { startPortForward } from "./workspace";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -693,6 +700,71 @@ program
       fetch: app.fetch,
       port,
     });
+  });
+
+const workspaceCmd = program
+  .command("workspace")
+  .description("Manage srchd workspaces");
+
+workspaceCmd
+  .command("create")
+  .description("Create a new srchd workspace")
+  .argument("[name]")
+  .action(async (name) => {
+    console.log(`Deploying srchd server: ${name}`);
+    const res = await createWorkspace(name, {});
+    if (res.isErr()) {
+      console.error(res.error.message);
+      process.exit(1);
+    }
+  });
+
+workspaceCmd
+  .command("computers")
+  .description("list computers of a srchd workspace")
+  .argument("<name>")
+  .action(async (name) => {
+    const computers = await listComputers(name);
+    for (const computer of computers) {
+      console.log(computer.metadata?.name);
+    }
+  });
+
+workspaceCmd
+  .command("list")
+  .description("List srchd workspaces")
+  .action(async () => {
+    const workspaces = await listWorkspaces();
+    for (const workspace of workspaces) {
+      console.log(workspace.metadata?.namespace);
+    }
+  });
+
+workspaceCmd
+  .command("delete")
+  .description("Delete a srchd workspace")
+  .argument("<name>")
+  .action(async (name) => {
+    const res = await deleteWorkspace(name);
+    if (res.isErr()) {
+      console.error(res.error.message);
+      process.exit(1);
+    }
+  });
+
+workspaceCmd
+  .command("connect")
+  .description("Port-forwards a Srchd workspace to a local port")
+  .argument("<name>")
+  .option("-p, --port <port>")
+  .action(async (name, options) => {
+    console.log(`Access at: http://localhost:${options.port ?? 1337}`);
+
+    const res = await startPortForward(name, options.port ?? 1337);
+    if (res.isErr()) {
+      console.error(res.error.message);
+      process.exit(1);
+    }
   });
 
 program.parse();

@@ -6,13 +6,22 @@ import * as k8s from "@kubernetes/client-node";
 export const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
+export const rbacApi = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
 export const K8S_NAMESPACE = process.env.NAMESPACE ?? "default";
 
-export const podName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}`;
+export const podName = (workspaceId: string, computerId?: string) =>
+  computerId ? `srchd-${workspaceId}-${computerId}` : `srchd-${workspaceId}`;
 
-export const volumeName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}-pvc`;
+export const volumeName = (workspaceId: string, computerId?: string) =>
+  computerId
+    ? `srchd-${workspaceId}-${computerId}-pvc`
+    : `srchd-${workspaceId}-pvc`;
+
+export const serviceName = (workspaceId: string) => `srchd-${workspaceId}`;
+export const serviceAccountName = (workspaceId: string) =>
+  `srchd-${workspaceId}`;
+export const roleName = (workspaceId: string) => `srchd-${workspaceId}`;
+export const roleBindingName = (workspaceId: string) => `srchd-${workspaceId}`;
 
 export function namespaceLabels(workspaceId: string) {
   return {
@@ -26,6 +35,73 @@ export function defineNamespace(workspaceId: string): k8s.V1Namespace {
   return {
     metadata: {
       name: workspaceId,
+      labels: namespaceLabels(workspaceId),
+    },
+  };
+}
+
+export function defineRole(workspaceId: string): k8s.V1Role {
+  return {
+    apiVersion: "rbac.authorization.k8s.io/v1",
+    kind: "Role",
+    metadata: {
+      name: roleName(workspaceId),
+      namespace: workspaceId,
+      labels: namespaceLabels(workspaceId),
+    },
+    rules: [
+      {
+        apiGroups: [""],
+        resources: ["pods", "pods/log", "pods/exec"],
+        verbs: ["get", "list", "create", "delete", "watch"],
+      },
+      {
+        apiGroups: [""],
+        resources: ["persistentvolumeclaims"],
+        verbs: ["get", "list", "create", "delete"],
+      },
+      {
+        apiGroups: [""],
+        resources: ["namespaces"],
+        verbs: ["get", "list", "create", "delete"],
+      },
+    ],
+  };
+}
+
+export function defineRoleBinding(workspaceId: string): k8s.V1RoleBinding {
+  return {
+    apiVersion: "rbac.authorization.k8s.io/v1",
+    kind: "RoleBinding",
+    metadata: {
+      name: roleBindingName(workspaceId),
+      namespace: workspaceId,
+      labels: namespaceLabels(workspaceId),
+    },
+    subjects: [
+      {
+        kind: "ServiceAccount",
+        name: serviceAccountName(workspaceId),
+        namespace: workspaceId,
+      },
+    ],
+    roleRef: {
+      kind: "Role",
+      name: roleName(workspaceId),
+      apiGroup: "rbac.authorization.k8s.io",
+    },
+  };
+}
+
+export function defineServiceAccount(
+  workspaceId: string,
+): k8s.V1ServiceAccount {
+  return {
+    apiVersion: "v1",
+    kind: "ServiceAccount",
+    metadata: {
+      name: serviceAccountName(workspaceId),
+      namespace: workspaceId,
       labels: namespaceLabels(workspaceId),
     },
   };
@@ -60,7 +136,7 @@ export async function ensure(
 
 export async function ensurePodRunning(
   workspaceId: string,
-  computerId: string,
+  computerId?: string,
   timeoutSeconds: number = 60,
 ): Promise<Result<void, SrchdError>> {
   // Give a minute to check for pod to be instantiated.
@@ -101,6 +177,69 @@ export async function ensureNamespace(
     },
     "Namespace",
     workspaceId,
+  );
+}
+
+export async function ensureServiceAccount(
+  workspaceId: string,
+): Promise<Result<void, SrchdError>> {
+  return await ensure(
+    async () => {
+      await k8sApi.readNamespacedServiceAccount({
+        name: serviceAccountName(workspaceId),
+        namespace: workspaceId,
+      });
+    },
+    async () => {
+      await k8sApi.createNamespacedServiceAccount({
+        namespace: workspaceId,
+        body: defineServiceAccount(workspaceId),
+      });
+    },
+    "ServiceAccount",
+    serviceAccountName(workspaceId),
+  );
+}
+
+export async function ensureRole(
+  workspaceId: string,
+): Promise<Result<void, SrchdError>> {
+  return await ensure(
+    async () => {
+      await rbacApi.readNamespacedRole({
+        name: roleName(workspaceId),
+        namespace: workspaceId,
+      });
+    },
+    async () => {
+      await rbacApi.createNamespacedRole({
+        namespace: workspaceId,
+        body: defineRole(workspaceId),
+      });
+    },
+    "Role",
+    roleName(workspaceId),
+  );
+}
+
+export async function ensureRoleBinding(
+  workspaceId: string,
+): Promise<Result<void, SrchdError>> {
+  return await ensure(
+    async () => {
+      await rbacApi.readNamespacedRoleBinding({
+        name: roleBindingName(workspaceId),
+        namespace: workspaceId,
+      });
+    },
+    async () => {
+      await rbacApi.createNamespacedRoleBinding({
+        namespace: workspaceId,
+        body: defineRoleBinding(workspaceId),
+      });
+    },
+    "RoleBinding",
+    roleBindingName(workspaceId),
   );
 }
 

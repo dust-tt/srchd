@@ -23,6 +23,8 @@ export type ErrorCode =
   | "web_search_error"
   | "pod_deletion_error"
   | "pod_initialization_error"
+  | "namespace_deletion_error"
+  | "port_forward_error"
   | "string_edit_error";
 
 export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
