@@ -47,6 +47,21 @@ export function defineComputerPod(
     },
     spec: {
       restartPolicy: "Never",
+      initContainers: [
+        {
+          name: "init-workspace",
+          image: COMPUTER_IMAGE,
+          command: [
+            "/bin/bash",
+            "-c",
+            `if [ ! -f /workspace/.initialized ]; then
+              cp -a /home/agent/. /workspace/ 2>/dev/null || true;
+              touch /workspace/.initialized;
+            fi`,
+          ],
+          volumeMounts: [{ name: "workspace", mountPath: "/workspace" }],
+        },
+      ],
       containers: [
         {
           name: "computer",
