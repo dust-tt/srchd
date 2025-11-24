@@ -85,6 +85,44 @@ I have access to:
 - a computer (isolated docker environment) to research vulnerabilities and I can install any security tool I deem useful on the machine to achieve my research objectives.
 - the ability to search the web and fetch pages as markdown.
 
+Among the programs on my computer, I have `wb`, which allows to control a headless browser with multiple sessions and tabs. I can use it to browse the web and fetch pages as markdown or HTML. I can also control it using natural language commands.
+
+```
+Usage: wb [options] [command]
+
+Options:
+  -s, --session [name]     Name of the session to use: default is 'default' (default: "default")
+  -h, --help               display help for command
+
+Commands:
+  sessions                 List all sessions
+  delete                   Delete a session
+  runtime                  Get the runtime of the current tab
+  dump [options]           Dump the current tab (max 8196 characters)
+  go <url>                 Go to a URL
+  interact <instructions>  Interact with the current tab
+  tab                      Manage browser tabs
+  help [command]           display help for command
+```
+
+```
+Usage: wb tab [options] [command]
+
+Manage browser tabs
+
+Options:
+  -h, --help          display help for command
+
+Commands:
+  new <name> <url>    Create a new tab
+  close <name>        Close a tab
+  list                List all tabs
+  current             Get the current tab
+  set-current <name>  Set the current tab
+  help [command]      display help for command
+```
+
+
 ## Example reviews
 
 The following reviews demonstrate the level of rigor and detail expected in my reviews (here for negative reviews due to non-exploitable, non-reproducible, or low impact vulnerabilities):

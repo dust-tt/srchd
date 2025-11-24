@@ -1,13 +1,18 @@
 # Dockerfile for agent-computer:base
 # Provides a secure, isolated environment for AI agents to execute code
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
+
+# Add repository containing Chromium (the official chromium package on ubuntu needs snap)
+# software-properties-common is required for add-apt-repository
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:xtradeb/apps
 
 # Install essential packages and development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,8 +25,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc g++ make cmake \
     # Python ecosystem
     python3 python3-pip python3-venv python3-dev \
-    # Node.js ecosystem
-    nodejs npm \
     # Network tools
     netcat-openbsd iputils-ping dnsutils openssh-client \
     # Archive tools
@@ -31,16 +34,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Search Tools
     ripgrep \
     # RE tools
-    afl gdb valgrind ltrace strace \
+    afl++ gdb valgrind ltrace strace \
     # Qemu
-    qemu-system
+    qemu-system \
+    # Chromium
+    chromium
+
+# Install Node.js 24.x from NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
+    apt-get install -y nodejs
 
 # Install radare2
 RUN git clone https://github.com/radareorg/radare2 && cd radare2 && sys/install.sh
 
-# Create non-root user 'agent' with uid 1000
-RUN groupadd -g 1000 agent && \
-    useradd -u 1000 -g 1000 -m -s /bin/bash agent && \
+# Create non-root user 'agent' with uid 1001
+RUN groupadd -g 1001 agent && \
+    useradd -u 1001 -g 1001 -m -s /bin/bash agent && \
+    # Copy skeleton files
+    cp /etc/skel/.bashrc /home/agent/.bashrc || touch /home/agent/.bashrc && \
+    cp /etc/skel/.profile /home/agent/.profile || touch /home/agent/.profile && \
+    chown -R agent:agent /home/agent && \
     # Give agent sudo access (for permissive mode)
     echo 'agent ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
@@ -64,6 +77,14 @@ RUN python3 -m venv /home/agent/.venv && \
     requests httpx beautifulsoup4 \
     # RE python tools
     frida-tools frida r2pipe angr
+
+# Install browse project
+RUN git clone https://github.com/dust-tt/browse.git /home/agent/browse && \
+    cd /home/agent/browse && \
+    npm install && \
+    npm run build && \
+    sudo npm link -w wb && \
+    sudo npm link -w wbd
 
 # Configure shell environment
 RUN echo 'export PATH="/home/agent/.venv/bin:$PATH"' >> /home/agent/.bashrc && \
