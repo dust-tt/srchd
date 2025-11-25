@@ -1,11 +1,11 @@
-import { db } from "../db";
-import { solutions } from "../db/schema";
+import { db } from "@app/db";
+import { solutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
-import { concurrentExecutor } from "../lib/async";
+import { concurrentExecutor } from "@app/lib/async";
 import { PublicationResource } from "./publication";
-import { DEFAULT_TOOLS } from "../tools/constants";
+import { DEFAULT_TOOLS } from "@app/tools/constants";
 
 type Solution = InferSelectModel<typeof solutions>;
 

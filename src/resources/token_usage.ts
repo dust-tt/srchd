@@ -1,9 +1,9 @@
 import { and, eq, sum } from "drizzle-orm";
-import { token_usages } from "../db/schema";
+import { token_usages } from "@app/db/schema";
 import { AgentResource } from "./agent";
 import { MessageResource } from "./messages";
-import { db, Tx } from "../db";
-import { TokenUsage } from "../models/index";
+import { db, Tx } from "@app/db";
+import { TokenUsage } from "@app/models/index";
 import { ExperimentResource } from "./experiment";
 
 export class TokenUsageResource {

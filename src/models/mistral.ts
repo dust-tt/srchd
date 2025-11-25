@@ -9,16 +9,16 @@ import {
   Thinking,
   TokenUsage,
 } from "./index";
-import { normalizeError, SrchdError } from "../lib/error";
-import { Err, Ok, Result } from "../lib/result";
-import { assertNever } from "../lib/assert";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { Err, Ok, Result } from "@app/lib/result";
+import { assertNever } from "@app/lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";
 import type {
   ChatCompletionStreamRequest,
   UsageInfo,
 } from "@mistralai/mistralai/models/components";
-import { removeNulls } from "../lib/utils";
+import { removeNulls } from "@app/lib/utils";
 
 type MistralMessage = ChatCompletionStreamRequest["messages"][number];
 

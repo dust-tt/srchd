@@ -8,10 +8,10 @@ import {
   TokenUsage,
 } from "./index";
 import Anthropic from "@anthropic-ai/sdk";
-import { normalizeError, SrchdError } from "../lib/error";
-import { Err, Ok, Result } from "../lib/result";
-import { assertNever } from "../lib/assert";
-import { removeNulls } from "../lib/utils";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { Err, Ok, Result } from "@app/lib/result";
+import { assertNever } from "@app/lib/assert";
+import { removeNulls } from "@app/lib/utils";
 import { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
 const DEFAULT_TIMEOUT = 600000 * 2; // 20 minutes (double the default)

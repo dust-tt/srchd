@@ -5,13 +5,13 @@ import {
   unique,
   index,
 } from "drizzle-orm/sqlite-core";
-import { Message, provider, ThinkingConfig } from "../models";
-import { AnthropicModel } from "../models/anthropic";
-import { GeminiModel } from "../models/gemini";
-import { OpenAIModel } from "../models/openai";
-import { MistralModel } from "../models/mistral";
-import { ToolName } from "../tools/constants";
-import { MoonshotAIModel } from "../models/moonshotai";
+import { Message, provider, ThinkingConfig } from "@app/models";
+import { AnthropicModel } from "@app/models/anthropic";
+import { GeminiModel } from "@app/models/gemini";
+import { OpenAIModel } from "@app/models/openai";
+import { MistralModel } from "@app/models/mistral";
+import { ToolName } from "@app/tools/constants";
+import { MoonshotAIModel } from "@app/models/moonshotai";
 
 export const experiments = sqliteTable(
   "experiments",

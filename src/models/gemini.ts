@@ -15,10 +15,10 @@ import {
   ToolUse,
   TokenUsage,
 } from "./index";
-import { Err, Ok, Result } from "../lib/result";
-import { normalizeError, SrchdError } from "../lib/error";
-import { assertNever } from "../lib/assert";
-import { removeNulls } from "../lib/utils";
+import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { assertNever } from "@app/lib/assert";
+import { removeNulls } from "@app/lib/utils";
 
 export type GeminiModel =
   | "gemini-2.5-pro"

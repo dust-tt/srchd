@@ -1,9 +1,9 @@
-import { db, Tx } from "../db";
-import { messages } from "../db/schema";
+import { db, Tx } from "@app/db";
+import { messages } from "@app/db/schema";
 import { eq, InferSelectModel, and, asc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { AgentResource } from "./agent";
-import { Message } from "../models";
+import { Message } from "@app/models";
 
 export class MessageResource {
   private data: InferSelectModel<typeof messages>;

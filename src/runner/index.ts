@@ -7,27 +7,27 @@ import {
   Tool,
   ToolResult,
   ToolUse,
-} from "../models";
-import { AgentResource } from "../resources/agent";
-import { ExperimentResource } from "../resources/experiment";
+} from "@app/models";
+import { AgentResource } from "@app/resources/agent";
+import { ExperimentResource } from "@app/resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { normalizeError, SrchdError, withRetries } from "../lib/error";
-import { Err, Ok, Result } from "../lib/result";
-import { MessageResource } from "../resources/messages";
+import { normalizeError, SrchdError, withRetries } from "@app/lib/error";
+import { Err, Ok, Result } from "@app/lib/result";
+import { MessageResource } from "@app/resources/messages";
 import assert from "assert";
-import { PublicationResource } from "../resources/publication";
-import { renderListOfPublications } from "../tools/publications";
-import { createClientServerPair, errorToCallToolResult } from "../lib/mcp";
-import { concurrentExecutor } from "../lib/async";
-import { AnthropicLLM, AnthropicModel } from "../models/anthropic";
-import { assertNever } from "../lib/assert";
-import { GeminiLLM, GeminiModel } from "../models/gemini";
-import { OpenAILLM, OpenAIModel } from "../models/openai";
-import { MistralLLM, MistralModel } from "../models/mistral";
-import { TokenUsageResource } from "../resources/token_usage";
-import { createServer } from "../tools";
-import { DEFAULT_TOOLS } from "../tools/constants";
-import { MoonshotAILLM, MoonshotAIModel } from "../models/moonshotai";
+import { PublicationResource } from "@app/resources/publication";
+import { renderListOfPublications } from "@app/tools/publications";
+import { createClientServerPair, errorToCallToolResult } from "@app/lib/mcp";
+import { concurrentExecutor } from "@app/lib/async";
+import { AnthropicLLM, AnthropicModel } from "@app/models/anthropic";
+import { assertNever } from "@app/lib/assert";
+import { GeminiLLM, GeminiModel } from "@app/models/gemini";
+import { OpenAILLM, OpenAIModel } from "@app/models/openai";
+import { MistralLLM, MistralModel } from "@app/models/mistral";
+import { TokenUsageResource } from "@app/resources/token_usage";
+import { createServer } from "@app/tools";
+import { DEFAULT_TOOLS } from "@app/tools/constants";
+import { MoonshotAILLM, MoonshotAIModel } from "@app/models/moonshotai";
 import { RunConfig } from "./config";
 
 export class Runner {

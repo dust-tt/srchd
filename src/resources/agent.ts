@@ -1,10 +1,10 @@
-import { db } from "../db";
-import { agents, evolutions } from "../db/schema";
+import { db } from "@app/db";
+import { agents, evolutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
-import { Err, Ok, Result } from "../lib/result";
-import { normalizeError, SrchdError } from "../lib/error";
-import { concurrentExecutor } from "../lib/async";
+import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { concurrentExecutor } from "@app/lib/async";
 
 export type Agent = InferSelectModel<typeof agents>;
 export type Evolution = InferSelectModel<typeof evolutions>;
