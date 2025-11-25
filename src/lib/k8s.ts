@@ -34,10 +34,13 @@ export async function ensure(
   create: () => Promise<void>,
   kind: string,
   name: string,
+  logExists: boolean = true,
 ): Promise<Result<void, SrchdError>> {
   try {
     await read();
-    console.log(`${kind} already exists: ${name}`);
+    if (logExists) {
+      console.log(`${kind} already exists: ${name}`);
+    }
     return new Ok(undefined);
   } catch (err: any) {
     if (err.code === 404) {
@@ -99,6 +102,7 @@ export async function ensureNamespace(
     },
     "Namespace",
     namespace,
+    false,
   );
 }
 
