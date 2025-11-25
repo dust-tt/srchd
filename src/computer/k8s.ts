@@ -1,33 +1,10 @@
 import * as k8s from "@kubernetes/client-node";
-import { podName, volumeName } from "../lib/k8s";
+import { podName } from "../lib/k8s";
 import { ensure, k8sApi, kc, timeout } from "../lib/k8s";
 import { Err, Ok, Result } from "../lib/result";
 import { SrchdError } from "../lib/error";
 import { Writable } from "stream";
-import { defineComputerPod, defineComputerVolume } from "./definitions";
-
-export async function ensureComputerVolume(
-  workspaceId: string,
-  computerId: string,
-): Promise<Result<void, SrchdError>> {
-  const name = volumeName(workspaceId, computerId);
-  return await ensure(
-    async () => {
-      await k8sApi.readNamespacedPersistentVolumeClaim({
-        name,
-        namespace: workspaceId,
-      });
-    },
-    async () => {
-      await k8sApi.createNamespacedPersistentVolumeClaim({
-        namespace: workspaceId,
-        body: defineComputerVolume(workspaceId, computerId),
-      });
-    },
-    "PVC",
-    name,
-  );
-}
+import { defineComputerPod } from "./definitions";
 
 export async function ensureComputerPod(
   workspaceId: string,

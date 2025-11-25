@@ -11,9 +11,6 @@ export const K8S_NAMESPACE = process.env.NAMESPACE ?? "default";
 export const podName = (workspaceId: string, computerId: string) =>
   `srchd-${workspaceId}-${computerId}`;
 
-export const volumeName = (workspaceId: string, computerId: string) =>
-  `srchd-${workspaceId}-${computerId}-pvc`;
-
 export function namespaceLabels(workspaceId: string) {
   return {
     app: "srchd",

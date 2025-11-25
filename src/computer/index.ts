@@ -8,8 +8,8 @@ import {
 } from "../lib/k8s";
 import { ExperimentResource } from "../resources/experiment";
 import { AgentResource } from "../resources/agent";
-import { podName, volumeName } from "../lib/k8s";
-import { ensureComputerPod, ensureComputerVolume, computerExec } from "./k8s";
+import { podName } from "../lib/k8s";
+import { ensureComputerPod, computerExec } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 import path from "path";
 
@@ -38,10 +38,6 @@ export class Computer {
     workspaceId: string = K8S_NAMESPACE,
   ): Promise<Result<Computer, SrchdError>> {
     let res = await ensureNamespace(workspaceId);
-    if (res.isErr()) {
-      return res;
-    }
-    res = await ensureComputerVolume(workspaceId, computerId);
     if (res.isErr()) {
       return res;
     }
@@ -80,7 +76,7 @@ export class Computer {
       const status = await c.status();
       if (status !== "Running") {
         // Pod is not running, recreate it
-        await c.terminate(false);
+        await c.terminate();
         return Computer.create(computerId, workspaceId);
       }
       return new Ok(c);
@@ -122,9 +118,7 @@ export class Computer {
     }
   }
 
-  async terminate(deleteVolume = true): Promise<Result<boolean, SrchdError>> {
-    const pvc = volumeName(this.workspaceId, this.computerId);
-
+  async terminate(): Promise<Result<boolean, SrchdError>> {
     try {
       // Delete pod
       try {
@@ -158,17 +152,6 @@ export class Computer {
       const deleted = await waitForDeletion(undefined);
       if (deleted.isErr()) {
         return deleted;
-      }
-
-      if (deleteVolume) {
-        try {
-          await k8sApi.deleteNamespacedPersistentVolumeClaim({
-            name: pvc,
-            namespace: this.workspaceId,
-          });
-        } catch (_err) {
-          // ignore if PVC doesn't exist
-        }
       }
 
       return new Ok(true);
