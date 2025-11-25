@@ -1,27 +1,27 @@
-import * as k8s from "@kubernetes/client-node";
-import { podName } from "../lib/k8s";
-import { ensure, k8sApi, kc, timeout } from "../lib/k8s";
+import { kc, podName, timeout } from "../lib/k8s";
+import { ensure, k8sApi } from "../lib/k8s";
 import { Err, Ok, Result } from "../lib/result";
 import { SrchdError } from "../lib/error";
-import { Writable } from "stream";
 import { defineComputerPod } from "./definitions";
+import { Writable } from "stream";
+import * as k8s from "@kubernetes/client-node";
 
 export async function ensureComputerPod(
-  workspaceId: string,
+  namespace: string,
   computerId: string,
 ): Promise<Result<void, SrchdError>> {
-  const name = podName(workspaceId, computerId);
+  const name = podName(namespace, computerId);
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPod({
-        namespace: workspaceId,
+        namespace,
         name,
       });
     },
     async () => {
       await k8sApi.createNamespacedPod({
-        namespace: workspaceId,
-        body: defineComputerPod(workspaceId, computerId),
+        namespace,
+        body: defineComputerPod(namespace, computerId),
       });
     },
     "Pod",
@@ -31,7 +31,7 @@ export async function ensureComputerPod(
 
 export async function computerExec(
   cmd: string[],
-  workspaceId: string,
+  namespace: string,
   computerId: string,
   timeoutMs?: number,
 ): Promise<
@@ -59,10 +59,10 @@ export async function computerExec(
 
     k8sExec
       .exec(
-        workspaceId,
-        podName(workspaceId, computerId),
-        "computer",
-        cmd,
+        namespace,
+        podName(namespace, computerId),
+        computerId ? "computer" : "srchd",
+        ["/bin/bash", "-lc", ...cmd],
         stdoutStream,
         stderrStream,
         null,
@@ -126,7 +126,7 @@ export async function computerExec(
 
     return new Err(
       new SrchdError(
-        "computer_run_error",
+        "pod_run_error",
         `Failed to execute ${cmd.join(" ")}`,
         new Error(err),
       ),
