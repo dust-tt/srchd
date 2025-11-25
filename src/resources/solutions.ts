@@ -24,7 +24,7 @@ export class SolutionResource {
       updated: new Date(),
       experiment: experiment.toJSON().id,
       provider: "anthropic" as const,
-      model: "claude-sonnet-4-5-20250929" as const,
+      model: "claude-sonnet-4-5" as const,
       thinking: "low" as const,
       tools: DEFAULT_TOOLS,
     };
