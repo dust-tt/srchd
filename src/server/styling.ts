@@ -876,7 +876,11 @@ const renderToolResult = (c: ToolResult, maxPreviewLength = 150) => {
       toolName: c.toolUseName,
       status: c.isError ? "Error" : "Success",
     },
-    JSON.stringify(c.content, null, 2),
+    c.content
+      .map((c) =>
+        c.type === "text" ? c.text : JSON.stringify(c.text, null, 2),
+      )
+      .join("\n"),
     c.isError ? "tool-error" : "tool-success",
   );
 };
