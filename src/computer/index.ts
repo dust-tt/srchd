@@ -1,14 +1,14 @@
-import { Err, Ok, Result } from "../lib/result";
-import { normalizeError, SrchdError, withRetries } from "../lib/error";
+import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, SrchdError, withRetries } from "@app/lib/error";
 import {
   K8S_NAMESPACE,
   k8sApi,
   ensureNamespace,
   ensurePodRunning,
-} from "../lib/k8s";
-import { ExperimentResource } from "../resources/experiment";
-import { AgentResource } from "../resources/agent";
-import { podName } from "../lib/k8s";
+} from "@app/lib/k8s";
+import { ExperimentResource } from "@app/resources/experiment";
+import { AgentResource } from "@app/resources/agent";
+import { podName } from "@app/lib/k8s";
 import { computerExec, ensureComputerPod } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 

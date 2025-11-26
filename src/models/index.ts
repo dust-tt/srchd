@@ -1,6 +1,6 @@
 import type { JSONSchema7 as JSONSchema } from "json-schema";
-import { Result } from "../lib/result";
-import { SrchdError } from "../lib/error";
+import { Result } from "@app/lib/result";
+import { SrchdError } from "@app/lib/error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
 export type provider =

@@ -1,5 +1,5 @@
 import * as k8s from "@kubernetes/client-node";
-import { podName } from "../lib/k8s";
+import { podName } from "@app/lib/k8s";
 
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";

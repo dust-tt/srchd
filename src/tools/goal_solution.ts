@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { AgentResource } from "../resources/agent";
-import { errorToCallToolResult } from "../lib/mcp";
-import { PublicationResource } from "../resources/publication";
-import { ExperimentResource } from "../resources/experiment";
-import { SrchdError } from "../lib/error";
-import { SolutionResource } from "../resources/solutions";
-import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "../tools/constants";
+import { AgentResource } from "@app/resources/agent";
+import { errorToCallToolResult } from "@app/lib/mcp";
+import { PublicationResource } from "@app/resources/publication";
+import { ExperimentResource } from "@app/resources/experiment";
+import { SrchdError } from "@app/lib/error";
+import { SolutionResource } from "@app/resources/solutions";
+import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 
 const SERVER_VERSION = "0.1.0";
 

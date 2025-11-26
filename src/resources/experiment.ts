@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { experiments } from "../db/schema";
+import { db } from "@app/db";
+import { experiments } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 type Experiment = InferSelectModel<typeof experiments>;

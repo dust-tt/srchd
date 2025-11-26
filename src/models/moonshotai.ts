@@ -12,10 +12,10 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, SrchdError } from "../lib/error";
-import { Err, Ok, Result } from "../lib/result";
-import { assertNever } from "../lib/assert";
-import { removeNulls } from "../lib/utils";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { Err, Ok, Result } from "@app/lib/result";
+import { assertNever } from "@app/lib/assert";
+import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 

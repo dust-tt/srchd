@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { citations, publications, reviews } from "../db/schema";
+import { db } from "@app/db";
+import { citations, publications, reviews } from "@app/db/schema";
 import {
   eq,
   InferSelectModel,
@@ -13,13 +13,13 @@ import {
 } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
-import { Err, Ok, Result } from "../lib/result";
-import { normalizeError, SrchdError } from "../lib/error";
-import { newID4, removeNulls } from "../lib/utils";
-import { concurrentExecutor } from "../lib/async";
-import { assertNever } from "../lib/assert";
+import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { newID4, removeNulls } from "@app/lib/utils";
+import { concurrentExecutor } from "@app/lib/async";
+import { assertNever } from "@app/lib/assert";
 import assert from "assert";
-import { DEFAULT_TOOLS } from "../tools/constants";
+import { DEFAULT_TOOLS } from "@app/tools/constants";
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {

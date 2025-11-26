@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { AgentResource } from "../resources/agent";
+import { AgentResource } from "@app/resources/agent";
 import {
   errorToCallToolResult,
   STRING_EDIT_INSTRUCTIONS,
   stringEdit,
-} from "../lib/mcp";
-import { normalizeError, SrchdError } from "../lib/error";
-import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "../tools/constants";
+} from "@app/lib/mcp";
+import { normalizeError, SrchdError } from "@app/lib/error";
+import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 
 const SERVER_VERSION = "0.1.0";
 

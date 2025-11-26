@@ -4,7 +4,7 @@ import {
   ExperimentMetrics,
   MessageMetric,
   PublicationMetric,
-} from "../metrics";
+} from "@app/metrics";
 import {
   Message,
   TextContent,
@@ -12,7 +12,7 @@ import {
   TokenUsage,
   ToolResult,
   ToolUse,
-} from "../models";
+} from "@app/models";
 import assert from "assert";
 
 export const sanitizeText = (value: unknown): string => {

@@ -1,8 +1,8 @@
-import { ExperimentResource } from "../resources/experiment";
-import { AgentResource } from "../resources/agent";
-import { MessageResource } from "../resources/messages";
-import { PublicationResource } from "../resources/publication";
-import { SolutionResource } from "../resources/solutions";
+import { ExperimentResource } from "@app/resources/experiment";
+import { AgentResource } from "@app/resources/agent";
+import { MessageResource } from "@app/resources/messages";
+import { PublicationResource } from "@app/resources/publication";
+import { SolutionResource } from "@app/resources/solutions";
 import {
   baseTemplate,
   experimentNav,
@@ -24,7 +24,7 @@ import {
   messageMetricsByExperiment,
   publicationMetricsByExperiment,
   tokenUsageMetricsByExperiment,
-} from "../metrics";
+} from "@app/metrics";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 

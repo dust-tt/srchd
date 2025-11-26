@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { errorToCallToolResult } from "../lib/mcp";
-import { SrchdError } from "../lib/error";
+import { errorToCallToolResult } from "@app/lib/mcp";
+import { SrchdError } from "@app/lib/error";
 import Firecrawl from "@mendable/firecrawl";
 import { WEB_SERVER_NAME as SERVER_NAME } from "./constants";
 
