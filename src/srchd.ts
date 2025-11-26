@@ -188,7 +188,6 @@ agentCmd
     "1",
   )
   .requiredOption("-p, --profile <profile>", "Agent profile")
-  .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
   .action(async (options) => {
     // Find the experiment first
     const experiment = await ExperimentResource.findByName(options.experiment);

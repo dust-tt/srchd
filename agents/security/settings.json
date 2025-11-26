@@ -1,3 +1,4 @@
 {
-  "description": "Research agent focused on security"
+  "description": "Research agent focused on security",
+  "tools": ["web", "computer"]
 }
