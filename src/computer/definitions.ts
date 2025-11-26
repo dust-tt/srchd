@@ -35,3 +35,20 @@ export function defineComputerPod(
     },
   };
 }
+
+export function defineComputerEnv(workspaceId: string): k8s.V1EnvVar[] {
+  // Prepare environment variables
+  const env: k8s.V1EnvVar[] = [
+    { name: "NAMESPACE", value: workspaceId },
+    { name: "WORKSPACE_ID", value: workspaceId },
+  ];
+
+  if (process.env.OPENAI_API_KEY) {
+    env.push({
+      name: "OPENAI_API_KEY",
+      value: process.env.OPENAI_API_KEY,
+    });
+  }
+
+  return env;
+}
