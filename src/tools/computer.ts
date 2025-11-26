@@ -3,10 +3,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentResource } from "@app/resources/agent";
 import { errorToCallToolResult } from "@app/lib/mcp";
 import { ExperimentResource } from "@app/resources/experiment";
-import { SrchdError } from "@app/lib/error";
 import { Computer, computerId } from "@app/computer";
 import { COMPUTER_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 import { dockerFile } from "@app/computer/image";
+import { err } from "@app/lib/error";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -59,10 +59,7 @@ Execute a bash command.
       const c = await Computer.ensure(computerId(experiment, agent));
       if (c.isErr()) {
         return errorToCallToolResult(
-          new SrchdError(
-            "computer_run_error",
-            "Failed to access running computer",
-          ),
+          err("computer_run_error", "Failed to access running computer"),
         );
       }
 
@@ -75,7 +72,7 @@ Execute a bash command.
       });
 
       if (r.isErr()) {
-        return errorToCallToolResult(r.error);
+        return errorToCallToolResult(r);
       }
 
       const stdout =

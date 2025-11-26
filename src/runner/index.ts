@@ -11,14 +11,7 @@ import {
 import { AgentResource } from "@app/resources/agent";
 import { ExperimentResource } from "@app/resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
-  normalizeError,
-  SrchdError,
-  withRetries,
-  Err,
-  Ok,
-  Result,
-} from "@app/lib/error";
+import { normalizeError, withRetries, Ok, Result, err } from "@app/lib/error";
 import { MessageResource } from "@app/resources/messages";
 import assert from "assert";
 import { PublicationResource } from "@app/resources/publication";
@@ -71,28 +64,25 @@ export class Runner {
     agentName: string,
     config: RunConfig,
   ): Promise<
-    Result<
-      { experiment: ExperimentResource; agent: AgentResource; runner: Runner },
-      SrchdError
-    >
+    Result<{
+      experiment: ExperimentResource;
+      agent: AgentResource;
+      runner: Runner;
+    }>
   > {
     const experiment = await ExperimentResource.findByName(experimentName);
     if (!experiment) {
-      return new Err(
-        new SrchdError(
-          "not_found_error",
-          `Experiment '${experimentName}' not found.`,
-        ),
+      return err(
+        "not_found_error",
+        `Experiment '${experimentName}' not found.`,
       );
     }
 
     const agent = await AgentResource.findByName(experiment, agentName);
     if (!agent) {
-      return new Err(
-        new SrchdError(
-          "not_found_error",
-          `Agent '${agentName}' not found in experiment '${experimentName}'.`,
-        ),
+      return err(
+        "not_found_error",
+        `Agent '${agentName}' not found in experiment '${experimentName}'.`,
       );
     }
 
@@ -168,7 +158,7 @@ export class Runner {
     agent: AgentResource,
     mcpClients: Client[],
     model: LLM,
-  ): Promise<Result<Runner, SrchdError>> {
+  ): Promise<Result<Runner>> {
     const runner = new Runner(experiment, agent, mcpClients, model);
 
     const messages = await MessageResource.listMessagesByAgent(
@@ -181,7 +171,7 @@ export class Runner {
     return new Ok(runner);
   }
 
-  async tools(): Promise<Result<Tool[], SrchdError>> {
+  async tools(): Promise<Result<Tool[]>> {
     const tools: Tool[] = [];
 
     for (const client of this.mcpClients) {
@@ -195,14 +185,10 @@ export class Runner {
           });
         }
       } catch (error) {
-        return new Err(
-          new SrchdError(
-            "tool_error",
-            `Error listing tools from client ${
-              client.getServerVersion()?.name
-            }`,
-            normalizeError(error),
-          ),
+        return err(
+          "tool_error",
+          `Error listing tools from client ${client.getServerVersion()?.name}`,
+          normalizeError(error),
         );
       }
     }
@@ -247,7 +233,7 @@ export class Runner {
           toolUseId: t.id,
           toolUseName: t.name,
           content: errorToCallToolResult(
-            new SrchdError(
+            err(
               "tool_execution_error",
               `Error executing tool ${t.name}`,
               normalizeError(error),
@@ -263,10 +249,9 @@ export class Runner {
       toolUseId: t.id,
       toolUseName: t.name,
       content: errorToCallToolResult(
-        new SrchdError(
+        err(
           "tool_execution_error",
           `No MCP client found to execute tool ${t.name}`,
-          null,
         ),
       ).content,
       isError: true,
@@ -287,7 +272,7 @@ export class Runner {
     return false;
   }
 
-  async newUserMessage(): Promise<Result<MessageResource, SrchdError>> {
+  async newUserMessage(): Promise<Result<MessageResource>> {
     const position =
       this.messages.length > 0
         ? this.messages[this.messages.length - 1].position() + 1
@@ -348,7 +333,7 @@ This is an automated system message and there is no user available to respond. P
     return m.role === "agent" && m.content.some((c) => c.type === "tool_use");
   }
 
-  shiftContextPruning(): Result<void, SrchdError> {
+  shiftContextPruning(): Result<void> {
     /**
      * We bump lastAgentLoopInnerStartIdx whilst ensuring that the conversation is valid. This is
      * done by pruning messages before a tool_use (since any following tool_result is guaranteed to
@@ -382,11 +367,9 @@ This is an automated system message and there is no user available to respond. P
     }
 
     if (idx >= this.messages.length) {
-      return new Err(
-        new SrchdError(
-          "agent_loop_overflow_error",
-          "No agentic loop start position found after last.",
-        ),
+      return err(
+        "agent_loop_overflow_error",
+        "No agentic loop start position found after last.",
       );
     }
 
@@ -408,7 +391,7 @@ This is an automated system message and there is no user available to respond. P
   async renderForModel(
     systemPrompt: string,
     tools: Tool[],
-  ): Promise<Result<Message[], SrchdError>> {
+  ): Promise<Result<Message[]>> {
     /**
      * Invariants:
      * (1) The agent loop is always started by a user message (with only text content).
@@ -475,7 +458,7 @@ This is an automated system message and there is no user available to respond. P
       }
     } while (tokenCount > this.model.maxTokens());
 
-    return new Err(new SrchdError("agent_loop_overflow_error", "Unreachable"));
+    return err("agent_loop_overflow_error", "Unreachable");
   }
 
   /**
@@ -529,7 +512,7 @@ This is an automated system message and there is no user available to respond. P
   /**
    * Advance runer by one tick (one agent call + associated tools executions).
    */
-  async tick(): Promise<Result<void, SrchdError>> {
+  async tick(): Promise<Result<void>> {
     const tools = await this.tools();
     if (tools.isErr()) {
       return tools;
@@ -644,9 +627,7 @@ ${this.agent.toJSON().system}`;
    *
    * @param messageId ID of the agent message to replay.
    */
-  async replayAgentMessage(
-    messageId: number,
-  ): Promise<Result<void, SrchdError>> {
+  async replayAgentMessage(messageId: number): Promise<Result<void>> {
     const agentMessage = await MessageResource.findById(
       this.experiment,
       this.agent,
@@ -654,11 +635,9 @@ ${this.agent.toJSON().system}`;
     );
 
     if (!agentMessage || agentMessage.toJSON().role !== "agent") {
-      return new Err(
-        new SrchdError(
-          "not_found_error",
-          `Agent message not found for id ${messageId}`,
-        ),
+      return err(
+        "not_found_error",
+        `Agent message not found for id ${messageId}`,
       );
     }
 

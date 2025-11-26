@@ -12,7 +12,7 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, SrchdError, Err, Ok, Result } from "@app/lib/error";
+import { normalizeError, Ok, Result, err } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 type OpenAITokenPrices = {
@@ -197,10 +197,7 @@ export class OpenAILLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<
-      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
-      SrchdError
-    >
+    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
   > {
     try {
       const input = this.messages(messages);
@@ -304,13 +301,7 @@ export class OpenAILLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
 
@@ -329,7 +320,7 @@ export class OpenAILLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<number, SrchdError>> {
+  ): Promise<Result<number>> {
     try {
       const input = this.messages(messages);
       // @ts-ignore - input_tokens exists on the response but not typed on unknown
@@ -360,13 +351,7 @@ export class OpenAILLM extends LLM {
       );
       return new Ok(input_tokens);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
   maxTokens(): number {

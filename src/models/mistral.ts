@@ -9,7 +9,7 @@ import {
   Thinking,
   TokenUsage,
 } from "./index";
-import { normalizeError, SrchdError, Err, Ok, Result } from "@app/lib/error";
+import { normalizeError, Ok, Result, err } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";
@@ -159,10 +159,7 @@ export class MistralLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<
-      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
-      SrchdError
-    >
+    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
   > {
     try {
       const chatResponse = await this.client.chat.complete({
@@ -202,12 +199,10 @@ export class MistralLLM extends LLM {
       const msg = chatResponse.choices[0].message;
       const finishReason = chatResponse.choices[0].finishReason;
       if (finishReason !== "stop" && finishReason !== "tool_calls") {
-        return new Err(
-          new SrchdError(
-            "model_error",
-            `Unexpected finish reason: ${finishReason}`,
-            normalizeError(`Unexpected finish reason: ${finishReason}`),
-          ),
+        return err(
+          "model_error",
+          `Unexpected finish reason: ${finishReason}`,
+          normalizeError(`Unexpected finish reason: ${finishReason}`),
         );
       }
 
@@ -270,13 +265,7 @@ export class MistralLLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
 
@@ -293,7 +282,7 @@ export class MistralLLM extends LLM {
     _prompt: string,
     _toolChoice: ToolChoice,
     _tools: Tool[],
-  ): Promise<Result<number, SrchdError>> {
+  ): Promise<Result<number>> {
     try {
       // Mistral's doesn't have a token counting API so we approximate with token ~= 4 chars.
       const tokens =
@@ -321,12 +310,10 @@ export class MistralLLM extends LLM {
 
       return new Ok(Math.floor(tokens));
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to count tokens",
-          normalizeError(error),
-        ),
+      return err(
+        "model_error",
+        "Failed to count tokens",
+        normalizeError(error),
       );
     }
   }

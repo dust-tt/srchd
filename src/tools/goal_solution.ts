@@ -4,7 +4,7 @@ import { AgentResource } from "@app/resources/agent";
 import { errorToCallToolResult } from "@app/lib/mcp";
 import { PublicationResource } from "@app/resources/publication";
 import { ExperimentResource } from "@app/resources/experiment";
-import { SrchdError } from "@app/lib/error";
+import { err } from "@app/lib/error";
 import { SolutionResource } from "@app/resources/solutions";
 import { GOAL_SOLUTION_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 
@@ -49,15 +49,12 @@ export async function createGoalSolutionServer(
 
       if (reference && !publication) {
         return errorToCallToolResult(
-          new SrchdError("not_found_error", "Publication not found"),
+          err("not_found_error", "Publication not found"),
         );
       }
       if (publication && publication.toJSON().status !== "PUBLISHED") {
         return errorToCallToolResult(
-          new SrchdError(
-            "invalid_parameters_error",
-            "Publication is not published",
-          ),
+          err("invalid_parameters_error", "Publication is not published"),
         );
       }
 

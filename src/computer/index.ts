@@ -1,11 +1,4 @@
-import {
-  normalizeError,
-  SrchdError,
-  withRetries,
-  Err,
-  Ok,
-  Result,
-} from "@app/lib/error";
+import { normalizeError, withRetries, Ok, Result, err } from "@app/lib/error";
 import {
   K8S_NAMESPACE,
   k8sApi,
@@ -39,7 +32,7 @@ export class Computer {
   static async create(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<Computer, SrchdError>> {
+  ): Promise<Result<Computer>> {
     let res = await ensureNamespace(namespace);
     if (res.isErr()) {
       return res;
@@ -74,7 +67,7 @@ export class Computer {
   static async ensure(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<Computer, SrchdError>> {
+  ): Promise<Result<Computer>> {
     const c = await Computer.findById(computerId, namespace);
     if (c) {
       const status = await c.status();
@@ -90,7 +83,7 @@ export class Computer {
 
   static async listComputerIds(
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<string[], SrchdError>> {
+  ): Promise<Result<string[]>> {
     try {
       const response = await k8sApi.listNamespacedPod({
         namespace,
@@ -102,11 +95,9 @@ export class Computer {
         .filter((id: any): id is string => !!id);
 
       return new Ok(computerIds);
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError("computer_run_error", "Failed to list computers", error),
-      );
+    } catch (e) {
+      const error = normalizeError(e);
+      return err("computer_run_error", "Failed to list computers", error);
     }
   }
 
@@ -122,7 +113,7 @@ export class Computer {
     }
   }
 
-  async terminate(): Promise<Result<boolean, SrchdError>> {
+  async terminate(): Promise<Result<boolean>> {
     try {
       // Delete pod
       try {
@@ -135,23 +126,19 @@ export class Computer {
         // ignore if pod doesn't exist
       }
 
-      const waitForDeletion = withRetries(
-        async (): Promise<Result<void, SrchdError>> => {
-          try {
-            await k8sApi.readNamespacedPod({
-              name: this.podName,
-              namespace: this.namespace,
-            });
-          } catch (err: any) {
-            if (err.code === 404) {
-              return new Ok(undefined);
-            }
+      const waitForDeletion = withRetries(async (): Promise<Result<void>> => {
+        try {
+          await k8sApi.readNamespacedPod({
+            name: this.podName,
+            namespace: this.namespace,
+          });
+        } catch (err: any) {
+          if (err.code === 404) {
+            return new Ok(undefined);
           }
-          return new Err(
-            new SrchdError("pod_deletion_error", "Pod not yet deleted..."),
-          );
-        },
-      );
+        }
+        return err("pod_deletion_error", "Pod not yet deleted...");
+      });
 
       const deleted = await waitForDeletion(undefined);
       if (deleted.isErr()) {
@@ -159,15 +146,9 @@ export class Computer {
       }
 
       return new Ok(true);
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError(
-          "computer_run_error",
-          "Failed to terminate computer",
-          error,
-        ),
-      );
+    } catch (e) {
+      const error = normalizeError(e);
+      return err("computer_run_error", "Failed to terminate computer", error);
     }
   }
 
@@ -179,15 +160,12 @@ export class Computer {
       timeoutMs?: number;
     },
   ): Promise<
-    Result<
-      {
-        exitCode: number;
-        stdout: string;
-        stderr: string;
-        durationMs: number;
-      },
-      SrchdError
-    >
+    Result<{
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+      durationMs: number;
+    }>
   > {
     const cwd = options?.cwd ?? DEFAULT_WORKDIR;
 

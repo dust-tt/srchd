@@ -1,5 +1,5 @@
 import type { JSONSchema7 as JSONSchema } from "json-schema";
-import { SrchdError, Result } from "@app/lib/error";
+import { Result } from "@app/lib/error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 import { provider } from "./provider";
 
@@ -76,14 +76,14 @@ export abstract class LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }, SrchdError>>;
+  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }>>;
 
   abstract tokens(
     messages: Message[],
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<number, SrchdError>>;
+  ): Promise<Result<number>>;
 
   abstract maxTokens(): number;
 }

@@ -2,7 +2,7 @@ import { db } from "@app/db";
 import { agents, evolutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
-import { normalizeError, SrchdError, Err, Ok, Result } from "@app/lib/error";
+import { normalizeError, Ok, Result, err } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
 
 export type Agent = InferSelectModel<typeof agents>;
@@ -134,7 +134,7 @@ export class AgentResource {
       InferInsertModel<typeof evolutions>,
       "id" | "created" | "updated" | "experiment" | "agent"
     >,
-  ): Promise<Result<AgentResource, SrchdError>> {
+  ): Promise<Result<AgentResource>> {
     try {
       const [created] = await db
         .insert(evolutions)
@@ -148,12 +148,10 @@ export class AgentResource {
       this.evolutions = [created, ...this.evolutions];
       return new Ok(this);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "resource_creation_error",
-          "Failed to create agent evolution",
-          normalizeError(error),
-        ),
+      return err(
+        "resource_creation_error",
+        "Failed to create agent evolution",
+        normalizeError(error),
       );
     }
   }

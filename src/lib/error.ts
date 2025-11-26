@@ -42,7 +42,7 @@ export class Err<E> {
   }
 }
 
-export type Result<T, E> = Ok<T> | Err<E>;
+export type Result<T> = Ok<T> | Err<SrchdError>;
 
 export type ErrorCode =
   | "invalid_parameters_error"
@@ -68,14 +68,26 @@ export type ErrorCode =
   | "pod_initialization_error"
   | "string_edit_error";
 
-export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
+export class SrchdError extends Error {
   constructor(
-    readonly code: T,
+    readonly code: ErrorCode,
     message: string,
     readonly cause?: Error | null,
   ) {
     super(message);
   }
+}
+
+export function ok<T>(value: T): Ok<T> {
+  return new Ok(value);
+}
+
+export function err(
+  code: ErrorCode,
+  message: string,
+  cause?: Error,
+): Err<SrchdError> {
+  return err(code, message, cause);
 }
 
 export function errorToString(error: unknown): string {
@@ -103,13 +115,13 @@ type RetryOptions = {
 };
 
 export function withRetries<T, U>(
-  fn: (arg: T) => Promise<Result<U, SrchdError>>,
+  fn: (arg: T) => Promise<Result<U>>,
   {
     retries = 3,
     delayBetweenRetriesMs = 3000,
     retriableCodes = undefined,
   }: RetryOptions = {},
-): (arg: T) => Promise<Result<U, SrchdError>> {
+): (arg: T) => Promise<Result<U>> {
   assert(retries >= 1);
 
   return async (arg) => {

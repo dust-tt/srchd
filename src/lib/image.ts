@@ -1,4 +1,4 @@
-import { SrchdError, Err, Ok, Result } from "./error";
+import { SrchdError, Err, Ok, Result, err } from "./error";
 import Docker from "dockerode";
 import tar from "tar-stream";
 
@@ -6,7 +6,7 @@ export async function buildImage(
   imageName: string,
   dockerFile: string,
   filePacker?: (pack: tar.Pack) => Promise<void>,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const docker = new Docker();
 
   const pack = tar.pack();
@@ -22,25 +22,18 @@ export async function buildImage(
   return new Promise((resolve) => {
     docker.modem.followProgress(
       stream,
-      (err, res) => {
-        if (err) {
+      (e, res) => {
+        if (e) {
           resolve(
-            new Err(
-              new SrchdError(
-                "image_error",
-                `Failed to build Docker image: ${err.message}`,
-              ),
-            ),
+            err("image_error", `Failed to build Docker image: ${e.message}`),
           );
         } else {
           if (res.some((r) => r.error)) {
             const error = res.find((r) => r.error);
             resolve(
-              new Err(
-                new SrchdError(
-                  "image_error",
-                  `Failed to build Docker image: ${error.error}`,
-                ),
+              err(
+                "image_error",
+                `Failed to build Docker image: ${error.error}`,
               ),
             );
           } else {

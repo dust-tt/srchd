@@ -1,4 +1,4 @@
-import { SrchdError, Err, Ok, Result } from "./error";
+import { Ok, Result, err } from "./error";
 
 import * as k8s from "@kubernetes/client-node";
 
@@ -34,26 +34,20 @@ export async function ensure(
   kind: string,
   name: string,
   logExists: boolean = true,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   try {
     await read();
     if (logExists) {
       console.log(`${kind} already exists: ${name}`);
     }
     return new Ok(undefined);
-  } catch (err: any) {
-    if (err.code === 404) {
+  } catch (e: any) {
+    if (e.code === 404) {
       await create();
       console.log(`Created ${kind}: ${name}`);
       return new Ok(undefined);
     } else {
-      return new Err(
-        new SrchdError(
-          "pod_run_error",
-          `Failed to create ${kind}: ${name}`,
-          err,
-        ),
-      );
+      return err("pod_run_error", `Failed to create ${kind}: ${name}`, e);
     }
   }
 }
@@ -62,7 +56,7 @@ export async function ensurePodRunning(
   namespace: string,
   computerId: string,
   timeoutSeconds: number = 60,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   // Give a minute to check for pod to be instantiated.
   for (let i = 0; i < timeoutSeconds; i++) {
     const podStatus = await k8sApi.readNamespacedPod({
@@ -77,17 +71,15 @@ export async function ensurePodRunning(
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  return new Err(
-    new SrchdError(
-      "pod_initialization_error",
-      `Pod ${podName(namespace, computerId)} failed to become ready within timeout`,
-    ),
+  return err(
+    "pod_initialization_error",
+    `Pod ${podName(namespace, computerId)} failed to become ready within timeout`,
   );
 }
 
 export async function ensureNamespace(
   namespace: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespace({
@@ -107,15 +99,13 @@ export async function ensureNamespace(
 
 export async function timeout(
   timeoutMs: number = 60000,
-): Promise<Result<void, SrchdError>> {
-  return await new Promise<Result<void, SrchdError>>((resolve) => {
+): Promise<Result<void>> {
+  return await new Promise<Result<void>>((resolve) => {
     setTimeout(() => {
       resolve(
-        new Err(
-          new SrchdError(
-            "pod_timeout_error",
-            "Command execution interrupted by timeout, the command is likely still running.",
-          ),
+        err(
+          "pod_timeout_error",
+          "Command execution interrupted by timeout, the command is likely still running.",
         ),
       );
     }, timeoutMs);

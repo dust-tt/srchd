@@ -4,7 +4,7 @@ import { AgentResource } from "@app/resources/agent";
 import { errorToCallToolResult } from "@app/lib/mcp";
 import { PublicationResource, Review } from "@app/resources/publication";
 import { ExperimentResource } from "@app/resources/experiment";
-import { SrchdError } from "@app/lib/error";
+import { err } from "@app/lib/error";
 import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 import { RunConfig } from "@app/runner/config";
 
@@ -146,7 +146,7 @@ Defaults to \`latest\`.`,
       );
       if (!publication) {
         return errorToCallToolResult(
-          new SrchdError("not_found_error", "Publication not found"),
+          err("not_found_error", "Publication not found"),
         );
       }
 
@@ -200,7 +200,7 @@ ${r.content}`;
         );
       if (pendingReviews.length > 0) {
         return errorToCallToolResult(
-          new SrchdError(
+          err(
             "publication_error",
             "You have pending reviews. Please complete them before submitting a new publication.",
           ),
@@ -211,7 +211,7 @@ ${r.content}`;
       const pool = agents.filter((a) => a.toJSON().id !== agent.toJSON().id);
       if (pool.length < config.reviewers) {
         return errorToCallToolResult(
-          new SrchdError("publication_error", "Not enough reviewers available"),
+          err("publication_error", "Not enough reviewers available"),
         );
       }
       const reviewers = pool
@@ -224,12 +224,12 @@ ${r.content}`;
         content,
       });
       if (publication.isErr()) {
-        return errorToCallToolResult(publication.error);
+        return errorToCallToolResult(publication);
       }
 
       const reviews = await publication.value.requestReviewers(reviewers);
       if (reviews.isErr()) {
-        return errorToCallToolResult(reviews.error);
+        return errorToCallToolResult(reviews);
       }
       if (reviewers.length === 0) {
         await publication.value.maybePublishOrReject();
@@ -321,7 +321,7 @@ ${r.content}`;
       );
       if (!publication) {
         return errorToCallToolResult(
-          new SrchdError("not_found_error", "Publication not found"),
+          err("not_found_error", "Publication not found"),
         );
       }
 
@@ -331,7 +331,7 @@ ${r.content}`;
       });
 
       if (review.isErr()) {
-        return errorToCallToolResult(review.error);
+        return errorToCallToolResult(review);
       }
 
       await publication.maybePublishOrReject();
