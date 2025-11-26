@@ -16,6 +16,7 @@ export const DEFAULT_TOOLS = [
 export const ALL_TOOLS = [...DEFAULT_TOOLS, ...NON_DEFAULT_TOOLS];
 
 export type ToolName = (typeof ALL_TOOLS)[number];
+export type NonDefaultToolName = (typeof NON_DEFAULT_TOOLS)[number];
 
 export function isToolName(tool: any): tool is ToolName {
   return ALL_TOOLS.includes(tool);

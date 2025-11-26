@@ -3,11 +3,16 @@ import fs from "fs";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err, Ok, Result } from "./lib/result";
+import {
+  isNonDefaultToolNameList,
+  NonDefaultToolName,
+} from "./tools/constants";
 
 const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
 
 type Settings = {
   description: string;
+  tools: NonDefaultToolName[];
 };
 
 function isSettings(obj: any): obj is Settings {
@@ -15,7 +20,9 @@ function isSettings(obj: any): obj is Settings {
     typeof obj === "object" &&
     obj !== null &&
     "description" in obj &&
-    typeof obj.description === "string"
+    typeof obj.description === "string" &&
+    "tools" in obj &&
+    isNonDefaultToolNameList(obj.tools)
   );
 }
 

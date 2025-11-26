@@ -209,7 +209,10 @@ agentCmd
     "Number of agents to create (name used as prefix)",
   )
   .addOption(profileOption)
-  .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
+  .option(
+    "--tool <tool...>",
+    "Tools to use (can be specified multiple times) (overrides profile)",
+  )
   .action(async (options) => {
     // Find the experiment first
     const experiment = await ExperimentResource.findByName(options.experiment);
@@ -258,7 +261,7 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
-      const tools = options.tool ?? [];
+      const tools = options.tool ?? profile.tools;
 
       if (
         !(
