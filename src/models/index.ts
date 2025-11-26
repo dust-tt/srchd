@@ -2,18 +2,7 @@ import type { JSONSchema7 as JSONSchema } from "json-schema";
 import { Result } from "@app/lib/result";
 import { SrchdError } from "@app/lib/error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
-
-export type provider =
-  | "gemini"
-  | "anthropic"
-  | "openai"
-  | "mistral"
-  | "moonshotai";
-export function isProvider(str: string): str is provider {
-  return ["gemini", "anthropic", "openai", "mistral", "moonshotai"].includes(
-    str,
-  );
-}
+import { provider } from "./provider";
 
 export type ProviderData = Partial<Record<provider, any>>;
 

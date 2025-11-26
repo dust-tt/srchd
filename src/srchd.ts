@@ -8,7 +8,7 @@ import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
 import { newID4, removeNulls } from "./lib/utils";
-import { isProvider, isThinkingConfig } from "./models";
+import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
 import { isGeminiModel } from "./models/gemini";
@@ -33,6 +33,7 @@ import {
   dockerFileForIdentity,
 } from "./computer/image";
 import { Computer, computerId } from "./computer";
+import { providerFromModel } from "./models/provider";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -193,7 +194,6 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .addOption(systemPromptFilesOption)
   .option("-n, --name <name>", "Agent name")
-  .option("-p, --provider <provider>", "AI provider (default: anthropic)")
   .option("-m, --model <model>", "AI model (default: claude-sonnet-4-20250514)")
   .option(
     "-t, --thinking <thinking>",
@@ -260,21 +260,9 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
-      const provider = options.provider ?? "anthropic";
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
       const tools = options.tool ?? [];
-
-      if (!isProvider(provider)) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Provider '${provider}' is not supported.`,
-            ),
-          ),
-        );
-      }
 
       if (
         !(
@@ -294,6 +282,7 @@ agentCmd
           ),
         );
       }
+      const provider = providerFromModel(model);
 
       if (!isThinkingConfig(thinking)) {
         return exitWithError(
@@ -322,8 +311,8 @@ agentCmd
         experiment,
         {
           name,
-          provider,
           model,
+          provider,
           thinking,
           tools,
         },
