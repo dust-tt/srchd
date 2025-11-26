@@ -33,13 +33,14 @@ export class Computer {
   static async create(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
+    imageName?: string,
   ): Promise<Result<Computer, SrchdError>> {
     let res = await ensureNamespace(namespace);
     if (res.isErr()) {
       return res;
     }
 
-    res = await ensureComputerPod(namespace, computerId);
+    res = await ensureComputerPod(namespace, computerId, imageName);
     if (res.isErr()) {
       return res;
     }

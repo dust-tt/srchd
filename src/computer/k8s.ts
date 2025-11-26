@@ -9,6 +9,7 @@ import * as k8s from "@kubernetes/client-node";
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
+  imageName?: string,
 ): Promise<Result<void, SrchdError>> {
   const name = podName(namespace, computerId);
   return await ensure(
@@ -21,7 +22,7 @@ export async function ensureComputerPod(
     async () => {
       await k8sApi.createNamespacedPod({
         namespace,
-        body: defineComputerPod(namespace, computerId),
+        body: defineComputerPod(namespace, computerId, imageName),
       });
     },
     "Pod",
