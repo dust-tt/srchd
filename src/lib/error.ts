@@ -1,5 +1,6 @@
 import assert from "assert";
 import { Err, Result } from "./result";
+import { isString } from "./utils";
 
 export type ErrorCode =
   | "invalid_parameters_error"
@@ -38,7 +39,7 @@ export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
 export function errorToString(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
-  } else if (typeof error === "string") {
+  } else if (isString(error)) {
     return error;
   }
 

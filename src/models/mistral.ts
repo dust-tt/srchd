@@ -18,7 +18,7 @@ import type {
   ChatCompletionStreamRequest,
   UsageInfo,
 } from "@mistralai/mistralai/models/components";
-import { removeNulls } from "@app/lib/utils";
+import { isString, removeNulls } from "@app/lib/utils";
 
 type MistralMessage = ChatCompletionStreamRequest["messages"][number];
 
@@ -222,10 +222,9 @@ export class MistralLLM extends LLM {
               type: "tool_use",
               id: toolCall.id ?? "",
               name: toolCall.function.name,
-              input:
-                typeof toolCall.function.arguments === "string"
-                  ? JSON.parse(toolCall.function.arguments)
-                  : toolCall.function.arguments,
+              input: isString(toolCall.function.arguments)
+                ? JSON.parse(toolCall.function.arguments)
+                : toolCall.function.arguments,
               provider: null,
             });
           } else {
@@ -238,7 +237,7 @@ export class MistralLLM extends LLM {
       }
 
       if (msg.content) {
-        if (typeof msg.content === "string") {
+        if (isString(msg.content)) {
           content.push({
             type: "text",
             text: msg.content,

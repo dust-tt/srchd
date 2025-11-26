@@ -17,26 +17,10 @@ export const ALL_TOOLS = [...DEFAULT_TOOLS, ...NON_DEFAULT_TOOLS];
 
 export type ToolName = (typeof ALL_TOOLS)[number];
 
-export function isToolNameList(tools: any): tools is ToolName[] {
-  if (!Array.isArray(tools)) {
-    return false;
-  }
-  for (const tool of tools) {
-    if (!ALL_TOOLS.includes(tool)) {
-      return false;
-    }
-  }
-  return true;
+export function isToolName(tool: any): tool is ToolName {
+  return ALL_TOOLS.includes(tool);
 }
 
-export function isNonDefaultToolNameList(tools: any): tools is ToolName[] {
-  if (!Array.isArray(tools)) {
-    return false;
-  }
-  for (const tool of tools) {
-    if (!NON_DEFAULT_TOOLS.includes(tool)) {
-      return false;
-    }
-  }
-  return true;
+export function isNonDefaultToolName(tool: any): tool is ToolName {
+  return NON_DEFAULT_TOOLS.includes(tool);
 }
