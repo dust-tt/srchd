@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";
@@ -189,6 +189,11 @@ agentCmd.command("profiles").action(async () => {
   }
 });
 
+const profileOption = new Option(
+  "-p, --profile <profile>",
+  "Profile to use",
+).makeOptionMandatory();
+
 agentCmd
   .command("create")
   .description("Create a new agent")
@@ -203,7 +208,7 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
-  .option("-p, --profile <profile>", "Profile to use")
+  .addOption(profileOption)
   .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
   .action(async (options) => {
     // Find the experiment first
@@ -246,6 +251,11 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      const profile = profileRes.value;
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
       const tools = options.tool ?? [];
@@ -293,13 +303,6 @@ agentCmd
         );
       }
 
-      const profile = await getAgentProfile(options.profile);
-      if (profile.isErr()) {
-        return exitWithError(profile);
-      }
-
-      const system = profile.value.prompt;
-
       const agent = await AgentResource.create(
         experiment,
         {
@@ -309,7 +312,7 @@ agentCmd
           thinking,
           tools,
         },
-        { system: system },
+        { system: profile.prompt },
       );
       agents.push(agent);
     }

@@ -58,14 +58,15 @@ export async function getAgentProfile(
   if (promptRes.isErr()) {
     return promptRes;
   }
-  const profileRes = await readFileContent(
+  const settingsRes = await readFileContent(
     path.join(profileDir, "settings.json"),
   );
-  if (profileRes.isErr()) {
-    return profileRes;
+  if (settingsRes.isErr()) {
+    return settingsRes;
   }
-  const profile = JSON.parse(profileRes.value);
-  if (!isSettings(profile)) {
+
+  const settings = JSON.parse(settingsRes.value);
+  if (!isSettings(settings)) {
     return new Err(
       new SrchdError(
         "invalid_parameters_error",
@@ -73,9 +74,10 @@ export async function getAgentProfile(
       ),
     );
   }
+
   return new Ok({
     name,
-    description: profile.description,
     prompt: promptRes.value,
+    ...settings,
   });
 }
