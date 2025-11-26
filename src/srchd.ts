@@ -307,6 +307,7 @@ agentCmd
           computerId(experiment, agent),
           undefined,
           profile.imageName,
+          profile.env,
         );
       }
     }

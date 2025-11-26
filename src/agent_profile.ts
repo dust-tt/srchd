@@ -4,14 +4,24 @@ import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err, Ok, Result } from "./lib/result";
 import { isNonDefaultToolName, NonDefaultToolName } from "./tools/constants";
-import { isArrayOf } from "./lib/utils";
+import { isArrayOf, isString } from "./lib/utils";
 
 const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
+
+// Either the name of a local ENV var to capture, or a name and value pair.
+export type Env = string | [string, string];
+
+export function isEnv(e: any): e is Env {
+  return (
+    isString(e) || (Array.isArray(e) && e.length === 2 && e.every(isString))
+  );
+}
 
 type Settings = {
   description: string;
   tools: NonDefaultToolName[];
   imageName?: string;
+  env: Env[];
 };
 
 function isSettings(obj: any): obj is Settings {
@@ -21,7 +31,9 @@ function isSettings(obj: any): obj is Settings {
     "description" in obj &&
     typeof obj.description === "string" &&
     "tools" in obj &&
-    isArrayOf(obj.tools, isNonDefaultToolName)
+    isArrayOf(obj.tools, isNonDefaultToolName) &&
+    "env" in obj &&
+    isArrayOf(obj.env, isEnv)
   );
 }
 
@@ -102,6 +114,7 @@ export async function getAgentProfile(
   if (promptRes.isErr()) {
     return promptRes;
   }
+
   let dockerFilePath: string | undefined = undefined;
 
   if (settings.tools.includes("computer") && settings.imageName) {

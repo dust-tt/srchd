@@ -5,11 +5,13 @@ import { SrchdError } from "@app/lib/error";
 import { defineComputerPod } from "./definitions";
 import { Writable } from "stream";
 import * as k8s from "@kubernetes/client-node";
+import { Env } from "@app/agent_profile";
 
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
   imageName?: string,
+  env: Env[] = [],
 ): Promise<Result<void, SrchdError>> {
   const name = podName(namespace, computerId);
   return await ensure(
@@ -22,7 +24,7 @@ export async function ensureComputerPod(
     async () => {
       await k8sApi.createNamespacedPod({
         namespace,
-        body: defineComputerPod(namespace, computerId, imageName),
+        body: defineComputerPod(namespace, computerId, imageName, env),
       });
     },
     "Pod",
