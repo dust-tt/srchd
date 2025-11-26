@@ -1,7 +1,7 @@
 # Dockerfile for agent-computer:base
 # Provides a secure, isolated environment for AI agents to execute code
 
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -31,16 +31,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Search Tools
     ripgrep \
     # RE tools
-    afl gdb valgrind ltrace strace \
+    afl++ gdb valgrind ltrace strace \
     # Qemu
     qemu-system
 
 # Install radare2
 RUN git clone https://github.com/radareorg/radare2 && cd radare2 && sys/install.sh
 
-# Create non-root user 'agent' with uid 1000
-RUN groupadd -g 1000 agent && \
-    useradd -u 1000 -g 1000 -m -s /bin/bash agent && \
+# Create non-root user 'agent' with uid 1001
+RUN groupadd -g 1001 agent && \
+    useradd -u 1001 -g 1001 -m -s /bin/bash agent && \
     # Give agent sudo access (for permissive mode)
     echo 'agent ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
@@ -78,4 +78,4 @@ CMD ["/bin/bash"]
 # Metadata
 LABEL maintainer="agent-computer" \
       description="Secure sandbox environment for AI agents" \
-      version="1.0"
+      version="1.1"
