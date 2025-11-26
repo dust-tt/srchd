@@ -2,8 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
-import { normalizeError, SrchdError } from "./error";
-import { Err, Ok, Result } from "./result";
+import { normalizeError, SrchdError, Err, Ok, Result } from "./error";
 
 export const readFileContent = async (
   filePath: string,

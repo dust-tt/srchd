@@ -1,7 +1,6 @@
 import { kc, podName, timeout } from "@app/lib/k8s";
 import { ensure, k8sApi } from "@app/lib/k8s";
-import { Err, Ok, Result } from "@app/lib/result";
-import { SrchdError } from "@app/lib/error";
+import { SrchdError, Err, Ok, Result } from "@app/lib/error";
 import { defineComputerPod } from "./definitions";
 import { Writable } from "stream";
 import * as k8s from "@kubernetes/client-node";

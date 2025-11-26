@@ -9,8 +9,7 @@ import {
   Thinking,
   TokenUsage,
 } from "./index";
-import { normalizeError, SrchdError } from "@app/lib/error";
-import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, SrchdError, Err, Ok, Result } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";

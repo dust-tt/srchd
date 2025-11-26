@@ -1,5 +1,4 @@
-import { Err, Ok, Result } from "./result";
-import { SrchdError } from "./error";
+import { SrchdError, Err, Ok, Result } from "./error";
 
 import * as k8s from "@kubernetes/client-node";
 

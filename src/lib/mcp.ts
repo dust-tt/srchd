@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SrchdError } from "./error";
-import { Err, Ok, Result } from "./result";
+import { SrchdError, Err, Ok, Result } from "./error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
 export async function createClientServerPair(

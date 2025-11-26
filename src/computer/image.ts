@@ -1,6 +1,5 @@
 import { readFile, stat } from "fs/promises";
-import { Err, Ok, Result } from "../lib/result";
-import { SrchdError } from "../lib/error";
+import { SrchdError, Err, Ok, Result } from "../lib/error";
 import path from "path";
 import tar from "tar-stream";
 import { buildImage } from "../lib/image";

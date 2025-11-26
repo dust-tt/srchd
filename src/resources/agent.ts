@@ -2,8 +2,7 @@ import { db } from "@app/db";
 import { agents, evolutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
-import { Err, Ok, Result } from "@app/lib/result";
-import { normalizeError, SrchdError } from "@app/lib/error";
+import { normalizeError, SrchdError, Err, Ok, Result } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
 
 export type Agent = InferSelectModel<typeof agents>;
