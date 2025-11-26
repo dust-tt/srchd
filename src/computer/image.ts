@@ -1,5 +1,5 @@
 import { readFile, stat } from "fs/promises";
-import { SrchdError, Err, Ok, Result, err } from "../lib/error";
+import { Result, err, ok } from "../lib/error";
 import path from "path";
 import tar from "tar-stream";
 import { buildImage } from "../lib/image";
@@ -53,7 +53,7 @@ RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
 
   const dfId = df.replace(IDENTITY_FILES_COPY_PLACEHOLDER, copyCommand);
 
-  return new Ok(dfId);
+  return ok(dfId);
 }
 
 async function identityFilePacker(
@@ -77,7 +77,7 @@ export async function buildComputerImage(
 ): Promise<Result<void>> {
   const df = privateKeyPath
     ? await dockerFileForIdentity(privateKeyPath)
-    : new Ok(await dockerFile());
+    : ok(await dockerFile());
 
   if (df.isErr()) {
     return df;

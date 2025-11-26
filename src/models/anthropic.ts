@@ -8,7 +8,7 @@ import {
   TokenUsage,
 } from "./index";
 import Anthropic from "@anthropic-ai/sdk";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 import { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
@@ -265,7 +265,7 @@ export class AnthropicLLM extends LLM {
       };
       // console.log(message.usage);
 
-      return new Ok({
+      return ok({
         message: {
           role: message.role === "assistant" ? "agent" : "user",
           content: removeNulls(
@@ -371,7 +371,7 @@ export class AnthropicLLM extends LLM {
         },
       });
 
-      return new Ok(response.input_tokens);
+      return ok(response.input_tokens);
     } catch (error) {
       return err(
         "model_error",

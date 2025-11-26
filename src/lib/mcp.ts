@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SrchdError, Err, Ok, Result, err } from "./error";
+import { SrchdError, Err, Result, err, ok } from "./error";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types";
 
 export async function createClientServerPair(
@@ -74,7 +74,7 @@ export function stringEdit({
     );
   }
 
-  return new Ok(content.replace(regex, newStr));
+  return ok(content.replace(regex, newStr));
 }
 
 export const STRING_EDIT_INSTRUCTIONS = `\

@@ -13,7 +13,7 @@ import { isString } from "./utils";
  *   if (denominator === 0) {
  *     return new Err(new Error("Cannot divide by zero"));
  *   }
- *   return new Ok(numerator / denominator);
+ *   return ok(numerator / denominator);
  * }
  * ```
  */

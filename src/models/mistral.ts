@@ -9,7 +9,7 @@ import {
   Thinking,
   TokenUsage,
 } from "./index";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";
@@ -257,7 +257,7 @@ export class MistralLLM extends LLM {
         }
       }
 
-      return new Ok({
+      return ok({
         message: {
           role: "agent",
           content,
@@ -308,7 +308,7 @@ export class MistralLLM extends LLM {
           return contentLength + acc;
         }, 0) / 4;
 
-      return new Ok(Math.floor(tokens));
+      return ok(Math.floor(tokens));
     } catch (error) {
       return err(
         "model_error",

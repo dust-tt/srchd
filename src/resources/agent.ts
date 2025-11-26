@@ -2,7 +2,7 @@ import { db } from "@app/db";
 import { agents, evolutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
 
 export type Agent = InferSelectModel<typeof agents>;
@@ -146,7 +146,7 @@ export class AgentResource {
         .returning();
 
       this.evolutions = [created, ...this.evolutions];
-      return new Ok(this);
+      return ok(this);
     } catch (error) {
       return err(
         "resource_creation_error",

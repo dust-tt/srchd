@@ -1,4 +1,4 @@
-import { normalizeError, withRetries, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, withRetries, Result, err, ok } from "@app/lib/error";
 import {
   K8S_NAMESPACE,
   k8sApi,
@@ -48,7 +48,7 @@ export class Computer {
       return res;
     }
 
-    return new Ok(new Computer(namespace, computerId));
+    return ok(new Computer(namespace, computerId));
   }
 
   static async findById(
@@ -76,7 +76,7 @@ export class Computer {
         await c.terminate();
         return Computer.create(computerId, namespace);
       }
-      return new Ok(c);
+      return ok(c);
     }
     return Computer.create(computerId, namespace);
   }
@@ -94,7 +94,7 @@ export class Computer {
         .map((pod: any) => pod.metadata?.labels?.["srchd.io/computer"])
         .filter((id: any): id is string => !!id);
 
-      return new Ok(computerIds);
+      return ok(computerIds);
     } catch (e) {
       const error = normalizeError(e);
       return err("computer_run_error", "Failed to list computers", error);
@@ -134,7 +134,7 @@ export class Computer {
           });
         } catch (err: any) {
           if (err.code === 404) {
-            return new Ok(undefined);
+            return ok(undefined);
           }
         }
         return err("pod_deletion_error", "Pod not yet deleted...");
@@ -145,7 +145,7 @@ export class Computer {
         return deleted;
       }
 
-      return new Ok(true);
+      return ok(true);
     } catch (e) {
       const error = normalizeError(e);
       return err("computer_run_error", "Failed to terminate computer", error);
@@ -191,7 +191,7 @@ export class Computer {
     if (res.isErr()) {
       return res;
     } else {
-      return new Ok({
+      return ok({
         ...res.value,
         durationMs: Date.now() - startTs,
       });

@@ -12,7 +12,7 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
@@ -211,7 +211,7 @@ export class MoonshotAILLM extends LLM {
           }
         : undefined;
 
-      return new Ok({
+      return ok({
         message: {
           role: "agent",
           content: output,
@@ -277,7 +277,7 @@ export class MoonshotAILLM extends LLM {
       }
 
       const data = await response.json();
-      return new Ok(data.data.total_tokens);
+      return ok(data.data.total_tokens);
     } catch (error) {
       return err(
         "model_error",

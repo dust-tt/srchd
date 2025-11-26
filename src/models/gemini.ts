@@ -15,7 +15,7 @@ import {
   ToolUse,
   TokenUsage,
 } from "./index";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 
@@ -177,7 +177,7 @@ export class GeminiLLM extends LLM {
       const candidate = response.candidates[0];
       const content = candidate.content;
       if (!content) {
-        return new Ok({
+        return ok({
           message: {
             role: "agent",
             content: [],
@@ -200,7 +200,7 @@ export class GeminiLLM extends LLM {
             }
           : undefined;
 
-      return new Ok({
+      return ok({
         message: {
           role: content.role === "model" ? "agent" : "user",
           content: removeNulls(
@@ -292,7 +292,7 @@ export class GeminiLLM extends LLM {
         return err("model_error", "Gemini model returned no token counts");
       }
 
-      return new Ok(response.totalTokens);
+      return ok(response.totalTokens);
     } catch (error) {
       return err(
         "model_error",

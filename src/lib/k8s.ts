@@ -1,4 +1,4 @@
-import { Ok, Result, err } from "./error";
+import { Result, err, ok } from "./error";
 
 import * as k8s from "@kubernetes/client-node";
 
@@ -40,12 +40,12 @@ export async function ensure(
     if (logExists) {
       console.log(`${kind} already exists: ${name}`);
     }
-    return new Ok(undefined);
+    return ok(undefined);
   } catch (e: any) {
     if (e.code === 404) {
       await create();
       console.log(`Created ${kind}: ${name}`);
-      return new Ok(undefined);
+      return ok(undefined);
     } else {
       return err("pod_run_error", `Failed to create ${kind}: ${name}`, e);
     }
@@ -67,7 +67,7 @@ export async function ensurePodRunning(
       podStatus.status?.phase === "Running" &&
       podStatus.status?.containerStatuses?.[0]?.ready
     ) {
-      return new Ok(undefined);
+      return ok(undefined);
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }

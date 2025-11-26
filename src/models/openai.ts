@@ -12,7 +12,7 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 type OpenAITokenPrices = {
@@ -293,7 +293,7 @@ export class OpenAILLM extends LLM {
           }
         : undefined;
 
-      return new Ok({
+      return ok({
         message: {
           role: "agent",
           content,
@@ -349,7 +349,7 @@ export class OpenAILLM extends LLM {
           },
         },
       );
-      return new Ok(input_tokens);
+      return ok(input_tokens);
     } catch (error) {
       return err("model_error", "Failed to run model", normalizeError(error));
     }

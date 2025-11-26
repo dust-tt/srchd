@@ -11,7 +11,7 @@ import {
 import { AgentResource } from "@app/resources/agent";
 import { ExperimentResource } from "@app/resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { normalizeError, withRetries, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, withRetries, Result, err, ok } from "@app/lib/error";
 import { MessageResource } from "@app/resources/messages";
 import assert from "assert";
 import { PublicationResource } from "@app/resources/publication";
@@ -146,7 +146,7 @@ export class Runner {
       return runner;
     }
 
-    return new Ok({
+    return ok({
       experiment,
       agent,
       runner: runner.value,
@@ -168,7 +168,7 @@ export class Runner {
 
     runner.messages = messages;
 
-    return new Ok(runner);
+    return ok(runner);
   }
 
   async tools(): Promise<Result<Tool[]>> {
@@ -199,7 +199,7 @@ export class Runner {
     //   console.log(`- ${tool.name}: ${tool.description}`);
     // });
 
-    return new Ok(tools);
+    return ok(tools);
   }
 
   async executeTool(t: ToolUse): Promise<ToolResult> {
@@ -317,7 +317,7 @@ This is an automated system message and there is no user available to respond. P
       position,
     );
 
-    return new Ok(message);
+    return ok(message);
   }
 
   private isAgentLoopStartMessage(message: Message): boolean {
@@ -378,7 +378,7 @@ This is an automated system message and there is no user available to respond. P
     }
     this.contextPruning.lastAgentLoopInnerStartIdx = idx;
 
-    return new Ok(undefined);
+    return ok(undefined);
   }
 
   /**
@@ -454,7 +454,7 @@ This is an automated system message and there is no user available to respond. P
           return res;
         }
       } else {
-        return new Ok(messages);
+        return ok(messages);
       }
     } while (tokenCount > this.model.maxTokens());
 
@@ -561,7 +561,7 @@ ${this.agent.toJSON().system}`;
           this.agent.toJSON().name
         }`,
       );
-      return new Ok(undefined);
+      return ok(undefined);
     }
 
     const toolResults = await concurrentExecutor(
@@ -619,7 +619,7 @@ ${this.agent.toJSON().system}`;
       });
     }
 
-    return new Ok(undefined);
+    return ok(undefined);
   }
 
   /**
@@ -662,6 +662,6 @@ ${this.agent.toJSON().system}`;
 
     console.log(JSON.stringify(toolResults, null, 2));
 
-    return new Ok(undefined);
+    return ok(undefined);
   }
 }

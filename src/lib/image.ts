@@ -1,4 +1,4 @@
-import { SrchdError, Err, Ok, Result, err } from "./error";
+import { Result, err, ok } from "./error";
 import Docker from "dockerode";
 import tar from "tar-stream";
 
@@ -37,7 +37,7 @@ export async function buildImage(
               ),
             );
           } else {
-            resolve(new Ok(undefined));
+            resolve(ok(undefined));
           }
         }
       },

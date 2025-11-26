@@ -2,7 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
-import { normalizeError, Ok, Result, err } from "./error";
+import { normalizeError, Result, err, ok } from "./error";
 
 export const readFileContent = async (
   filePath: string,
@@ -13,7 +13,7 @@ export const readFileContent = async (
       : path.resolve(filePath);
 
     const content = await fs.readFile(resolvedPath, "utf-8");
-    return new Ok(content);
+    return ok(content);
   } catch (error) {
     return err(
       "reading_file_error",

@@ -35,9 +35,9 @@ fi
 echo Creating test experiment
 srchd experiment create test -p problems/security/tor.problem
 echo Creating agent for 3 providers
-srchd agent create -m gpt-5 -t high --tool web --tool computer -s prompts/researcher.md -e test -n gpt
-srchd agent create -m gemini-2.5-flash -t low --tool web --tool computer -s prompts/researcher.md -e test -n gemini
-srchd agent create -m mistral-large-latest -t none --tool web --tool computer -s prompts/researcher.md -e test -n mistral
+srchd agent create -p openai -m gpt-5 -t high --tool web --tool computer -s prompts/researcher.md -e test -n gpt
+srchd agent create -p gemini -m gemini-2.5-flash -t low --tool web --tool computer -s prompts/researcher.md -e test -n gemini
+srchd agent create -p mistral -m mistral-large-latest -t none --tool web --tool computer -s prompts/researcher.md -e test -n mistral
 
 echo Running agents for $TIMEOUT seconds.
 python3 -c "

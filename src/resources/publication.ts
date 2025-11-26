@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
-import { normalizeError, Ok, Result, err } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { newID4, removeNulls } from "@app/lib/utils";
 import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
@@ -335,9 +335,7 @@ export class PublicationResource {
 
     // We don't create citations until the publication gets published.
 
-    return new Ok(
-      await new PublicationResource(created, experiment).finalize(),
-    );
+    return ok(await new PublicationResource(created, experiment).finalize());
   }
 
   async maybePublishOrReject(): Promise<
@@ -392,7 +390,7 @@ export class PublicationResource {
       }
 
       this.data = updated;
-      return new Ok(this);
+      return ok(this);
     } catch (error) {
       return err(
         "resource_update_error",
@@ -418,7 +416,7 @@ export class PublicationResource {
       }
 
       this.data = updated;
-      return new Ok(this);
+      return ok(this);
     } catch (error) {
       return err(
         "resource_update_error",
@@ -454,7 +452,7 @@ export class PublicationResource {
       author: reviewers.find((rev) => rev.toJSON().id === r.author)!.toJSON(),
     }));
 
-    return new Ok(this.reviews);
+    return ok(this.reviews);
   }
 
   async submitReview(
@@ -496,7 +494,7 @@ export class PublicationResource {
 
     this.reviews[idx] = { ...updated, author: reviewer.toJSON() };
 
-    return new Ok(this.reviews[idx]);
+    return ok(this.reviews[idx]);
   }
 
   toJSON() {
