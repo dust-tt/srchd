@@ -1,6 +1,6 @@
 # Deployment
 
-We are using Kubernetes to deploy `srchd`.
+`srchd` (main instance) can be deployed using k8s.
 
 ## Building the image
 
@@ -16,7 +16,11 @@ npx tsx deployment/src/cli.ts image build
 
 ## Deploying the image
 
-```
+**Note**: the deployment name, here: `my-deployment-name`, will be used as a k8s namespace,
+namely if there are any `computer` pods for agent's `computer` tool, they will use the same 
+namespace.
+
+```bash
 npx tsx deployment/src/cli.ts create my-deployment-name
 ```
 
@@ -25,6 +29,16 @@ npx tsx deployment/src/cli.ts create my-deployment-name
 ```bash
 npx tsx deployment/src/cli.ts shell my-deployment-name
 ```
+
+## Port forwarding
+
+```bash
+npx tsx deployment/src/cli.ts connect my-deployment-name
+```
+
+This allows forwarding the server's port to your local machine, so that you can access the web
+interface. Press `Ctrl+C` to stop the port forwarding.
+
 
 ## Cleaning up
 
