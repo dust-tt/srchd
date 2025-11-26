@@ -7,7 +7,7 @@ import { Err } from "./lib/result";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { newID4, removeNulls } from "./lib/utils";
+import { isArrayOf, newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -18,8 +18,8 @@ import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
 import {
   DEFAULT_TOOLS,
+  isNonDefaultToolName,
   NON_DEFAULT_TOOLS,
-  isNonDefaultToolNameList,
 } from "./tools/constants";
 import {
   messageMetricsByExperiment,
@@ -291,7 +291,7 @@ agentCmd
         );
       }
 
-      if (!isNonDefaultToolNameList(tools)) {
+      if (!isArrayOf(tools, isNonDefaultToolName)) {
         return exitWithError(
           new Err(
             new SrchdError(
