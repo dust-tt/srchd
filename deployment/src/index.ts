@@ -26,99 +26,100 @@ export interface ApiKeys {
 }
 
 export async function createDeployment(
-  deploymentId: string,
+  deployment: string,
   apiKeys: ApiKeys,
 ): Promise<Result<void, SrchdError>> {
-  let res = await ensureNamespace(deploymentId);
+  const namespace = deployment;
+  let res = await ensureNamespace(namespace);
   if (res.isErr()) {
     return res;
   }
   // Create RBAC resources
-  res = await ensureServiceAccount(deploymentId);
+  res = await ensureServiceAccount(namespace);
   if (res.isErr()) {
     return res;
   }
-  res = await ensureRole(deploymentId);
+  res = await ensureRole(namespace);
   if (res.isErr()) {
     return res;
   }
-  res = await ensureRoleBinding(deploymentId);
+  res = await ensureRoleBinding(namespace);
   if (res.isErr()) {
     return res;
   }
 
   // Create Pod resources
-  res = await ensureServerVolume(deploymentId);
+  res = await ensureServerVolume(namespace);
   if (res.isErr()) {
     return res;
   }
-  res = await ensureServerPod(deploymentId, apiKeys);
+  res = await ensureServerPod(namespace, apiKeys);
   if (res.isErr()) {
     return res;
   }
-  res = await ensureService(deploymentId);
+  res = await ensureService(namespace);
   if (res.isErr()) {
     return res;
   }
 
   console.log(`\nWaiting for pod to be ready...`);
-  res = await ensurePodRunning(deploymentId);
+  res = await ensurePodRunning(namespace);
 
   if (res.isOk()) {
     console.log(`✓ Pod is ready and running`);
   } else {
     console.log(
-      `⚠ Pod may not be ready yet, check with: kubectl get pod ${podName(deploymentId)} -n ${deploymentId}`,
+      `⚠ Pod may not be ready yet, check with: kubectl get pod ${podName(namespace)} -n ${namespace}`,
     );
   }
   return res;
 }
 
 export async function deleteDeployment(
-  deploymentId: string,
+  deployment: string,
 ): Promise<Result<void, SrchdError>> {
+  const namespace = deployment;
   try {
     const pods = await k8sApi.listNamespacedPod({
-      namespace: deploymentId,
+      namespace,
     });
 
     // Delete all associated computers with it.
     for (const pod of pods.items.filter((p) => p.metadata?.name)) {
       await k8sApi.deleteNamespacedPod({
         name: pod.metadata!.name!,
-        namespace: deploymentId,
+        namespace,
         gracePeriodSeconds: 0,
       });
     }
 
     await k8sApi.deleteNamespace({
-      name: deploymentId,
+      name: namespace,
     });
     return new Ok(undefined);
   } catch (err: any) {
     return new Err(
       new SrchdError(
         "namespace_deletion_error",
-        `Failed to delete namespace: ${deploymentId}`,
+        `Failed to delete namespace: ${namespace}`,
         err,
       ),
     );
   }
 }
 
-export async function listComputers(
-  deploymentId: string,
-): Promise<k8s.V1Pod[]> {
+export async function listComputers(deployment: string): Promise<k8s.V1Pod[]> {
+  const namespace = deployment;
   const pods = await k8sApi.listNamespacedPod({
-    namespace: deploymentId,
+    namespace,
   });
 
   return pods.items.filter((pod) => pod.metadata?.labels?.computer);
 }
 
 export async function listDeployments(): Promise<k8s.V1Pod[]> {
-  const instances = await k8sApi.listPodForAllNamespaces({});
-  return instances.items.filter(
+  const deployments = await k8sApi.listPodForAllNamespaces({});
+  return deployments.items.filter(
     (i) =>
       i.metadata?.labels?.app === "srchd" &&
       i.metadata?.labels["srchd.io/type"] === "server",
@@ -126,9 +127,10 @@ export async function listDeployments(): Promise<k8s.V1Pod[]> {
 }
 
 export async function startPortForward(
-  deploymentId: string,
+  deployment: string,
   port: number,
 ): Promise<Result<void, SrchdError>> {
+  const namespace = deployment;
   const kc = new k8s.KubeConfig();
   kc.loadFromDefault();
   const forward = new k8s.PortForward(kc);
@@ -136,8 +138,8 @@ export async function startPortForward(
   const server = net
     .createServer((socket) => {
       forward.portForward(
-        deploymentId,
-        podName(deploymentId),
+        namespace,
+        podName(namespace),
         [1337],
         socket,
         socket,

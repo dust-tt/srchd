@@ -75,18 +75,18 @@ export function defineServiceAccount(namespace: string): k8s.V1ServiceAccount {
   };
 }
 
-export function defineServerService(deploymentId: string): k8s.V1Service {
+export function defineServerService(namespace: string): k8s.V1Service {
   return {
     apiVersion: "v1",
     kind: "Service",
     metadata: {
-      name: serviceName(deploymentId),
-      namespace: deploymentId,
-      labels: namespaceLabels(deploymentId),
+      name: serviceName(namespace),
+      namespace,
+      labels: namespaceLabels(namespace),
     },
     spec: {
       selector: {
-        ...namespaceLabels(deploymentId),
+        ...namespaceLabels(namespace),
         "srchd.io/type": "server",
       },
       ports: [
@@ -102,15 +102,15 @@ export function defineServerService(deploymentId: string): k8s.V1Service {
 }
 
 export function defineServerVolume(
-  deploymentId: string,
+  namespace: string,
 ): k8s.V1PersistentVolumeClaim {
   return {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",
     metadata: {
-      name: volumeName(deploymentId),
-      namespace: deploymentId,
-      labels: namespaceLabels(deploymentId),
+      name: volumeName(namespace),
+      namespace,
+      labels: namespaceLabels(namespace),
     },
     spec: {
       accessModes: ["ReadWriteOnce"],
@@ -124,29 +124,29 @@ export function defineServerVolume(
 }
 
 export function defineServerPod(
-  deploymentId: string,
+  namespace: string,
   apiKeys: ApiKeys,
 ): k8s.V1Pod {
   return {
     apiVersion: "v1",
     kind: "Pod",
     metadata: {
-      name: podName(deploymentId),
-      namespace: deploymentId,
+      name: podName(namespace),
+      namespace,
       labels: {
-        ...namespaceLabels(deploymentId),
+        ...namespaceLabels(namespace),
         "srchd.io/type": "server",
       },
     },
     spec: {
-      serviceAccountName: serviceAccountName(deploymentId),
+      serviceAccountName: serviceAccountName(namespace),
       restartPolicy: "Always",
       containers: [
         {
           name: "srchd",
           image: SRCHD_IMAGE,
           imagePullPolicy: "IfNotPresent",
-          env: defineServerEnv(deploymentId, apiKeys),
+          env: defineServerEnv(namespace, apiKeys),
           ports: [
             {
               containerPort: 1337,
@@ -165,7 +165,7 @@ export function defineServerPod(
         {
           name: "data",
           persistentVolumeClaim: {
-            claimName: volumeName(deploymentId),
+            claimName: volumeName(namespace),
           },
         },
       ],
@@ -174,13 +174,13 @@ export function defineServerPod(
 }
 
 export function defineServerEnv(
-  deploymentId: string,
+  namespace: string,
   apiKeys: ApiKeys,
 ): k8s.V1EnvVar[] {
   // Prepare environment variables
   const env: k8s.V1EnvVar[] = [
-    { name: "NAMESPACE", value: deploymentId },
-    { name: "DEPLOYMENT_ID", value: deploymentId },
+    { name: "NAMESPACE", value: namespace },
+    { name: "DEPLOYMENT_ID", value: namespace },
     { name: "DATABASE_PATH", value: "/data/db.sqlite" },
   ];
 

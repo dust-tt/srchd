@@ -81,63 +81,63 @@ export async function ensureRoleBinding(
 }
 
 export async function ensureService(
-  deploymentId: string,
+  namespace: string,
 ): Promise<Result<void, SrchdError>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespacedService({
-        name: serviceName(deploymentId),
-        namespace: deploymentId,
+        name: serviceName(namespace),
+        namespace,
       });
     },
     async () => {
       await k8sApi.createNamespacedService({
-        namespace: deploymentId,
-        body: defineServerService(deploymentId),
+        namespace,
+        body: defineServerService(namespace),
       });
     },
     "Service",
-    serviceName(deploymentId),
+    serviceName(namespace),
   );
 }
 
 export async function ensureServerPod(
-  deploymentId: string,
+  namespace: string,
   apiKeys: ApiKeys,
 ): Promise<Result<void, SrchdError>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPod({
-        name: podName(deploymentId),
-        namespace: deploymentId,
+        name: podName(namespace),
+        namespace,
       });
     },
     async () => {
       await k8sApi.createNamespacedPod({
-        namespace: deploymentId,
-        body: defineServerPod(deploymentId, apiKeys),
+        namespace,
+        body: defineServerPod(namespace, apiKeys),
       });
     },
     "Pod",
-    podName(deploymentId),
+    podName(namespace),
   );
 }
 
 export async function ensureServerVolume(
-  deploymentId: string,
+  namespace: string,
 ): Promise<Result<void, SrchdError>> {
-  const name = volumeName(deploymentId);
+  const name = volumeName(namespace);
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPersistentVolumeClaim({
         name,
-        namespace: deploymentId,
+        namespace,
       });
     },
     async () => {
       await k8sApi.createNamespacedPersistentVolumeClaim({
-        namespace: deploymentId,
-        body: defineServerVolume(deploymentId),
+        namespace,
+        body: defineServerVolume(namespace),
       });
     },
     "PVC",
