@@ -34,6 +34,7 @@ import {
 } from "./computer/image";
 import { Computer, computerId } from "./computer";
 import { providerFromModel } from "./models/provider";
+import { getAgentProfile, listAgentProfiles } from "./agent_profile";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -178,21 +179,25 @@ experimentCmd
 // Agent commands
 const agentCmd = program.command("agent").description("Manage agents");
 
-const systemPromptFilesOption = new Option(
-  "-s, --system <system_prompt_file>",
-  "System prompt file path (pass multiple to append)",
-)
-  .makeOptionMandatory()
-  .argParser((value, previous: string[] | undefined) => {
-    const prompts = previous ?? [];
-    return [...prompts, value];
-  });
+agentCmd.command("profiles").action(async () => {
+  const profiles = await listAgentProfiles();
+  if (profiles.isErr()) {
+    return exitWithError(profiles);
+  }
+  for (const profile of profiles.value) {
+    console.log(`${profile.name}: ${profile.description}`);
+  }
+});
+
+const profileOption = new Option(
+  "-p, --profile <profile>",
+  "Profile to use",
+).makeOptionMandatory();
 
 agentCmd
   .command("create")
   .description("Create a new agent")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
-  .addOption(systemPromptFilesOption)
   .option("-n, --name <name>", "Agent name")
   .option("-m, --model <model>", "AI model (default: claude-sonnet-4-20250514)")
   .option(
@@ -203,23 +208,9 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
+  .addOption(profileOption)
   .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
   .action(async (options) => {
-    // Read system prompt from file
-    const systemFiles: string[] = Array.isArray(options.system)
-      ? options.system
-      : [options.system];
-
-    const systemPrompts: string[] = [];
-    for (const file of systemFiles) {
-      const system = await readFileContent(file);
-      if (system.isErr()) {
-        return exitWithError(system);
-      }
-      systemPrompts.push(system.value);
-    }
-    const system = systemPrompts.join("\n");
-
     // Find the experiment first
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
@@ -260,6 +251,11 @@ agentCmd
       console.log(
         `Creating agent: ${name} for experiment: ${options.experiment}`,
       );
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      const profile = profileRes.value;
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
       const tools = options.tool ?? [];
@@ -316,7 +312,7 @@ agentCmd
           thinking,
           tools,
         },
-        { system: system },
+        { system: profile.prompt },
       );
       agents.push(agent);
     }
