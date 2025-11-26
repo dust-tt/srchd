@@ -25,14 +25,23 @@ export type AgentProfile = {
 } & Settings;
 
 export async function listAgentProfiles(): Promise<
-  Result<AgentProfile[], SrchdError>
+  Result<{ name: string; description: string }[], SrchdError>
 > {
   const profileNames = fs.readdirSync(AGENT_PROFILES_DIR);
-  const profileResults = await Promise.all(profileNames.map(getAgentProfile));
-  const profiles: AgentProfile[] = [];
-  for (const res of profileResults) {
+  const profileResults = await Promise.all(
+    profileNames.map(async (profile) => {
+      return {
+        name: profile,
+        settings: await readSettings(
+          path.join(AGENT_PROFILES_DIR, profile, "settings.json"),
+        ),
+      };
+    }),
+  );
+  const profiles: { name: string; description: string }[] = [];
+  for (const { name, settings: res } of profileResults) {
     if (res.isOk()) {
-      profiles.push(res.value);
+      profiles.push({ name, description: res.value.description });
     } else {
       return new Err(
         new SrchdError(
@@ -45,22 +54,15 @@ export async function listAgentProfiles(): Promise<
   return new Ok(profiles);
 }
 
-export async function getAgentProfile(
-  name: string,
-): Promise<Result<AgentProfile, SrchdError>> {
-  const profileDir = path.join(AGENT_PROFILES_DIR, name);
-  if (!fs.existsSync(profileDir)) {
+async function readSettings(
+  path: string,
+): Promise<Result<Settings, SrchdError>> {
+  if (!fs.existsSync(path)) {
     return new Err(
-      new SrchdError("not_found_error", `Agent profile '${name}' not found.`),
+      new SrchdError("not_found_error", `Settings file '${path}' not found.`),
     );
   }
-  const promptRes = await readFileContent(path.join(profileDir, "prompt.md"));
-  if (promptRes.isErr()) {
-    return promptRes;
-  }
-  const settingsRes = await readFileContent(
-    path.join(profileDir, "settings.json"),
-  );
+  const settingsRes = await readFileContent(path);
   if (settingsRes.isErr()) {
     return settingsRes;
   }
@@ -70,11 +72,29 @@ export async function getAgentProfile(
     return new Err(
       new SrchdError(
         "invalid_parameters_error",
-        `Invalid settings.json for agent profile '${name}'.`,
+        `Invalid settings.json at '${path}'.`,
       ),
     );
   }
+  return new Ok(settings);
+}
 
+export async function getAgentProfile(
+  name: string,
+): Promise<Result<AgentProfile, SrchdError>> {
+  const settingsPath = path.join(AGENT_PROFILES_DIR, name, "settings.json");
+  const settingsRes = await readSettings(settingsPath);
+  if (settingsRes.isErr()) {
+    return settingsRes;
+  }
+  const settings = settingsRes.value;
+
+  const promptRes = await readFileContent(
+    path.join(AGENT_PROFILES_DIR, name, "prompt.md"),
+  );
+  if (promptRes.isErr()) {
+    return promptRes;
+  }
   return new Ok({
     name,
     prompt: promptRes.value,
