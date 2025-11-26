@@ -28,8 +28,12 @@ import {
 } from "./computer/image";
 import { Computer, computerId } from "./computer";
 import { providerFromModel } from "./models/provider";
-import { getAgentProfile, listAgentProfiles } from "./agent_profile";
 import { copyToComputer } from "./computer/k8s";
+import {
+  AgentProfile,
+  getAgentProfile,
+  listAgentProfiles,
+} from "./agent_profile";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -286,6 +290,14 @@ agentCmd
         { system: profile.prompt },
       );
       agents.push(agent);
+
+      if (tools.includes("computer")) {
+        await Computer.create(
+          computerId(experiment, agent),
+          undefined,
+          profile.imageName,
+        );
+      }
     }
 
     console.table(
@@ -406,12 +418,11 @@ agentCmd
       }
     }
 
-    // Ensure all agents with computer tool have computers
-    for (const agent of agents.filter((a) =>
-      a.toJSON().tools.includes("computer"),
-    )) {
-      await Computer.ensure(computerId(experiment, agent));
-      if (options.path && isArrayOf(options.path, isString)) {
+    if (options.path && isArrayOf(options.path, isString)) {
+      // Copy paths to all agents with computers
+      for (const agent of agents.filter((a) =>
+        a.toJSON().tools.includes("computer"),
+      )) {
         for (const path of options.path) {
           const res = await copyToComputer(computerId(experiment, agent), path);
           if (res.isErr()) {
@@ -522,17 +533,42 @@ const imageCmd = program.command("image").description("Docker image utils");
 imageCmd
   .command("build")
   .description("Build a computer Docker image")
+  .option("-p, --profile <profile>", "Profile to build image for")
   .option(
     "-i, --identity <private_key_path>",
     "Path to SSH private key for Git access",
   )
   .action(async (options) => {
-    const res = await buildComputerImage(options.identity);
+    let profile: AgentProfile | undefined = undefined;
+    if (options.profile) {
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      profile = profileRes.value;
+      if (!profile.dockerFilePath) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              `Profile '${options.profile}' does not have a Dockerfile.`,
+            ),
+          ),
+        );
+      }
+    }
+    const res = await buildComputerImage(
+      options.identity,
+      profile?.dockerFilePath,
+      profile?.imageName,
+    );
     if (res.isErr()) {
       return exitWithError(res);
     }
 
-    console.log(`computer Docker image built successfully.`);
+    console.log(
+      `computer Docker image ${profile?.imageName ?? ""} built successfully.`,
+    );
   });
 
 imageCmd

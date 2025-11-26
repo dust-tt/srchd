@@ -6,14 +6,18 @@ import { buildImage } from "@app/lib/image";
 
 const IDENTITY_FILES_COPY_PLACEHOLDER = "# IDENTITY_FILES_COPY_PLACEHOLDER";
 
-export const COMPUTER_DOCKERFILE_PATH = path.join(__dirname, "Dockerfile");
+export const COMPUTER_DEFAULT_DOCKERFILE_PATH = path.join(
+  __dirname,
+  "Dockerfile",
+);
 
-export async function dockerFile(): Promise<string> {
-  return await readFile(COMPUTER_DOCKERFILE_PATH, "utf8");
+export async function dockerFile(path?: string): Promise<string> {
+  return await readFile(path ?? COMPUTER_DEFAULT_DOCKERFILE_PATH, "utf8");
 }
 
 export async function dockerFileForIdentity(
   privateKeyPath: string,
+  dfPath?: string,
 ): Promise<Result<string>> {
   const publicKeyPath = privateKeyPath + ".pub";
   // check that both files exist
@@ -42,7 +46,7 @@ RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
     chmod 644 /home/agent/.ssh/${publicKeyFilename}
 `;
 
-  const df = await dockerFile();
+  const df = await dockerFile(dfPath);
 
   if (!df.includes(IDENTITY_FILES_COPY_PLACEHOLDER)) {
     return err(
@@ -74,17 +78,19 @@ async function identityFilePacker(
 
 export async function buildComputerImage(
   privateKeyPath: string | null,
+  path?: string,
+  imageName?: string,
 ): Promise<Result<void>> {
   const df = privateKeyPath
-    ? await dockerFileForIdentity(privateKeyPath)
-    : ok(await dockerFile());
+    ? await dockerFileForIdentity(privateKeyPath, path)
+    : ok(await dockerFile(path));
 
   if (df.isErr()) {
     return df;
   }
 
   return buildImage(
-    "agent-computer:base",
+    imageName ?? "agent-computer:base",
     df.value,
     privateKeyPath
       ? (pack) => identityFilePacker(pack, privateKeyPath)

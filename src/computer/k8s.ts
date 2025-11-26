@@ -13,6 +13,7 @@ import { addDirectoryToTar } from "@app/lib/image";
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
+  imageName?: string,
 ): Promise<Result<void>> {
   const name = podName(namespace, computerId);
   return await ensure(
@@ -25,7 +26,7 @@ export async function ensureComputerPod(
     async () => {
       await k8sApi.createNamespacedPod({
         namespace,
-        body: defineComputerPod(namespace, computerId),
+        body: defineComputerPod(namespace, computerId, imageName),
       });
     },
     "Pod",
