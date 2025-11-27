@@ -194,14 +194,16 @@ agentCmd
   .description("Create a new agent")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option("-n, --name <name>", "Agent name")
-  .option("-m, --model <model>", "AI model (default: claude-sonnet-4-20250514)")
+  .option("-m, --model <model>", "AI model", "claude-sonnet-4-5")
   .option(
     "-t, --thinking <thinking>",
-    "Thinking configuration (none | low | high, default: low)",
+    "Thinking configuration (none | low | high)",
+    "low",
   )
   .option(
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
+    "1",
   )
   .requiredOption("-p, --profile <profile>", "Agent profile")
   .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
@@ -219,19 +221,16 @@ agentCmd
       );
     }
 
-    let count = 1;
-    if (options.count) {
-      count = parseInt(options.count);
-      if (isNaN(count) || count < 1) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Count must be a positive integer.`,
-            ),
+    const count = parseInt(options.count);
+    if (isNaN(count) || count < 1) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            `Count must be a positive integer.`,
           ),
-        );
-      }
+        ),
+      );
     }
 
     const agents = [];
@@ -251,8 +250,8 @@ agentCmd
         return exitWithError(profileRes);
       }
       const profile = profileRes.value;
-      const model = options.model ?? "claude-sonnet-4-5";
-      const thinking = options.thinking ?? "low";
+      const model = options.model;
+      const thinking = options.thinking;
       const tools = options.tool ?? [];
 
       if (
@@ -435,7 +434,8 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option(
     "-r, --reviewers <reviewers>",
-    "Number of required reviewers for each publication (default: 4)",
+    "Number of required reviewers for each publication",
+    DEFAULT_REVIEWERS_COUNT.toString(),
   )
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
@@ -469,19 +469,16 @@ agentCmd
       agents = [agent];
     }
 
-    let reviewers = DEFAULT_REVIEWERS_COUNT;
-    if (options.reviewers) {
-      reviewers = parseInt(options.reviewers);
-      if (isNaN(reviewers) || reviewers < 0) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              "Reviewers must be a valid integer greater than 0",
-            ),
+    const reviewers = parseInt(options.reviewers);
+    if (isNaN(reviewers) || reviewers < 0) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            "Reviewers must be a valid integer greater than 0",
           ),
-        );
-      }
+        ),
+      );
     }
 
     // Ensure all agents with computer tool have computers
@@ -548,22 +545,20 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option(
     "-r, --reviewers",
-    "Number of reviewers for each publication (default: 4",
+    "Number of reviewers for each publication",
+    DEFAULT_REVIEWERS_COUNT.toString(),
   )
   .action(async (name, message, options) => {
-    let reviewers = DEFAULT_REVIEWERS_COUNT;
-    if (options.reviewers) {
-      reviewers = parseInt(options.reviewers);
-      if (isNaN(reviewers) || reviewers < 0) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              "Reviewers must be a valid integer greater than 0",
-            ),
+    const reviewers = parseInt(options.reviewers);
+    if (isNaN(reviewers) || reviewers < 0) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            "Reviewers must be a valid integer greater than 0",
           ),
-        );
-      }
+        ),
+      );
     }
 
     const res = await Runner.builder(options.experiment, name, {
