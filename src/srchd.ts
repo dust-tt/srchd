@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command, Option } from "commander";
+import { Command } from "commander";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err } from "./lib/result";
@@ -188,11 +188,6 @@ agentCmd.command("profiles").action(async () => {
   }
 });
 
-const profileOption = new Option(
-  "-p, --profile <profile>",
-  "Profile to use",
-).makeOptionMandatory();
-
 agentCmd
   .command("create")
   .description("Create a new agent")
@@ -207,7 +202,7 @@ agentCmd
     "-c, --count <number>",
     "Number of agents to create (name used as prefix)",
   )
-  .addOption(profileOption)
+  .requiredOption("-p, --profile <profile>", "Agent profile")
   .action(async (options) => {
     // Find the experiment first
     const experiment = await ExperimentResource.findByName(options.experiment);
@@ -254,7 +249,7 @@ agentCmd
         return exitWithError(profileRes);
       }
       const profile = profileRes.value;
-      const model = options.model ?? "claude-sonnet-4-5-20250929";
+      const model = options.model ?? "claude-sonnet-4-5";
       const thinking = options.thinking ?? "low";
       const tools = profile.tools;
 
