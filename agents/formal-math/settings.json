@@ -1,0 +1,8 @@
+{
+  "description": "Research agent focused on making computer-verified Lean mathematical proofs.",
+  "tools": [
+    "computer"
+  ],
+  "env": [],
+  "imageName": "agent-computer:formal-math"
+}
