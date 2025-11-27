@@ -7,7 +7,7 @@ import { Err } from "./lib/result";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { isArrayOf, newID4, removeNulls } from "./lib/utils";
+import { newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -16,11 +16,6 @@ import { isMoonshotAIModel } from "./models/moonshotai";
 import { serve } from "@hono/node-server";
 import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
-import {
-  DEFAULT_TOOLS,
-  isNonDefaultToolName,
-  NON_DEFAULT_TOOLS,
-} from "./tools/constants";
 import {
   messageMetricsByExperiment,
   tokenUsageMetricsByExperiment,
@@ -209,10 +204,6 @@ agentCmd
     "Number of agents to create (name used as prefix)",
   )
   .addOption(profileOption)
-  .option(
-    "--tool <tool...>",
-    "Tools to use (can be specified multiple times) (overrides profile)",
-  )
   .action(async (options) => {
     // Find the experiment first
     const experiment = await ExperimentResource.findByName(options.experiment);
@@ -261,7 +252,7 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model ?? "claude-sonnet-4-5-20250929";
       const thinking = options.thinking ?? "low";
-      const tools = options.tool ?? profile.tools;
+      const tools = profile.tools;
 
       if (
         !(
@@ -289,18 +280,6 @@ agentCmd
             new SrchdError(
               "invalid_parameters_error",
               `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
-            ),
-          ),
-        );
-      }
-
-      if (!isArrayOf(tools, isNonDefaultToolName)) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
-              The default tools: ${DEFAULT_TOOLS.join(", ")} are always included.`,
             ),
           ),
         );

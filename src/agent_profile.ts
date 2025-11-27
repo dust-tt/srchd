@@ -3,10 +3,8 @@ import fs from "fs";
 import { readFileContent } from "./lib/fs";
 import { SrchdError } from "./lib/error";
 import { Err, Ok, Result } from "./lib/result";
-import {
-  isNonDefaultToolNameList,
-  NonDefaultToolName,
-} from "./tools/constants";
+import { isNonDefaultToolName, NonDefaultToolName } from "./tools/constants";
+import { isArrayOf } from "./lib/utils";
 
 const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
 
@@ -22,7 +20,7 @@ function isSettings(obj: any): obj is Settings {
     "description" in obj &&
     typeof obj.description === "string" &&
     "tools" in obj &&
-    isNonDefaultToolNameList(obj.tools)
+    isArrayOf(obj.tools, isNonDefaultToolName)
   );
 }
 
