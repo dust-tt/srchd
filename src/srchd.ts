@@ -323,8 +323,11 @@ agentCmd
         ),
       );
     }
-
-    console.table([agent.toJSON()]);
+    const a = agent.toJSON();
+    a.system = a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
+    // @ts-expect-error: clean-up hack
+    delete a.evolutions;
+    console.table([a]);
   });
 
 agentCmd
