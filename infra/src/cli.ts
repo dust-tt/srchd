@@ -8,8 +8,7 @@ import {
   listDeployments,
   startPortForward,
 } from "./index";
-import { SrchdError } from "@app/lib/error";
-import { Err } from "@app/lib/result";
+import { Err, SrchdError } from "@app/lib/error";
 import { buildSrchdImage, dockerFile } from "./image";
 
 const exitWithError = (err: Err<SrchdError>) => {

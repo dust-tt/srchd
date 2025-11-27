@@ -1,7 +1,6 @@
 import * as k8s from "@kubernetes/client-node";
 import * as net from "net";
-import { Err, Ok, Result } from "@app/lib/result";
-import { SrchdError } from "@app/lib/error";
+import { err, ok, Result } from "@app/lib/error";
 import {
   ensureService,
   ensureServerPod,
@@ -28,7 +27,7 @@ export interface ApiKeys {
 export async function createDeployment(
   deployment: string,
   apiKeys: ApiKeys,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const namespace = deployment;
   let res = await ensureNamespace(namespace);
   if (res.isErr()) {
@@ -77,7 +76,7 @@ export async function createDeployment(
 
 export async function deleteDeployment(
   deployment: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const namespace = deployment;
   try {
     const pods = await k8sApi.listNamespacedPod({
@@ -96,14 +95,12 @@ export async function deleteDeployment(
     await k8sApi.deleteNamespace({
       name: namespace,
     });
-    return new Ok(undefined);
-  } catch (err: any) {
-    return new Err(
-      new SrchdError(
-        "namespace_deletion_error",
-        `Failed to delete namespace: ${namespace}`,
-        err,
-      ),
+    return ok(undefined);
+  } catch (e: any) {
+    return err(
+      "namespace_deletion_error",
+      `Failed to delete namespace: ${namespace}`,
+      e,
     );
   }
 }
@@ -129,7 +126,7 @@ export async function listDeployments(): Promise<k8s.V1Pod[]> {
 export async function startPortForward(
   deployment: string,
   port: number,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const namespace = deployment;
   const kc = new k8s.KubeConfig();
   kc.loadFromDefault();
@@ -150,26 +147,22 @@ export async function startPortForward(
 
   // Keep the process alive
   return new Promise((resolve) => {
-    server.on("error", (err: Error) => {
-      console.error("Port forward error:", err);
-      resolve(
-        new Err(
-          new SrchdError("port_forward_error", `Port forward error: ${err}`),
-        ),
-      );
+    server.on("error", (e: Error) => {
+      console.error("Port forward error:", e);
+      resolve(err("port_forward_error", `Port forward error: ${e}`, e));
     });
 
     process.on("SIGINT", () => {
       console.log("\nStopping port forward...");
       server.close();
-      resolve(new Ok(undefined));
+      resolve(ok(undefined));
       process.exit(0);
     });
 
     process.on("SIGTERM", () => {
       console.log("\nStopping port forward...");
       server.close();
-      resolve(new Ok(undefined));
+      resolve(ok(undefined));
       process.exit(0);
     });
   });

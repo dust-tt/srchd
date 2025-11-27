@@ -12,7 +12,7 @@ COPY tsconfig.json .
 RUN npm ci
 
 # Copy code and data
-COPY prompts prompts
+COPY agents agents
 COPY problems problems
 COPY src src
 

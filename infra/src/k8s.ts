@@ -1,4 +1,4 @@
-import { SrchdError } from "@app/lib/error";
+import { Result } from "@app/lib/error";
 import {
   defineServerService,
   defineServerPod,
@@ -14,12 +14,11 @@ import {
   defineServiceAccount,
 } from "./definitions";
 import { ApiKeys } from ".";
-import { Result } from "@app/lib/result";
 import { ensure, k8sApi, podName } from "@app/lib/k8s";
 
 export async function ensureServiceAccount(
   namespace: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespacedServiceAccount({
@@ -38,9 +37,7 @@ export async function ensureServiceAccount(
   );
 }
 
-export async function ensureRole(
-  namespace: string,
-): Promise<Result<void, SrchdError>> {
+export async function ensureRole(namespace: string): Promise<Result<void>> {
   return await ensure(
     async () => {
       await rbacApi.readNamespacedRole({
@@ -61,7 +58,7 @@ export async function ensureRole(
 
 export async function ensureRoleBinding(
   namespace: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   return await ensure(
     async () => {
       await rbacApi.readNamespacedRoleBinding({
@@ -80,9 +77,7 @@ export async function ensureRoleBinding(
   );
 }
 
-export async function ensureService(
-  namespace: string,
-): Promise<Result<void, SrchdError>> {
+export async function ensureService(namespace: string): Promise<Result<void>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespacedService({
@@ -104,7 +99,7 @@ export async function ensureService(
 export async function ensureServerPod(
   namespace: string,
   apiKeys: ApiKeys,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   return await ensure(
     async () => {
       await k8sApi.readNamespacedPod({
@@ -125,7 +120,7 @@ export async function ensureServerPod(
 
 export async function ensureServerVolume(
   namespace: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const name = volumeName(namespace);
   return await ensure(
     async () => {

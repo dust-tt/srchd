@@ -1,4 +1,4 @@
-# Deployment
+# Deployment Infra
 
 `srchd` (main instance) can be deployed using k8s.
 
@@ -11,29 +11,29 @@ work if you are using the Dockerfile directly.
 use a different API key, you can pass it as an argument to the script.
 
 ```bash
-npx tsx deployment/src/cli.ts image build
+npx tsx infra/src/cli.ts image build
 ```
 
 ## Deploying the image
 
-**Note**: the deployment name, here: `my-deployment-name`, will be used as a k8s namespace,
+**Note**: the infra name, here: `my-infra-name`, will be used as a k8s namespace,
 namely if there are any `computer` pods for agent's `computer` tool, they will use the same 
 namespace.
 
 ```bash
-npx tsx deployment/src/cli.ts create my-deployment-name
+npx tsx infra/src/cli.ts create my-infra-name
 ```
 
-## Interacting with the deployment
+## Interacting with the infra
 
 ```bash
-npx tsx deployment/src/cli.ts shell my-deployment-name
+npx tsx infra/src/cli.ts shell my-infra-name
 ```
 
 ## Port forwarding
 
 ```bash
-npx tsx deployment/src/cli.ts connect my-deployment-name
+npx tsx infra/src/cli.ts connect my-infra-name
 ```
 
 This allows forwarding the server's port to your local machine, so that you can access the web
@@ -43,5 +43,5 @@ interface. Press `Ctrl+C` to stop the port forwarding.
 ## Cleaning up
 
 ```bash
-npx tsx deployment/src/cli.ts delete my-deployment-name
+npx tsx infra/src/cli.ts delete my-infra-name
 ```

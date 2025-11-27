@@ -2,9 +2,8 @@ import { readFile } from "fs/promises";
 import path from "path";
 import tar from "tar-stream";
 import { addDirectoryToTar, buildImage } from "@app/lib/image";
-import { Result } from "@app/lib/result";
-import { SrchdError } from "@app/lib/error";
 import { SRCHD_IMAGE } from "./definitions";
+import { Result } from "@app/lib/error";
 
 export const SRCHD_DOCKERFILE_PATH = path.join(__dirname, "../Dockerfile");
 
@@ -32,12 +31,12 @@ async function srchdFilePacker(pack: tar.Pack): Promise<void> {
     const content = await readFile(filePath);
     pack.entry({ name: file }, content);
   }
-  for (const dir of ["src", "prompts", "problems"]) {
+  for (const dir of ["src", "agents", "problems"]) {
     await addDirectoryToTar(pack, path.join(projectRoot, dir), dir);
   }
 }
 
-export async function buildSrchdImage(): Promise<Result<void, SrchdError>> {
+export async function buildSrchdImage(): Promise<Result<void>> {
   const df = await dockerFile();
   return buildImage(SRCHD_IMAGE, df, srchdFilePacker);
 }
