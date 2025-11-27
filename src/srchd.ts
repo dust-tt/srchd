@@ -7,7 +7,7 @@ import { Err } from "./lib/result";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { newID4, removeNulls } from "./lib/utils";
+import { isArrayOf, newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -16,6 +16,12 @@ import { isMoonshotAIModel } from "./models/moonshotai";
 import { serve } from "@hono/node-server";
 import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
+import {
+  DEFAULT_TOOLS,
+  isNonDefaultToolName,
+  NON_DEFAULT_TOOLS,
+  ToolName,
+} from "./tools/constants";
 import {
   messageMetricsByExperiment,
   tokenUsageMetricsByExperiment,
@@ -27,13 +33,13 @@ import {
   dockerFile,
   dockerFileForIdentity,
 } from "./computer/image";
-import { Computer, computerId } from "./computer";
 import { providerFromModel } from "./models/provider";
 import {
   AgentProfile,
   getAgentProfile,
   listAgentProfiles,
 } from "./agent_profile";
+import { Computer, computerId } from "./computer";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -188,6 +194,205 @@ agentCmd.command("profiles").action(async () => {
   }
 });
 
+const agentCreateOrUpdate = async (options: any, mode: "create" | "update") => {
+  // Find the experiment first
+  const experiment = await ExperimentResource.findByName(options.experiment);
+  if (!experiment) {
+    return exitWithError(
+      new Err(
+        new SrchdError(
+          "not_found_error",
+          `Experiment '${options.experiment}' not found.`,
+        ),
+      ),
+    );
+  }
+
+  let count = 1;
+  if (options.count) {
+    count = parseInt(options.count);
+    if (isNaN(count) || count < 1) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            `Count must be a positive integer.`,
+          ),
+        ),
+      );
+    }
+  }
+
+  const agents = [];
+
+  for (let i = 0; i < count; i++) {
+    const name =
+      count > 1
+        ? options.name
+          ? `${options.name}-${newID4()}`
+          : `${newID4()}`
+        : (options.name ?? newID4());
+    console.log(
+      `Creating agent: ${name} for experiment: ${options.experiment}`,
+    );
+
+    const defaultModel = "claude-sonnet-4-5";
+    const defaultProvider = "anthropic";
+    const defaultThinking = "low";
+    const defaultTools: ToolName[] = [];
+
+    let profile: AgentProfile | undefined = undefined;
+    if (options.profile) {
+      // if mode is create then profile option is mandatory
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      profile = profileRes.value;
+    }
+    const model = options.model;
+    const thinking = options.thinking;
+    const tools = options.tool ?? profile?.tools;
+    const image = options.image ?? profile?.imageName;
+
+    let system: string | undefined;
+    if (options.system) {
+      const res = await readFileContent(options.system);
+      if (res.isErr()) {
+        return exitWithError(res);
+      } else {
+        system = res.value;
+      }
+    } else {
+      system = profile?.prompt;
+    }
+
+    if (
+      model &&
+      !(
+        isAnthropicModel(model) ||
+        isOpenAIModel(model) ||
+        isGeminiModel(model) ||
+        isMistralModel(model) ||
+        isMoonshotAIModel(model)
+      )
+    ) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            `Model '${model}' is not supported.`,
+          ),
+        ),
+      );
+    }
+    const provider = model ? providerFromModel(model) : undefined;
+
+    if (thinking && !isThinkingConfig(thinking)) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
+          ),
+        ),
+      );
+    }
+
+    if (tools && !isArrayOf(tools, isNonDefaultToolName)) {
+      return exitWithError(
+        new Err(
+          new SrchdError(
+            "invalid_parameters_error",
+            `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
+            The default tools: ${DEFAULT_TOOLS.join(", ")} are always included.`,
+          ),
+        ),
+      );
+    }
+
+    let agent: AgentResource;
+
+    if (mode === "create") {
+      agent = await AgentResource.create(
+        experiment,
+        {
+          name,
+          model: model ?? defaultModel,
+          provider: provider ?? defaultProvider,
+          thinking: thinking ?? defaultThinking,
+          tools: tools ?? defaultTools,
+        },
+        // system should be set by profile which is mandatory for 'create' mode.
+        { system: system! },
+      );
+    } else {
+      const possibleAgent = await AgentResource.findByName(experiment, name);
+      if (!possibleAgent) {
+        return exitWithError(
+          new Err(
+            new SrchdError(
+              "invalid_parameters_error",
+              `Agent ${name} not found`,
+            ),
+          ),
+        );
+      }
+      if (mode === "update" && tools && tools.includes("computer")) {
+        // If we no longer want the computer tool we delete it, if we are using another profile or
+        // another image we delete it as well.
+        const c = await Computer.findById(
+          computerId(experiment, possibleAgent),
+        );
+        const res = await c?.terminate();
+        if (res && res.isErr()) {
+          return exitWithError(res);
+        }
+      }
+
+      agent = await possibleAgent.update({
+        name,
+        model,
+        provider,
+        thinking,
+        tools,
+      });
+
+      if (system) {
+        const res = await agent.evolve({ system });
+        if (res.isErr()) {
+          return exitWithError(res);
+        }
+        agent = res.value;
+      }
+    }
+
+    if (tools && tools.includes("computer")) {
+      const res = await Computer.create(
+        computerId(experiment, agent),
+        undefined,
+        image,
+        profile?.env,
+      );
+      if (res.isErr()) {
+        return exitWithError(res);
+      }
+    }
+    agents.push(agent);
+  }
+
+  console.table(
+    agents.map((agent) => {
+      const a = agent.toJSON();
+      a.system =
+        a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
+      // @ts-expect-error: clean-up hack
+      delete a.evolutions;
+      return a;
+    }),
+  );
+};
+
 agentCmd
   .command("create")
   .description("Create a new agent")
@@ -205,118 +410,23 @@ agentCmd
     "1",
   )
   .requiredOption("-p, --profile <profile>", "Agent profile")
-  .action(async (options) => {
-    // Find the experiment first
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
-      );
-    }
+  .action(async (options) => agentCreateOrUpdate(options, "create"));
 
-    const count = parseInt(options.count);
-    if (isNaN(count) || count < 1) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
-            "invalid_parameters_error",
-            `Count must be a positive integer.`,
-          ),
-        ),
-      );
-    }
-
-    const agents = [];
-
-    for (let i = 0; i < count; i++) {
-      const name =
-        count > 1
-          ? options.name
-            ? `${options.name}-${newID4()}`
-            : `${newID4()}`
-          : (options.name ?? newID4());
-      console.log(
-        `Creating agent: ${name} for experiment: ${options.experiment}`,
-      );
-      const profileRes = await getAgentProfile(options.profile);
-      if (profileRes.isErr()) {
-        return exitWithError(profileRes);
-      }
-      const profile = profileRes.value;
-      const model = options.model;
-      const thinking = options.thinking;
-      const tools = profile.tools;
-
-      if (
-        !(
-          isAnthropicModel(model) ||
-          isOpenAIModel(model) ||
-          isGeminiModel(model) ||
-          isMistralModel(model) ||
-          isMoonshotAIModel(model)
-        )
-      ) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Model '${model}' is not supported.`,
-            ),
-          ),
-        );
-      }
-      const provider = providerFromModel(model);
-
-      if (!isThinkingConfig(thinking)) {
-        return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
-            ),
-          ),
-        );
-      }
-
-      const agent = await AgentResource.create(
-        experiment,
-        {
-          name,
-          model,
-          provider,
-          thinking,
-          tools,
-        },
-        { system: profile.prompt },
-      );
-      agents.push(agent);
-
-      if (tools.includes("computer")) {
-        await Computer.create(
-          computerId(experiment, agent),
-          undefined,
-          profile.imageName,
-          profile.env,
-        );
-      }
-    }
-
-    console.table(
-      agents.map((agent) => {
-        const a = agent.toJSON();
-        a.system =
-          a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
-        // @ts-expect-error: clean-up hack
-        delete a.evolutions;
-        return a;
-      }),
-    );
-  });
+agentCmd
+  .command("update")
+  .description("Update or change an agent")
+  .requiredOption("-e, --experiment <experiment>", "Experiment name")
+  .requiredOption("-n, --name <name>", "Agent name")
+  .option("-m, --model <model>", "AI model")
+  .option(
+    "-t, --thinking <thinking>",
+    "Thinking configuration (none | low | high)",
+  )
+  .option("-p, --profile <profile>", "Agent profile")
+  .option("-s, --system <system>", "System prompt file")
+  .option("-i, --image <image>", "Computer image")
+  .option("--tool <tool...>", "Tools to use (can be specified multiple times)")
+  .action(async (options) => agentCreateOrUpdate(options, "update"));
 
 agentCmd
   .command("list")
