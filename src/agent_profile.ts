@@ -2,11 +2,14 @@ import path from "path";
 import fs from "fs";
 import { readFileContent } from "./lib/fs";
 import { err, ok, Result } from "./lib/error";
+import { isNonDefaultToolName, NonDefaultToolName } from "./tools/constants";
+import { isArrayOf } from "./lib/utils";
 
 const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
 
 type Settings = {
   description: string;
+  tools: NonDefaultToolName[];
 };
 
 function isSettings(obj: any): obj is Settings {
@@ -14,7 +17,9 @@ function isSettings(obj: any): obj is Settings {
     typeof obj === "object" &&
     obj !== null &&
     "description" in obj &&
-    typeof obj.description === "string"
+    typeof obj.description === "string" &&
+    "tools" in obj &&
+    isArrayOf(obj.tools, isNonDefaultToolName)
   );
 }
 
