@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { errorToCallToolResult } from "@app/lib/mcp";
-import { SrchdError } from "@app/lib/error";
+import { err } from "@app/lib/error";
 import Firecrawl from "@mendable/firecrawl";
 import { WEB_SERVER_NAME as SERVER_NAME } from "./constants";
 
@@ -54,7 +54,7 @@ export async function createWebServer(): Promise<McpServer> {
 
       if (length > 8196) {
         return errorToCallToolResult(
-          new SrchdError(
+          err(
             "web_fetch_error",
             `The length of ${length} characters is too large. It must be less than 8196.`,
           ),
@@ -76,7 +76,7 @@ export async function createWebServer(): Promise<McpServer> {
         };
       }
       return errorToCallToolResult(
-        new SrchdError(
+        err(
           "web_fetch_error",
           "Failed to fetch the webpage",
           new Error(scrapeResponse.error),
@@ -98,7 +98,7 @@ export async function createWebServer(): Promise<McpServer> {
     async ({ query, count }: { query: string; count: number }) => {
       if (count > 20) {
         return errorToCallToolResult(
-          new SrchdError(
+          err(
             "web_search_error",
             `The count of ${count} results is too large. It must be less than 20.`,
           ),
@@ -126,7 +126,7 @@ export async function createWebServer(): Promise<McpServer> {
       }
 
       return errorToCallToolResult(
-        new SrchdError(
+        err(
           "web_search_error",
           "Failed to search for the query",
           new Error(searchResponse.error),

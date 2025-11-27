@@ -2,8 +2,7 @@
 
 import { Command } from "commander";
 import { readFileContent } from "./lib/fs";
-import { SrchdError } from "./lib/error";
-import { Err } from "./lib/result";
+import { Err, err, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
@@ -64,35 +63,20 @@ async function displayMetrics<M>(
   const experimentRes = await ExperimentResource.findByName(experiment);
   if (!experimentRes) {
     return exitWithError(
-      new Err(
-        new SrchdError(
-          "not_found_error",
-          `Experiment '${experiment}' not found.`,
-        ),
-      ),
+      err("not_found_error", `Experiment '${experiment}' not found.`),
     );
   }
 
   const metrics = await metricsByExperiment(experimentRes);
   if (!metrics) {
     return exitWithError(
-      new Err(
-        new SrchdError(
-          "not_found_error",
-          `Experiment '${experiment}' not found.`,
-        ),
-      ),
+      err("not_found_error", `Experiment '${experiment}' not found.`),
     );
   }
 
   if (!metrics) {
     return exitWithError(
-      new Err(
-        new SrchdError(
-          "not_found_error",
-          `Experiment '${experiment}' not found.`,
-        ),
-      ),
+      err("not_found_error", `Experiment '${experiment}' not found.`),
     );
   }
 
@@ -161,9 +145,7 @@ experimentCmd
     const experiments = await ExperimentResource.all();
 
     if (experiments.length === 0) {
-      return exitWithError(
-        new Err(new SrchdError("not_found_error", "No experiments found.")),
-      );
+      return exitWithError(err("not_found_error", "No experiments found."));
     }
 
     console.table(
@@ -212,24 +194,14 @@ agentCmd
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
+        err("not_found_error", `Experiment '${options.experiment}' not found.`),
       );
     }
 
     const count = parseInt(options.count);
     if (isNaN(count) || count < 1) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "invalid_parameters_error",
-            `Count must be a positive integer.`,
-          ),
-        ),
+        err("invalid_parameters_error", `Count must be a positive integer.`),
       );
     }
 
@@ -264,35 +236,26 @@ agentCmd
         )
       ) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Model '${model}' is not supported.`,
-            ),
-          ),
+          err("invalid_parameters_error", `Model '${model}' is not supported.`),
         );
       }
       const provider = providerFromModel(model);
 
       if (!isThinkingConfig(thinking)) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
-            ),
+          err(
+            "invalid_parameters_error",
+            `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
           ),
         );
       }
 
       if (!isArrayOf(tools, isNonDefaultToolName)) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
+          err(
+            "invalid_parameters_error",
+            `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
               The default tools: ${DEFAULT_TOOLS.join(", ")} are always included.`,
-            ),
           ),
         );
       }
@@ -332,21 +295,14 @@ agentCmd
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
+        err("not_found_error", `Experiment '${options.experiment}' not found.`),
       );
     }
 
     const agents = await AgentResource.listByExperiment(experiment);
 
     if (agents.length === 0) {
-      return exitWithError(
-        new Err(new SrchdError("not_found_error", "No agents found.")),
-      );
+      return exitWithError(err("not_found_error", "No agents found."));
     }
 
     console.table(
@@ -370,23 +326,16 @@ agentCmd
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
+        err("not_found_error", `Experiment '${options.experiment}' not found.`),
       );
     }
 
     const agent = await AgentResource.findByName(experiment, name);
     if (!agent) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Agent '${name}' not found in experiment '${options.experiment}'.`,
-          ),
+        err(
+          "not_found_error",
+          `Agent '${name}' not found in experiment '${options.experiment}'.`,
         ),
       );
     }
@@ -403,23 +352,16 @@ agentCmd
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
+        err("not_found_error", `Experiment '${options.experiment}' not found.`),
       );
     }
 
     const agent = await AgentResource.findByName(experiment, name);
     if (!agent) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Agent '${name}' not found in experiment '${options.experiment}'.`,
-          ),
+        err(
+          "not_found_error",
+          `Agent '${name}' not found in experiment '${options.experiment}'.`,
         ),
       );
     }
@@ -443,12 +385,7 @@ agentCmd
     const experiment = await ExperimentResource.findByName(options.experiment);
     if (!experiment) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "not_found_error",
-            `Experiment '${options.experiment}' not found.`,
-          ),
-        ),
+        err("not_found_error", `Experiment '${options.experiment}' not found.`),
       );
     }
 
@@ -458,27 +395,23 @@ agentCmd
       const agent = await AgentResource.findByName(experiment, name);
       if (!agent) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "not_found_error",
-              `Agent '${options.name}' not found.`,
-            ),
-          ),
+          err("not_found_error", `Agent '${options.name}' not found.`),
         );
       }
       agents = [agent];
     }
 
-    const reviewers = parseInt(options.reviewers);
-    if (isNaN(reviewers) || reviewers < 0) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
+    let reviewers = DEFAULT_REVIEWERS_COUNT;
+    if (options.reviewers) {
+      reviewers = parseInt(options.reviewers);
+      if (isNaN(reviewers) || reviewers < 0) {
+        return exitWithError(
+          err(
             "invalid_parameters_error",
             "Reviewers must be a valid integer greater than 0",
           ),
-        ),
-      );
+        );
+      }
     }
 
     // Ensure all agents with computer tool have computers
@@ -535,7 +468,7 @@ agentCmd
     try {
       await Promise.all(runnerPromises);
     } catch (error) {
-      return exitWithError(new Err(error as any));
+      return exitWithError(error as any);
     }
   });
 
@@ -549,16 +482,17 @@ agentCmd
     DEFAULT_REVIEWERS_COUNT.toString(),
   )
   .action(async (name, message, options) => {
-    const reviewers = parseInt(options.reviewers);
-    if (isNaN(reviewers) || reviewers < 0) {
-      return exitWithError(
-        new Err(
-          new SrchdError(
+    let reviewers = DEFAULT_REVIEWERS_COUNT;
+    if (options.reviewers) {
+      reviewers = parseInt(options.reviewers);
+      if (isNaN(reviewers) || reviewers < 0) {
+        return exitWithError(
+          err(
             "invalid_parameters_error",
             "Reviewers must be a valid integer greater than 0",
           ),
-        ),
-      );
+        );
+      }
     }
 
     const res = await Runner.builder(options.experiment, name, {
@@ -622,11 +556,9 @@ program
     const port = parseInt(options.port);
     if (isNaN(port) || port < 1 || port > 65535) {
       return exitWithError(
-        new Err(
-          new SrchdError(
-            "invalid_parameters_error",
-            "Port must be a valid number between 1 and 65535",
-          ),
+        err(
+          "invalid_parameters_error",
+          "Port must be a valid number between 1 and 65535",
         ),
       );
     }
@@ -636,11 +568,9 @@ program
       const separator = String(options.auth).indexOf(":");
       if (separator === -1) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              "Auth must be provided as user:password",
-            ),
+          err(
+            "invalid_parameters_error",
+            "Auth must be provided as user:password",
           ),
         );
       }
@@ -648,11 +578,9 @@ program
       const password = options.auth.slice(separator + 1);
       if (!username || !password) {
         return exitWithError(
-          new Err(
-            new SrchdError(
-              "invalid_parameters_error",
-              "Auth must include both user and password",
-            ),
+          err(
+            "invalid_parameters_error",
+            "Auth must include both user and password",
           ),
         );
       }

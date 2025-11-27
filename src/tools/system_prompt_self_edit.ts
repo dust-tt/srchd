@@ -6,7 +6,7 @@ import {
   STRING_EDIT_INSTRUCTIONS,
   stringEdit,
 } from "@app/lib/mcp";
-import { normalizeError, SrchdError } from "@app/lib/error";
+import { err, normalizeError } from "@app/lib/error";
 import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 
 const SERVER_VERSION = "0.1.0";
@@ -35,7 +35,7 @@ export async function createSystemPromptSelfEditServer(
       });
 
       if (result.isErr()) {
-        return errorToCallToolResult(result.error);
+        return errorToCallToolResult(result);
       }
       return {
         isError: false,
@@ -82,14 +82,14 @@ ${STRING_EDIT_INSTRUCTIONS}`,
           expectedReplacements: params.expected_replacements,
         });
         if (update.isErr()) {
-          return errorToCallToolResult(update.error);
+          return errorToCallToolResult(update);
         }
 
         const result = await agent.evolve({
           system: update.value,
         });
         if (result.isErr()) {
-          return errorToCallToolResult(result.error);
+          return errorToCallToolResult(result);
         }
         return {
           isError: false,
@@ -102,7 +102,7 @@ ${STRING_EDIT_INSTRUCTIONS}`,
         };
       } catch (error) {
         return errorToCallToolResult(
-          new SrchdError(
+          err(
             "tool_execution_error",
             `Error editing system prompt`,
             normalizeError(error),

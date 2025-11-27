@@ -1,6 +1,48 @@
 import assert from "assert";
-import { Err, Result } from "./result";
 import { isString } from "./utils";
+
+/**
+ * A Result is a type that can be either Ok or Err. The main motivation behind this utils is to
+ * overcome the fact that Javascript does not let you check the type of an object at runtime, so you
+ * cannot know if a function returned an error type or a success type.
+ *
+ * Usage:
+ * ```
+ * import {Result, Ok, Err} from "@app/lib/result"
+ * function divide(numerator: number, denominator: number) : Result<number, Error> {
+ *   if (denominator === 0) {
+ *     return new Err(new Error("Cannot divide by zero"));
+ *   }
+ *   return ok(numerator / denominator);
+ * }
+ * ```
+ */
+
+export class Ok<T> {
+  constructor(public value: T) {}
+
+  isOk(): this is Ok<T> {
+    return true;
+  }
+
+  isErr(): this is Err<never> {
+    return false;
+  }
+}
+
+export class Err<E> {
+  constructor(public error: E) {}
+
+  isOk(): this is Ok<never> {
+    return false;
+  }
+
+  isErr(): this is Err<E> {
+    return true;
+  }
+}
+
+export type Result<T> = Ok<T> | Err<SrchdError>;
 
 export type ErrorCode =
   | "invalid_parameters_error"
@@ -26,14 +68,26 @@ export type ErrorCode =
   | "pod_initialization_error"
   | "string_edit_error";
 
-export class SrchdError<T extends ErrorCode = ErrorCode> extends Error {
+export class SrchdError extends Error {
   constructor(
-    readonly code: T,
+    readonly code: ErrorCode,
     message: string,
     readonly cause?: Error | null,
   ) {
     super(message);
   }
+}
+
+export function ok<T>(value: T): Ok<T> {
+  return new Ok(value);
+}
+
+export function err(
+  code: ErrorCode,
+  message: string,
+  cause?: Error,
+): Err<SrchdError> {
+  return err(code, message, cause);
 }
 
 export function errorToString(error: unknown): string {
@@ -61,13 +115,13 @@ type RetryOptions = {
 };
 
 export function withRetries<T, U>(
-  fn: (arg: T) => Promise<Result<U, SrchdError>>,
+  fn: (arg: T) => Promise<Result<U>>,
   {
     retries = 3,
     delayBetweenRetriesMs = 3000,
     retriableCodes = undefined,
   }: RetryOptions = {},
-): (arg: T) => Promise<Result<U, SrchdError>> {
+): (arg: T) => Promise<Result<U>> {
   assert(retries >= 1);
 
   return async (arg) => {

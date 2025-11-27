@@ -1,5 +1,4 @@
-import { Err, Ok, Result } from "@app/lib/result";
-import { normalizeError, SrchdError, withRetries } from "@app/lib/error";
+import { normalizeError, withRetries, Result, err, ok } from "@app/lib/error";
 import {
   K8S_NAMESPACE,
   k8sApi,
@@ -33,7 +32,7 @@ export class Computer {
   static async create(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<Computer, SrchdError>> {
+  ): Promise<Result<Computer>> {
     let res = await ensureNamespace(namespace);
     if (res.isErr()) {
       return res;
@@ -49,7 +48,7 @@ export class Computer {
       return res;
     }
 
-    return new Ok(new Computer(namespace, computerId));
+    return ok(new Computer(namespace, computerId));
   }
 
   static async findById(
@@ -68,7 +67,7 @@ export class Computer {
   static async ensure(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<Computer, SrchdError>> {
+  ): Promise<Result<Computer>> {
     const c = await Computer.findById(computerId, namespace);
     if (c) {
       const status = await c.status();
@@ -77,14 +76,14 @@ export class Computer {
         await c.terminate();
         return Computer.create(computerId, namespace);
       }
-      return new Ok(c);
+      return ok(c);
     }
     return Computer.create(computerId, namespace);
   }
 
   static async listComputerIds(
     namespace: string = K8S_NAMESPACE,
-  ): Promise<Result<string[], SrchdError>> {
+  ): Promise<Result<string[]>> {
     try {
       const response = await k8sApi.listNamespacedPod({
         namespace,
@@ -95,12 +94,10 @@ export class Computer {
         .map((pod: any) => pod.metadata?.labels?.["srchd.io/computer"])
         .filter((id: any): id is string => !!id);
 
-      return new Ok(computerIds);
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError("computer_run_error", "Failed to list computers", error),
-      );
+      return ok(computerIds);
+    } catch (e) {
+      const error = normalizeError(e);
+      return err("computer_run_error", "Failed to list computers", error);
     }
   }
 
@@ -116,7 +113,7 @@ export class Computer {
     }
   }
 
-  async terminate(): Promise<Result<boolean, SrchdError>> {
+  async terminate(): Promise<Result<boolean>> {
     try {
       // Delete pod
       try {
@@ -129,39 +126,29 @@ export class Computer {
         // ignore if pod doesn't exist
       }
 
-      const waitForDeletion = withRetries(
-        async (): Promise<Result<void, SrchdError>> => {
-          try {
-            await k8sApi.readNamespacedPod({
-              name: this.podName,
-              namespace: this.namespace,
-            });
-          } catch (err: any) {
-            if (err.code === 404) {
-              return new Ok(undefined);
-            }
+      const waitForDeletion = withRetries(async (): Promise<Result<void>> => {
+        try {
+          await k8sApi.readNamespacedPod({
+            name: this.podName,
+            namespace: this.namespace,
+          });
+        } catch (err: any) {
+          if (err.code === 404) {
+            return ok(undefined);
           }
-          return new Err(
-            new SrchdError("pod_deletion_error", "Pod not yet deleted..."),
-          );
-        },
-      );
+        }
+        return err("pod_deletion_error", "Pod not yet deleted...");
+      });
 
       const deleted = await waitForDeletion(undefined);
       if (deleted.isErr()) {
         return deleted;
       }
 
-      return new Ok(true);
-    } catch (err) {
-      const error = normalizeError(err);
-      return new Err(
-        new SrchdError(
-          "computer_run_error",
-          "Failed to terminate computer",
-          error,
-        ),
-      );
+      return ok(true);
+    } catch (e) {
+      const error = normalizeError(e);
+      return err("computer_run_error", "Failed to terminate computer", error);
     }
   }
 
@@ -173,15 +160,12 @@ export class Computer {
       timeoutMs?: number;
     },
   ): Promise<
-    Result<
-      {
-        exitCode: number;
-        stdout: string;
-        stderr: string;
-        durationMs: number;
-      },
-      SrchdError
-    >
+    Result<{
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+      durationMs: number;
+    }>
   > {
     const cwd = options?.cwd ?? DEFAULT_WORKDIR;
 
@@ -207,7 +191,7 @@ export class Computer {
     if (res.isErr()) {
       return res;
     } else {
-      return new Ok({
+      return ok({
         ...res.value,
         durationMs: Date.now() - startTs,
       });

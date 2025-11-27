@@ -12,8 +12,7 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, SrchdError } from "@app/lib/error";
-import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
@@ -131,10 +130,7 @@ export class MoonshotAILLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<
-      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
-      SrchdError
-    >
+    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
   > {
     try {
       const input = this.messages(prompt, messages);
@@ -215,7 +211,7 @@ export class MoonshotAILLM extends LLM {
           }
         : undefined;
 
-      return new Ok({
+      return ok({
         message: {
           role: "agent",
           content: output,
@@ -224,13 +220,7 @@ export class MoonshotAILLM extends LLM {
       });
     } catch (error) {
       console.log(error);
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
 
@@ -248,7 +238,7 @@ export class MoonshotAILLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<number, SrchdError>> {
+  ): Promise<Result<number>> {
     try {
       const input = this.messages(prompt, messages);
 
@@ -279,24 +269,20 @@ export class MoonshotAILLM extends LLM {
 
       if (!response.ok) {
         const error = await response.text();
-        return new Err(
-          new SrchdError(
-            "model_error",
-            "Failed to estimate token count",
-            new Error(error),
-          ),
+        return err(
+          "model_error",
+          "Failed to estimate token count",
+          new Error(error),
         );
       }
 
       const data = await response.json();
-      return new Ok(data.data.total_tokens);
+      return ok(data.data.total_tokens);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to estimate token count",
-          normalizeError(error),
-        ),
+      return err(
+        "model_error",
+        "Failed to estimate token count",
+        normalizeError(error),
       );
     }
   }

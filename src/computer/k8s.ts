@@ -1,7 +1,6 @@
 import { kc, podName, timeout } from "@app/lib/k8s";
 import { ensure, k8sApi } from "@app/lib/k8s";
-import { Err, Ok, Result } from "@app/lib/result";
-import { SrchdError } from "@app/lib/error";
+import { Err, ok, Result } from "@app/lib/error";
 import { defineComputerPod } from "./definitions";
 import { Writable } from "stream";
 import * as k8s from "@kubernetes/client-node";
@@ -9,7 +8,7 @@ import * as k8s from "@kubernetes/client-node";
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const name = podName(namespace, computerId);
   return await ensure(
     async () => {
@@ -34,9 +33,7 @@ export async function computerExec(
   namespace: string,
   computerId: string,
   timeoutMs?: number,
-): Promise<
-  Result<{ stdout: string; stderr: string; exitCode: number }, SrchdError>
-> {
+): Promise<Result<{ stdout: string; stderr: string; exitCode: number }>> {
   const k8sExec = new k8s.Exec(kc);
   let stdout = "";
   let stderr = "";
@@ -113,7 +110,7 @@ export async function computerExec(
     }
   } catch (err: any) {
     if (failReason === "commandRunFailed") {
-      return new Ok({
+      return ok({
         exitCode,
         stdout,
         stderr,
@@ -124,16 +121,14 @@ export async function computerExec(
       return err;
     }
 
-    return new Err(
-      new SrchdError(
-        "pod_run_error",
-        `Failed to execute ${cmd.join(" ")}`,
-        new Error(err),
-      ),
+    return err(
+      "pod_run_error",
+      `Failed to execute ${cmd.join(" ")}`,
+      new Error(err),
     );
   }
 
-  return new Ok({
+  return ok({
     exitCode,
     stdout,
     stderr,

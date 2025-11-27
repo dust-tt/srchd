@@ -8,8 +8,7 @@ import {
   TokenUsage,
 } from "./index";
 import Anthropic from "@anthropic-ai/sdk";
-import { normalizeError, SrchdError } from "@app/lib/error";
-import { Err, Ok, Result } from "@app/lib/result";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 import { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
@@ -187,10 +186,7 @@ export class AnthropicLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<
-      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
-      SrchdError
-    >
+    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
   > {
     try {
       const message = await this.client.beta.messages.create({
@@ -269,7 +265,7 @@ export class AnthropicLLM extends LLM {
       };
       // console.log(message.usage);
 
-      return new Ok({
+      return ok({
         message: {
           role: message.role === "assistant" ? "agent" : "user",
           content: removeNulls(
@@ -330,13 +326,7 @@ export class AnthropicLLM extends LLM {
         tokenUsage, // also inlcude cached or input tokens ?
       });
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
 
@@ -345,7 +335,7 @@ export class AnthropicLLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<number, SrchdError>> {
+  ): Promise<Result<number>> {
     try {
       const response = await this.client.messages.countTokens({
         model: this.model,
@@ -381,14 +371,12 @@ export class AnthropicLLM extends LLM {
         },
       });
 
-      return new Ok(response.input_tokens);
+      return ok(response.input_tokens);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to count tokens",
-          normalizeError(error),
-        ),
+      return err(
+        "model_error",
+        "Failed to count tokens",
+        normalizeError(error),
       );
     }
   }

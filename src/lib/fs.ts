@@ -2,26 +2,23 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
-import { normalizeError, SrchdError } from "./error";
-import { Err, Ok, Result } from "./result";
+import { normalizeError, Result, err, ok } from "./error";
 
 export const readFileContent = async (
   filePath: string,
-): Promise<Result<string, SrchdError>> => {
+): Promise<Result<string>> => {
   try {
     const resolvedPath = filePath.startsWith("~")
       ? path.join(os.homedir(), filePath.slice(1))
       : path.resolve(filePath);
 
     const content = await fs.readFile(resolvedPath, "utf-8");
-    return new Ok(content);
+    return ok(content);
   } catch (error) {
-    return new Err(
-      new SrchdError(
-        "reading_file_error",
-        `Failed to read file at ${filePath}`,
-        normalizeError(error),
-      ),
+    return err(
+      "reading_file_error",
+      `Failed to read file at ${filePath}`,
+      normalizeError(error),
     );
   }
 };

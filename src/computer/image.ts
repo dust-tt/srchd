@@ -1,6 +1,5 @@
 import { readFile, stat } from "fs/promises";
-import { Err, Ok, Result } from "../lib/result";
-import { SrchdError } from "../lib/error";
+import { Result, err, ok } from "../lib/error";
 import path from "path";
 import tar from "tar-stream";
 import { buildImage } from "../lib/image";
@@ -15,7 +14,7 @@ export async function dockerFile(): Promise<string> {
 
 export async function dockerFileForIdentity(
   privateKeyPath: string,
-): Promise<Result<string, SrchdError>> {
+): Promise<Result<string>> {
   const publicKeyPath = privateKeyPath + ".pub";
   // check that both files exist
   const stats = await Promise.all([
@@ -28,11 +27,9 @@ export async function dockerFileForIdentity(
   ]);
 
   if (stats.some((exists) => !exists)) {
-    return new Err(
-      new SrchdError(
-        "image_error",
-        `Identity files not found at paths: ${privateKeyPath}, ${publicKeyPath}`,
-      ),
+    return err(
+      "image_error",
+      `Identity files not found at paths: ${privateKeyPath}, ${publicKeyPath}`,
     );
   }
 
@@ -48,17 +45,15 @@ RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
   const df = await dockerFile();
 
   if (!df.includes(IDENTITY_FILES_COPY_PLACEHOLDER)) {
-    return new Err(
-      new SrchdError(
-        "image_error",
-        `Dockerfile is missing identity files placeholder.`,
-      ),
+    return err(
+      "image_error",
+      `Dockerfile is missing identity files placeholder.`,
     );
   }
 
   const dfId = df.replace(IDENTITY_FILES_COPY_PLACEHOLDER, copyCommand);
 
-  return new Ok(dfId);
+  return ok(dfId);
 }
 
 async function identityFilePacker(
@@ -79,10 +74,10 @@ async function identityFilePacker(
 
 export async function buildComputerImage(
   privateKeyPath: string | null,
-): Promise<Result<void, SrchdError>> {
+): Promise<Result<void>> {
   const df = privateKeyPath
     ? await dockerFileForIdentity(privateKeyPath)
-    : new Ok(await dockerFile());
+    : ok(await dockerFile());
 
   if (df.isErr()) {
     return df;

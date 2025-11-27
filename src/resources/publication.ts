@@ -13,8 +13,7 @@ import {
 } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
-import { Err, Ok, Result } from "@app/lib/result";
-import { normalizeError, SrchdError } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { newID4, removeNulls } from "@app/lib/utils";
 import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
@@ -305,7 +304,7 @@ export class PublicationResource {
       abstract: string;
       content: string;
     },
-  ): Promise<Result<PublicationResource, SrchdError>> {
+  ): Promise<Result<PublicationResource>> {
     const references = PublicationResource.extractReferences(data.content);
     const found = await PublicationResource.findByReferences(
       experiment,
@@ -316,12 +315,10 @@ export class PublicationResource {
     const notFound = references.filter((r) => !foundFilter.has(r));
 
     if (notFound.length > 0) {
-      return new Err(
-        new SrchdError(
-          "reference_not_found_error",
-          "Reference not found in publication submission content: " +
-            notFound.join(","),
-        ),
+      return err(
+        "reference_not_found_error",
+        "Reference not found in publication submission content: " +
+          notFound.join(","),
       );
     }
 
@@ -338,9 +335,7 @@ export class PublicationResource {
 
     // We don't create citations until the publication gets published.
 
-    return new Ok(
-      await new PublicationResource(created, experiment).finalize(),
-    );
+    return ok(await new PublicationResource(created, experiment).finalize());
   }
 
   async maybePublishOrReject(): Promise<
@@ -391,20 +386,16 @@ export class PublicationResource {
         .returning();
 
       if (!updated) {
-        return new Err(
-          new SrchdError("not_found_error", "Publication not found", null),
-        );
+        return err("not_found_error", "Publication not found");
       }
 
       this.data = updated;
-      return new Ok(this);
+      return ok(this);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "resource_update_error",
-          "Failed to publish publication",
-          normalizeError(error),
-        ),
+      return err(
+        "resource_update_error",
+        "Failed to publish publication",
+        normalizeError(error),
       );
     }
   }
@@ -421,33 +412,27 @@ export class PublicationResource {
         .returning();
 
       if (!updated) {
-        return new Err(
-          new SrchdError("not_found_error", "Publication not found", null),
-        );
+        return err("not_found_error", "Publication not found");
       }
 
       this.data = updated;
-      return new Ok(this);
+      return ok(this);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "resource_update_error",
-          "Failed to reject publication",
-          normalizeError(error),
-        ),
+      return err(
+        "resource_update_error",
+        "Failed to reject publication",
+        normalizeError(error),
       );
     }
   }
 
   async requestReviewers(
     reviewers: AgentResource[],
-  ): Promise<Result<Review[], SrchdError>> {
+  ): Promise<Result<Review[]>> {
     if (this.reviews.length > 0) {
-      return new Err(
-        new SrchdError(
-          "resource_creation_error",
-          "Reviews already exist for this publication",
-        ),
+      return err(
+        "resource_creation_error",
+        "Reviews already exist for this publication",
       );
     }
 
@@ -467,7 +452,7 @@ export class PublicationResource {
       author: reviewers.find((rev) => rev.toJSON().id === r.author)!.toJSON(),
     }));
 
-    return new Ok(this.reviews);
+    return ok(this.reviews);
   }
 
   async submitReview(
@@ -476,16 +461,14 @@ export class PublicationResource {
       InferInsertModel<typeof reviews>,
       "id" | "created" | "updated" | "experiment" | "publication" | "author"
     >,
-  ): Promise<Result<Review, SrchdError>> {
+  ): Promise<Result<Review>> {
     const idx = this.reviews.findIndex(
       (r) => r.author?.id === reviewer.toJSON().id,
     );
     if (idx === -1) {
-      return new Err(
-        new SrchdError(
-          "resource_creation_error",
-          "Review submitted does not match any review request.",
-        ),
+      return err(
+        "resource_creation_error",
+        "Review submitted does not match any review request.",
       );
     }
 
@@ -506,14 +489,12 @@ export class PublicationResource {
       .returning();
 
     if (!updated) {
-      return new Err(
-        new SrchdError("not_found_error", "Review not found", null),
-      );
+      return err("not_found_error", "Review not found");
     }
 
     this.reviews[idx] = { ...updated, author: reviewer.toJSON() };
 
-    return new Ok(this.reviews[idx]);
+    return ok(this.reviews[idx]);
   }
 
   toJSON() {

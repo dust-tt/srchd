@@ -15,8 +15,7 @@ import {
   ToolUse,
   TokenUsage,
 } from "./index";
-import { Err, Ok, Result } from "@app/lib/result";
-import { normalizeError, SrchdError } from "@app/lib/error";
+import { normalizeError, Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 
@@ -127,10 +126,7 @@ export class GeminiLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<
-      { message: Message; tokenUsage?: TokenUsage & { cost: number } },
-      SrchdError
-    >
+    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
   > {
     try {
       const response = await this.client.models.generateContent({
@@ -176,18 +172,12 @@ export class GeminiLLM extends LLM {
       });
 
       if (!response.candidates || response.candidates.length !== 1) {
-        return new Err(
-          new SrchdError(
-            "model_error",
-            "Gemini model returned no candidates",
-            null,
-          ),
-        );
+        return err("model_error", "Gemini model returned no candidates");
       }
       const candidate = response.candidates[0];
       const content = candidate.content;
       if (!content) {
-        return new Ok({
+        return ok({
           message: {
             role: "agent",
             content: [],
@@ -210,7 +200,7 @@ export class GeminiLLM extends LLM {
             }
           : undefined;
 
-      return new Ok({
+      return ok({
         message: {
           role: content.role === "model" ? "agent" : "user",
           content: removeNulls(
@@ -265,13 +255,7 @@ export class GeminiLLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to run model",
-          normalizeError(error),
-        ),
-      );
+      return err("model_error", "Failed to run model", normalizeError(error));
     }
   }
 
@@ -288,7 +272,7 @@ export class GeminiLLM extends LLM {
     prompt: string,
     _toolChoice: ToolChoice,
     _tools: Tool[],
-  ): Promise<Result<number, SrchdError>> {
+  ): Promise<Result<number>> {
     try {
       const response = await this.client.models.countTokens({
         model: this.model,
@@ -305,23 +289,15 @@ export class GeminiLLM extends LLM {
       });
 
       if (!response.totalTokens) {
-        return new Err(
-          new SrchdError(
-            "model_error",
-            "Gemini model returned no token counts",
-            null,
-          ),
-        );
+        return err("model_error", "Gemini model returned no token counts");
       }
 
-      return new Ok(response.totalTokens);
+      return ok(response.totalTokens);
     } catch (error) {
-      return new Err(
-        new SrchdError(
-          "model_error",
-          "Failed to count tokens",
-          normalizeError(error),
-        ),
+      return err(
+        "model_error",
+        "Failed to count tokens",
+        normalizeError(error),
       );
     }
   }
