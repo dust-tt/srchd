@@ -6,7 +6,7 @@ import { Err, err, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { isArrayOf, newID4, removeNulls } from "./lib/utils";
+import { newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -15,11 +15,6 @@ import { isMoonshotAIModel } from "./models/moonshotai";
 import { serve } from "@hono/node-server";
 import { createApp, type BasicAuthConfig } from "./server";
 import { isMistralModel } from "./models/mistral";
-import {
-  DEFAULT_TOOLS,
-  isNonDefaultToolName,
-  NON_DEFAULT_TOOLS,
-} from "./tools/constants";
 import {
   messageMetricsByExperiment,
   tokenUsageMetricsByExperiment,
@@ -223,7 +218,7 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model;
       const thinking = options.thinking;
-      const tools = options.tool ?? [];
+      const tools = profile.tools;
 
       if (
         !(
@@ -245,16 +240,6 @@ agentCmd
           err(
             "invalid_parameters_error",
             `Thinking configuration '${thinking}' is not valid. Use 'none', 'low', or 'high'.`,
-          ),
-        );
-      }
-
-      if (!isArrayOf(tools, isNonDefaultToolName)) {
-        return exitWithError(
-          err(
-            "invalid_parameters_error",
-            `Tools '${tools}' are not valid. Use one or more of: [${NON_DEFAULT_TOOLS.join(", ")}].
-              The default tools: ${DEFAULT_TOOLS.join(", ")} are always included.`,
           ),
         );
       }
