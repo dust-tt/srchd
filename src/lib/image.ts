@@ -1,6 +1,28 @@
 import { Result, err, ok } from "./error";
+import { readFile, readdir } from "fs/promises";
+import path from "path";
 import Docker from "dockerode";
 import tar from "tar-stream";
+
+export async function addDirectoryToTar(
+  pack: tar.Pack,
+  dirPath: string,
+  basePath: string = "",
+): Promise<void> {
+  const entries = await readdir(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    const tarPath = basePath ? path.join(basePath, entry.name) : entry.name;
+
+    if (entry.isDirectory()) {
+      await addDirectoryToTar(pack, fullPath, tarPath);
+    } else if (entry.isFile()) {
+      const content = await readFile(fullPath);
+      pack.entry({ name: tarPath }, content);
+    }
+  }
+}
 
 export async function buildImage(
   imageName: string,

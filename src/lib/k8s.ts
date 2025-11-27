@@ -5,11 +5,10 @@ import * as k8s from "@kubernetes/client-node";
 export const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 export const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
-export const rbacApi = kc.makeApiClient(k8s.RbacAuthorizationV1Api);
 export const K8S_NAMESPACE = process.env.NAMESPACE ?? "default";
 
-export const podName = (namespace: string, computerId: string) =>
-  `srchd-${namespace}-${computerId}`;
+export const podName = (namespace: string, computerId?: string) =>
+  computerId ? `srchd-${namespace}-${computerId}` : `srchd-${namespace}`;
 
 export function namespaceLabels(namespace: string) {
   return {
@@ -54,7 +53,7 @@ export async function ensure(
 
 export async function ensurePodRunning(
   namespace: string,
-  computerId: string,
+  computerId?: string,
   timeoutSeconds: number = 60,
 ): Promise<Result<void>> {
   // Give a minute to check for pod to be instantiated.

@@ -2,7 +2,7 @@ import { readFile, stat } from "fs/promises";
 import { Result, err, ok } from "../lib/error";
 import path from "path";
 import tar from "tar-stream";
-import { buildImage } from "../lib/image";
+import { buildImage } from "@app/lib/image";
 
 const IDENTITY_FILES_COPY_PLACEHOLDER = "# IDENTITY_FILES_COPY_PLACEHOLDER";
 
