@@ -60,32 +60,10 @@ export class Runner {
   }
 
   public static async builder(
-    experimentName: string,
-    agentName: string,
+    experiment: ExperimentResource,
+    agent: AgentResource,
     config: RunConfig,
-  ): Promise<
-    Result<{
-      experiment: ExperimentResource;
-      agent: AgentResource;
-      runner: Runner;
-    }>
-  > {
-    const experiment = await ExperimentResource.findByName(experimentName);
-    if (!experiment) {
-      return err(
-        "not_found_error",
-        `Experiment '${experimentName}' not found.`,
-      );
-    }
-
-    const agent = await AgentResource.findByName(experiment, agentName);
-    if (!agent) {
-      return err(
-        "not_found_error",
-        `Agent '${agentName}' not found in experiment '${experimentName}'.`,
-      );
-    }
-
+  ): Promise<Result<Runner>> {
     const servers = await Promise.all(
       [...agent.toJSON().tools, ...DEFAULT_TOOLS].map((t) =>
         createServer(t, { experiment, agent, config }),
@@ -146,11 +124,7 @@ export class Runner {
       return runner;
     }
 
-    return ok({
-      experiment,
-      agent,
-      runner: runner.value,
-    });
+    return ok(runner.value);
   }
 
   public static async initialize(

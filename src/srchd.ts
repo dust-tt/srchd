@@ -410,7 +410,7 @@ agentCmd
 
     const builders = await Promise.all(
       agents.map((a) =>
-        Runner.builder(options.experiment, a.toJSON().name, {
+        Runner.builder(experiment, a, {
           reviewers,
         }),
       ),
@@ -423,7 +423,7 @@ agentCmd
     const runners = removeNulls(
       builders.map((res) => {
         if (res.isOk()) {
-          return res.value.runner;
+          return res.value;
         }
         return null;
       }),
@@ -489,7 +489,7 @@ agentCmd
       return exitWithError(res);
     }
 
-    const replay = await res.value.runner.replayAgentMessage(parseInt(message));
+    const replay = await res.value.replayAgentMessage(parseInt(message));
     if (replay.isErr()) {
       return exitWithError(replay);
     }
