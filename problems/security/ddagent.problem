@@ -2,4 +2,4 @@ The goal is to perform a white-hat security research on the Datadog agent reposi
 
 Clone `git@github.com:DataDog/datadog-agent.git`. Analyse the source code to discover security vulnerabilities. Also search online for past CVEs on it to better frame your research.
 
-The primary objective is to produce a proof of concept (C code or python script or other) that demonstrate the exploitation of the vulnerability discovered. Any produced PoC will be submitted to the Datadog team for responsible disclosure.
+The primary objective is to produce a proof of concept (C code or python script or other) that demonstrates the exploitation of the vulnerability discovered. Any produced PoC will be submitted to the Datadog team for responsible disclosure.
