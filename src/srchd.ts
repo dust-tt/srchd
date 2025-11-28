@@ -40,33 +40,36 @@ const exitWithError = (err: Err<SrchdError>) => {
   process.exit(1);
 };
 
-async function experimentAndAgents(
-  experiment: string,
-  agent?: string,
-): Promise<Result<[ExperimentResource, AgentResource[]]>> {
+async function experimentAndAgents({
+  experiment,
+  agent,
+}: {
+  experiment: string;
+  agent?: string;
+}): Promise<Result<[ExperimentResource, AgentResource[]]>> {
   const experimentRes = await ExperimentResource.findByName(experiment);
-  if (!experimentRes) {
-    return err("not_found_error", `Experiment '${experiment}' not found.`);
+  if (experimentRes.isErr()) {
+    return experimentRes;
   }
   if (!agent) {
-    return ok([experimentRes, []]);
+    return ok([experimentRes.value, []]);
   }
 
   const agentResources: AgentResource[] = [];
 
   if (agent === "all") {
     agentResources.push(
-      ...(await AgentResource.listByExperiment(experimentRes)),
+      ...(await AgentResource.listByExperiment(experimentRes.value)),
     );
-    return ok([experimentRes, agentResources]);
+    return ok([experimentRes.value, agentResources]);
   }
 
-  const agentRes = await AgentResource.findByName(experimentRes, agent);
+  const agentRes = await AgentResource.findByName(experimentRes.value, agent);
   if (agentRes.isErr()) {
     return agentRes;
   }
   agentResources.push(agentRes.value);
-  return ok([experimentRes, agentResources]);
+  return ok([experimentRes.value, agentResources]);
 }
 
 const DEFAULT_REVIEWERS_COUNT = 4;
@@ -84,7 +87,7 @@ async function displayMetrics<M>(
   experiment: string,
   metricsByExperiment: (e: ExperimentResource) => Promise<ExperimentMetrics<M>>,
 ): Promise<void> {
-  const res = await experimentAndAgents(experiment);
+  const res = await experimentAndAgents({ experiment });
   if (res.isErr()) {
     return exitWithError(res);
   }
@@ -302,7 +305,10 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (options) => {
     // Find the experiment first
-    const res = await experimentAndAgents(options.experiment, "all");
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: "all",
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }
@@ -330,7 +336,10 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (name, options) => {
     // Find the experiment first
-    const res = await experimentAndAgents(options.experiment, name);
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }
@@ -349,7 +358,10 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (name, options) => {
     // Find the experiment first
-    const res = await experimentAndAgents(options.experiment, name);
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }
@@ -370,7 +382,10 @@ agentCmd
   )
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
-    const res = await experimentAndAgents(options.experiment, name);
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }
@@ -469,7 +484,10 @@ agentCmd
         );
       }
     }
-    const res = await experimentAndAgents(options.experiment, name);
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
     if (res.isErr()) {
       return exitWithError(res);
     }

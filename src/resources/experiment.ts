@@ -1,5 +1,6 @@
 import { db } from "@app/db";
 import { experiments } from "@app/db/schema";
+import { err, ok, Result } from "@app/lib/error";
 import { eq, InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 type Experiment = InferSelectModel<typeof experiments>;
@@ -11,14 +12,16 @@ export class ExperimentResource {
     this.data = data;
   }
 
-  static async findByName(name: string): Promise<ExperimentResource | null> {
+  static async findByName(name: string): Promise<Result<ExperimentResource>> {
     const result = await db
       .select()
       .from(experiments)
       .where(eq(experiments.name, name))
       .limit(1);
 
-    return result[0] ? new ExperimentResource(result[0]) : null;
+    return result[0]
+      ? ok(new ExperimentResource(result[0]))
+      : err("not_found_error", `Experiment '${name}' not found.`);
   }
 
   static async findById(id: number): Promise<ExperimentResource | null> {
