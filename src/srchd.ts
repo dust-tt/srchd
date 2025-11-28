@@ -6,7 +6,7 @@ import { Err, err, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { newID4, removeNulls } from "./lib/utils";
+import { isArrayOf, isString, newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -29,6 +29,7 @@ import {
 import { Computer, computerId } from "./computer";
 import { providerFromModel } from "./models/provider";
 import { getAgentProfile, listAgentProfiles } from "./agent_profile";
+import { copyToComputer } from "./computer/k8s";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -366,6 +367,7 @@ agentCmd
     "Number of required reviewers for each publication",
     DEFAULT_REVIEWERS_COUNT.toString(),
   )
+  .option("-p, --path <path...>", "Add a file or directory to the computer")
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
     let agents: AgentResource[] = [];
@@ -406,6 +408,14 @@ agentCmd
       a.toJSON().tools.includes("computer"),
     )) {
       await Computer.ensure(computerId(experiment, agent));
+      if (options.path && isArrayOf(options.path, isString)) {
+        for (const path of options.path) {
+          const res = await copyToComputer(computerId(experiment, agent), path);
+          if (res.isErr()) {
+            return exitWithError(res);
+          }
+        }
+      }
     }
 
     const builders = await Promise.all(

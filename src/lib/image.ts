@@ -7,7 +7,7 @@ import tar from "tar-stream";
 export async function addDirectoryToTar(
   pack: tar.Pack,
   dirPath: string,
-  basePath: string = "",
+  basePath?: string,
 ): Promise<void> {
   const entries = await readdir(dirPath, { withFileTypes: true });
 
