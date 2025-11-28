@@ -10,6 +10,7 @@ const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
 type Settings = {
   description: string;
   tools: NonDefaultToolName[];
+  imageName?: string;
 };
 
 function isSettings(obj: any): obj is Settings {
@@ -26,6 +27,7 @@ function isSettings(obj: any): obj is Settings {
 export type AgentProfile = {
   name: string;
   prompt: string;
+  dockerFilePath?: string;
 } & Settings;
 
 export async function listAgentProfiles(): Promise<
@@ -88,9 +90,24 @@ export async function getAgentProfile(
   if (promptRes.isErr()) {
     return promptRes;
   }
+  let dockerFilePath: string | undefined = undefined;
+
+  if (settings.tools.includes("computer") && settings.imageName) {
+    const dfPath = path.join(AGENT_PROFILES_DIR, name, "Dockerfile");
+    if (fs.existsSync(dfPath)) {
+      dockerFilePath = dfPath;
+    } else {
+      return err(
+        "invalid_parameters_error",
+        `Expected Dockerfile at ${dfPath} for image ${settings.imageName}.`,
+      );
+    }
+  }
+
   return ok({
     name,
     prompt: promptRes.value,
+    dockerFilePath,
     ...settings,
   });
 }

@@ -20,12 +20,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential gcc g++ make cmake \
     # Python ecosystem
     python3 python3-pip python3-venv python3-dev \
+    # Node.js ecosystem
+    nodejs npm \
+    # Network tools
+    netcat-openbsd iputils-ping dnsutils openssh-client \
     # Archive tools
     zip unzip tar gzip \
     # Text processing
     jq xmlstarlet \
     # Search Tools
-    ripgrep
+    ripgrep \
+    # RE tools
+    afl++ gdb valgrind ltrace strace \
+    # Qemu
+    qemu-system
+
+# Install radare2
+RUN git clone https://github.com/radareorg/radare2 && cd radare2 && sys/install.sh
 
 # Create non-root user 'agent' with uid 1001
 RUN groupadd -g 1001 agent && \
@@ -48,7 +59,11 @@ RUN python3 -m venv /home/agent/.venv && \
     /home/agent/.venv/bin/pip install --upgrade pip && \
     /home/agent/.venv/bin/pip install \
     # Data science and analysis
-    numpy pandas matplotlib seaborn plotly
+    numpy pandas matplotlib seaborn plotly \
+    # Web and API tools
+    requests httpx beautifulsoup4 \
+    # RE python tools
+    frida-tools frida r2pipe angr
 
 # Configure shell environment
 RUN echo 'export PATH="/home/agent/.venv/bin:$PATH"' >> /home/agent/.bashrc && \

@@ -17,6 +17,7 @@ export function defineComputerLabels(namespace: string, computerId: string) {
 export function defineComputerPod(
   namespace: string,
   computerId: string,
+  imageName?: string,
 ): k8s.V1Pod {
   return {
     metadata: {
@@ -28,7 +29,7 @@ export function defineComputerPod(
       containers: [
         {
           name: "computer",
-          image: COMPUTER_IMAGE,
+          image: imageName ?? COMPUTER_IMAGE,
           command: ["/bin/bash", "-c", "tail -f /dev/null"],
         },
       ],
