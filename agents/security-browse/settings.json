@@ -1,0 +1,6 @@
+{
+  "description": "Research agent focused on web-security with the ability to navigate the web",
+  "tools": ["web", "computer"],
+  "env": ["OPENAI_API_KEY"],
+  "imageName": "agent-computer:security-browse"
+}
