@@ -9,11 +9,13 @@ import tar from "tar-stream";
 import p from "path";
 import { readFile } from "fs/promises";
 import { addDirectoryToTar } from "@app/lib/image";
+import { Env } from "@app/agent_profile";
 
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
   imageName?: string,
+  env: Env[] = [],
 ): Promise<Result<void>> {
   const name = podName(namespace, computerId);
   return await ensure(
@@ -26,7 +28,7 @@ export async function ensureComputerPod(
     async () => {
       await k8sApi.createNamespacedPod({
         namespace,
-        body: defineComputerPod(namespace, computerId, imageName),
+        body: defineComputerPod(namespace, computerId, imageName, env),
       });
     },
     "Pod",
