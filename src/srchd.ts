@@ -62,13 +62,10 @@ async function experimentAndAgents(
   }
 
   const agentRes = await AgentResource.findByName(experimentRes, agent);
-  if (!agentRes) {
-    return err(
-      "not_found_error",
-      `Agent '${agent}' not found in experiment ${experiment}`,
-    );
+  if (agentRes.isErr()) {
+    return agentRes;
   }
-  agentResources.push(agentRes);
+  agentResources.push(agentRes.value);
   return ok([experimentRes, agentResources]);
 }
 
