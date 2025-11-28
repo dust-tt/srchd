@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import { readFileContent } from "./lib/fs";
-import { Err, err, SrchdError } from "./lib/error";
+import { Err, err, ok, Result, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
@@ -41,6 +41,38 @@ const exitWithError = (err: Err<SrchdError>) => {
   process.exit(1);
 };
 
+async function experimentAndAgents({
+  experiment,
+  agent,
+}: {
+  experiment: string;
+  agent?: string;
+}): Promise<Result<[ExperimentResource, AgentResource[]]>> {
+  const experimentRes = await ExperimentResource.findByName(experiment);
+  if (experimentRes.isErr()) {
+    return experimentRes;
+  }
+  if (!agent) {
+    return ok([experimentRes.value, []]);
+  }
+
+  const agentResources: AgentResource[] = [];
+
+  if (agent === "all") {
+    agentResources.push(
+      ...(await AgentResource.listByExperiment(experimentRes.value)),
+    );
+    return ok([experimentRes.value, agentResources]);
+  }
+
+  const agentRes = await AgentResource.findByName(experimentRes.value, agent);
+  if (agentRes.isErr()) {
+    return agentRes;
+  }
+  agentResources.push(agentRes.value);
+  return ok([experimentRes.value, agentResources]);
+}
+
 const DEFAULT_REVIEWERS_COUNT = 4;
 
 const program = new Command();
@@ -56,13 +88,11 @@ async function displayMetrics<M>(
   experiment: string,
   metricsByExperiment: (e: ExperimentResource) => Promise<ExperimentMetrics<M>>,
 ): Promise<void> {
-  const experimentRes = await ExperimentResource.findByName(experiment);
-  if (!experimentRes) {
-    return exitWithError(
-      err("not_found_error", `Experiment '${experiment}' not found.`),
-    );
+  const res = await experimentAndAgents({ experiment });
+  if (res.isErr()) {
+    return exitWithError(res);
   }
-
+  const [experimentRes] = res.value;
   const metrics = await metricsByExperiment(experimentRes);
   if (!metrics) {
     return exitWithError(
@@ -186,12 +216,11 @@ agentCmd
   .requiredOption("-p, --profile <profile>", "Agent profile")
   .action(async (options) => {
     // Find the experiment first
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        err("not_found_error", `Experiment '${options.experiment}' not found.`),
-      );
+    const res = await experimentAndAgents(options.experiment);
+    if (res.isErr()) {
+      return exitWithError(res);
     }
+    const [experiment] = res.value;
 
     const count = parseInt(options.count);
     if (isNaN(count) || count < 1) {
@@ -277,14 +306,14 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (options) => {
     // Find the experiment first
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        err("not_found_error", `Experiment '${options.experiment}' not found.`),
-      );
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: "all",
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
     }
-
-    const agents = await AgentResource.listByExperiment(experiment);
+    const [_experiment, agents] = res.value;
 
     if (agents.length === 0) {
       return exitWithError(err("not_found_error", "No agents found."));
@@ -308,22 +337,15 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (name, options) => {
     // Find the experiment first
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        err("not_found_error", `Experiment '${options.experiment}' not found.`),
-      );
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
     }
+    const [_experiment, [agent]] = res.value;
 
-    const agent = await AgentResource.findByName(experiment, name);
-    if (!agent) {
-      return exitWithError(
-        err(
-          "not_found_error",
-          `Agent '${name}' not found in experiment '${options.experiment}'.`,
-        ),
-      );
-    }
     const a = agent.toJSON();
     a.system = a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
     // @ts-expect-error: clean-up hack
@@ -337,22 +359,14 @@ agentCmd
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .action(async (name, options) => {
     // Find the experiment first
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        err("not_found_error", `Experiment '${options.experiment}' not found.`),
-      );
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
     }
-
-    const agent = await AgentResource.findByName(experiment, name);
-    if (!agent) {
-      return exitWithError(
-        err(
-          "not_found_error",
-          `Agent '${name}' not found in experiment '${options.experiment}'.`,
-        ),
-      );
-    }
+    const [_experiment, [agent]] = res.value;
 
     await agent.delete();
     console.log(`Agent '${name}' deleted successfully.`);
@@ -370,25 +384,14 @@ agentCmd
   .option("-p, --path <path...>", "Add a file or directory to the computer")
   .option("-t, --tick", "Run one tick only")
   .action(async (name, options) => {
-    let agents: AgentResource[] = [];
-    const experiment = await ExperimentResource.findByName(options.experiment);
-    if (!experiment) {
-      return exitWithError(
-        err("not_found_error", `Experiment '${options.experiment}' not found.`),
-      );
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
     }
-
-    if (name === "all") {
-      agents = await AgentResource.listByExperiment(experiment);
-    } else {
-      const agent = await AgentResource.findByName(experiment, name);
-      if (!agent) {
-        return exitWithError(
-          err("not_found_error", `Agent '${options.name}' not found.`),
-        );
-      }
-      agents = [agent];
-    }
+    const [experiment, agents] = res.value;
 
     let reviewers = DEFAULT_REVIEWERS_COUNT;
     if (options.reviewers) {
@@ -420,7 +423,7 @@ agentCmd
 
     const builders = await Promise.all(
       agents.map((a) =>
-        Runner.builder(options.experiment, a.toJSON().name, {
+        Runner.builder(experiment, a, {
           reviewers,
         }),
       ),
@@ -433,7 +436,7 @@ agentCmd
     const runners = removeNulls(
       builders.map((res) => {
         if (res.isOk()) {
-          return res.value.runner;
+          return res.value;
         }
         return null;
       }),
@@ -491,15 +494,23 @@ agentCmd
         );
       }
     }
-
-    const res = await Runner.builder(options.experiment, name, {
-      reviewers,
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+      agent: name,
     });
     if (res.isErr()) {
       return exitWithError(res);
     }
+    const [experiment, [agent]] = res.value;
 
-    const replay = await res.value.runner.replayAgentMessage(parseInt(message));
+    const buildRes = await Runner.builder(experiment, agent, {
+      reviewers,
+    });
+    if (buildRes.isErr()) {
+      return exitWithError(buildRes);
+    }
+
+    const replay = await buildRes.value.replayAgentMessage(parseInt(message));
     if (replay.isErr()) {
       return exitWithError(replay);
     }

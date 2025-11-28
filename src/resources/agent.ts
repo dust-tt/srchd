@@ -33,7 +33,7 @@ export class AgentResource {
   static async findByName(
     experiment: ExperimentResource,
     name: string,
-  ): Promise<AgentResource | null> {
+  ): Promise<Result<AgentResource>> {
     const [result] = await db
       .select()
       .from(agents)
@@ -45,9 +45,14 @@ export class AgentResource {
       )
       .limit(1);
 
-    if (!result) return null;
+    if (!result) {
+      return err(
+        "not_found_error",
+        `Agent '${name}' not found in experiment ${experiment.toJSON().name}`,
+      );
+    }
 
-    return await new AgentResource(result, experiment).finalize();
+    return ok(await new AgentResource(result, experiment).finalize());
   }
 
   static async findById(
