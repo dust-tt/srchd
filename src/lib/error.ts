@@ -47,6 +47,7 @@ export type Result<T> = Ok<T> | Err<SrchdError>;
 export type ErrorCode =
   | "invalid_parameters_error"
   | "reading_file_error"
+  | "copy_file_error"
   | "not_found_error"
   | "reference_not_found_error"
   | "experiment_error"

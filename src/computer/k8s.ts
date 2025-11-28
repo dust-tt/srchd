@@ -1,9 +1,14 @@
-import { kc, podName, timeout } from "@app/lib/k8s";
+import { K8S_NAMESPACE, kc, podName, timeout } from "@app/lib/k8s";
 import { ensure, k8sApi } from "@app/lib/k8s";
-import { Err, ok, Result } from "@app/lib/error";
+import { err, Err, ok, Result } from "@app/lib/error";
 import { defineComputerPod } from "./definitions";
-import { Writable } from "stream";
+import { Readable, Writable } from "stream";
 import * as k8s from "@kubernetes/client-node";
+import fs from "fs";
+import tar from "tar-stream";
+import p from "path";
+import { readFile } from "fs/promises";
+import { addDirectoryToTar } from "@app/lib/image";
 
 export async function ensureComputerPod(
   namespace: string,
@@ -33,6 +38,7 @@ export async function computerExec(
   namespace: string,
   computerId: string,
   timeoutMs?: number,
+  stdinStream?: Readable,
 ): Promise<Result<{ stdout: string; stderr: string; exitCode: number }>> {
   const k8sExec = new k8s.Exec(kc);
   let stdout = "";
@@ -59,10 +65,10 @@ export async function computerExec(
         namespace,
         podName(namespace, computerId),
         computerId ? "computer" : "srchd",
-        ["/bin/bash", "-lc", ...cmd],
+        cmd,
         stdoutStream,
         stderrStream,
-        null,
+        stdinStream ?? null,
         false,
         (status: k8s.V1Status) => {
           stdoutStream.end();
@@ -133,4 +139,53 @@ export async function computerExec(
     stdout,
     stderr,
   });
+}
+
+export async function copyToComputer(
+  computerId: string,
+  path: string,
+  namespace: string = K8S_NAMESPACE,
+): Promise<Result<void>> {
+  if (!fs.existsSync(path)) {
+    return err("reading_file_error", `Path ${path} does not exist`);
+  }
+  const stat = fs.statSync(path);
+  const name = p.basename(path);
+  // If the path isn't absolute, we'll append the cwd to it.
+
+  const pack = tar.pack();
+  if (stat.isFile()) {
+    const content = await readFile(path);
+    pack.entry({ name }, content);
+  } else if (stat.isDirectory()) {
+    await addDirectoryToTar(pack, path, name);
+  } else {
+    return err(
+      "reading_file_error",
+      `Path ${path} is neither a file nor a directory`,
+    );
+  }
+  pack.finalize();
+
+  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent"];
+  const res = await computerExec(
+    copyCommand,
+    namespace,
+    computerId,
+    undefined,
+    pack,
+  );
+
+  if (res.isErr()) {
+    return res;
+  } else if (res.value.exitCode !== 0 || res.value.stderr.length > 0) {
+    return err(
+      "copy_file_error",
+      `Couldn't copy file to computer: ${podName(namespace, computerId)}:
+      Got exit code: ${res.value.exitCode}
+      And error: ${res.value.stderr}`,
+    );
+  }
+
+  return ok(undefined);
 }
