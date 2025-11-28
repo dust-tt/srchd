@@ -185,7 +185,7 @@ export class Computer {
     fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
     const execPromise = computerExec(
-      ["/bin/bash", "-lc", ...fullCmd],
+      ["/bin/bash", "-lc", fullCmd],
       this.namespace,
       this.computerId,
       options?.timeoutMs,
