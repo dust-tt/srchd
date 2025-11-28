@@ -5,6 +5,9 @@ import { readFileContent } from "./lib/fs";
 import { Err, err, ok, Result, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
+import { PublicationResource } from "./resources/publication";
+import { db } from "./db";
+import { reviews } from "./db/schema";
 import { Runner } from "./runner";
 import { isArrayOf, isString, newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
@@ -638,6 +641,67 @@ program
       fetch: app.fetch,
       port,
     });
+  });
+
+program
+  .command("review <reference>")
+  .description("Add a review to a publication")
+  .requiredOption("-e, --experiment <experiment>", "Experiment name")
+  .requiredOption("-c, --content <content>", "Review content")
+  .requiredOption(
+    "-g, --grade <grade>",
+    "Grade (STRONG_ACCEPT, ACCEPT, REJECT, STRONG_REJECT)",
+  )
+  .action(async (reference, options) => {
+    const res = await experimentAndAgents({
+      experiment: options.experiment,
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
+    }
+    const [experiment] = res.value;
+
+    const publication = await PublicationResource.findByReference(
+      experiment,
+      reference,
+    );
+    if (!publication) {
+      return exitWithError(
+        err(
+          "not_found_error",
+          `Publication '${reference}' not found in experiment '${options.experiment}'.`,
+        ),
+      );
+    }
+
+    // Find or create a "human" agent
+    let human = await AgentResource.findByName(experiment, "human");
+    if (human.isErr()) {
+      const created = await AgentResource.create(
+        experiment,
+        {
+          name: "human",
+          provider: "human",
+          model: "human",
+          thinking: "low",
+        },
+        {
+          system: "You are a human reviewer.",
+        },
+      );
+      human = ok(created);
+    }
+
+    // Insert the review
+    await db.insert(reviews).values({
+      experiment: experiment.toJSON().id,
+      publication: publication.toJSON().id,
+      author: human.value.toJSON().id,
+      grade: options.grade,
+      content: options.content,
+    });
+
+    console.log(`Review added to publication '${reference}' by human.`);
   });
 
 program.parse();

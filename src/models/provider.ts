@@ -4,8 +4,10 @@ import { GeminiModel, isGeminiModel } from "./gemini";
 import { isMistralModel, MistralModel } from "./mistral";
 import { isMoonshotAIModel, MoonshotAIModel } from "./moonshotai";
 import { isOpenAIModel, OpenAIModel } from "./openai";
+import { Human, isHuman } from "./human";
 
 export type provider =
+  | "human"
   | "openai"
   | "moonshotai"
   | "anthropic"
@@ -13,9 +15,14 @@ export type provider =
   | "mistral";
 
 export function isProvider(str: string): str is provider {
-  return ["gemini", "anthropic", "openai", "mistral", "moonshotai"].includes(
-    str,
-  );
+  return [
+    "human",
+    "gemini",
+    "anthropic",
+    "openai",
+    "mistral",
+    "moonshotai",
+  ].includes(str);
 }
 
 export function providerFromModel(
@@ -24,12 +31,14 @@ export function providerFromModel(
     | MoonshotAIModel
     | AnthropicModel
     | GeminiModel
-    | MistralModel,
+    | MistralModel
+    | Human,
 ): provider {
   if (isOpenAIModel(model)) return "openai";
   if (isMoonshotAIModel(model)) return "moonshotai";
   if (isAnthropicModel(model)) return "anthropic";
   if (isGeminiModel(model)) return "gemini";
   if (isMistralModel(model)) return "mistral";
+  if (isHuman(model)) return "human";
   else assertNever(model);
 }

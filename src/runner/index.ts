@@ -76,8 +76,11 @@ export class Runner {
       }),
     );
 
+    const provider = agent.toJSON().provider;
+    if (provider === "human") {
+      return err("model_error", "Cannot run human agent");
+    }
     const model = (() => {
-      const provider = agent.toJSON().provider;
       switch (provider) {
         case "anthropic":
           return new AnthropicLLM(

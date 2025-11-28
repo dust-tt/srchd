@@ -80,7 +80,7 @@ export class AgentResource {
 
     // TODO(spolu): optimize with a join?
     return await concurrentExecutor(
-      results,
+      results.filter((r) => r.name !== "human"),
       async (data) => {
         return await new AgentResource(data, experiment).finalize();
       },
