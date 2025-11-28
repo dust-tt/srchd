@@ -10,6 +10,7 @@ import { AgentResource } from "@app/resources/agent";
 import { podName } from "@app/lib/k8s";
 import { computerExec, ensureComputerPod } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
+import { Env } from "@app/agent_profile";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -33,13 +34,14 @@ export class Computer {
     computerId: string,
     namespace: string = K8S_NAMESPACE,
     imageName?: string,
+    env: Env[] = [],
   ): Promise<Result<Computer>> {
     let res = await ensureNamespace(namespace);
     if (res.isErr()) {
       return res;
     }
 
-    res = await ensureComputerPod(namespace, computerId, imageName);
+    res = await ensureComputerPod(namespace, computerId, imageName, env);
     if (res.isErr()) {
       return res;
     }
