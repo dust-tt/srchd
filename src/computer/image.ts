@@ -44,6 +44,8 @@ export async function dockerFileForIdentity(
 COPY --chown=agent:agent ${privateKeyFilename} ${publicKeyFilename} /home/agent/.ssh/
 RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
     chmod 644 /home/agent/.ssh/${publicKeyFilename}
+
+RUN ssh-keyscan github.com >> /home/agent/.ssh/known_hosts
 `;
 
   const df = await dockerFile(dfPath);

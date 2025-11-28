@@ -41,8 +41,6 @@ USER agent
 # IDENTITY_FILES_COPY_PLACEHOLDER
 WORKDIR /home/agent
 
-RUN ssh-keyscan github.com >> /home/agent/.ssh/known_hosts
-
 # Create Python virtual environment and install common packages
 RUN python3 -m venv /home/agent/.venv && \
     /home/agent/.venv/bin/pip install --upgrade pip && \
