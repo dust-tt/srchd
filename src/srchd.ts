@@ -220,7 +220,7 @@ agentCmd
   .requiredOption("-p, --profile <profile>", "Agent profile")
   .action(async (options) => {
     // Find the experiment first
-    const res = await experimentAndAgents(options.experiment);
+    const res = await experimentAndAgents({ experiment: options.experiment });
     if (res.isErr()) {
       return exitWithError(res);
     }
