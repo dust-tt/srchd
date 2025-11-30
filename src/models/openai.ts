@@ -229,6 +229,7 @@ export class OpenAILLM extends LLM {
           parameters: tool.inputSchema as any,
           strict: false,
         })),
+        truncation: "auto",
       });
 
       const content = response.output
