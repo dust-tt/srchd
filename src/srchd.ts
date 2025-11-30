@@ -104,12 +104,6 @@ async function displayMetrics<M>(
     );
   }
 
-  if (!metrics) {
-    return exitWithError(
-      err("not_found_error", `Experiment '${experiment}' not found.`),
-    );
-  }
-
   console.table([metrics.experiment]);
   const agents = [];
   for (const [name, agentMetrics] of Object.entries(metrics.agents)) {
@@ -471,7 +465,7 @@ agentCmd
       while (true) {
         const tick = await runner.tick();
         if (tick.isErr()) {
-          throw tick.error;
+          throw tick;
         }
       }
     });
