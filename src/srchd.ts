@@ -639,3 +639,5 @@ program
       port,
     });
   });
+
+program.parse();
