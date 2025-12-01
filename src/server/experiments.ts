@@ -394,9 +394,9 @@ export const publicationList = async (c: Input) => {
   const content = `
     ${experimentNav(id, "publications")}
     <div class="filter-buttons">
-      <a href="/experiments/${id}/publications?status=all" class="filter-btn ${statusFilter === "all" ? "active" : ""}">All</a>
-      <a href="/experiments/${id}/publications?status=published" class="filter-btn ${statusFilter === "published" ? "active" : ""}">Published</a>
-      <a href="/experiments/${id}/publications?status=rejected" class="filter-btn ${statusFilter === "rejected" ? "active" : ""}">Rejected</a>
+      <a href="/experiments/${id}/publications?status=all" class="btn ${statusFilter === "all" ? "active" : ""}">All</a>
+      <a href="/experiments/${id}/publications?status=published" class="btn ${statusFilter === "published" ? "active" : ""}">Published</a>
+      <a href="/experiments/${id}/publications?status=rejected" class="btn ${statusFilter === "rejected" ? "active" : ""}">Rejected</a>
     </div>
     ${filteredPublications
       .map((pub) => {
@@ -464,6 +464,9 @@ export const publicationDetail = async (c: Input) => {
   const content = `
     ${experimentNav(id, "publications")}
     <h1>${publicationTitle}</h1>
+    <div style="margin-bottom: 15px;">
+      <a href="/experiments/${id}/publications/${pubId}/download" class="btn" download>Download as Markdown</a>
+    </div>
     <div class="card">
       <p><strong>Author:</strong> ${publicationAuthor}</p>
       <p><strong>Status:</strong> <span class="status ${publicationStatusClass}">${publicationStatus}</span></p>
@@ -558,6 +561,67 @@ export const publicationDetail = async (c: Input) => {
 
   const breadcrumb = `<a href="/">Experiments</a> > <a href="/experiments/${id}">${experimentName}</a> > <a href="/experiments/${id}/publications">Publications</a> > ${publicationTitle}`;
   return c.html(baseTemplate(pubData.title, content, breadcrumb));
+};
+
+// Publication download
+export const publicationDownload = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
+  const pubId = parseInt(c.req.param("pubId"));
+  const reviews = c.req.param("reviews") === "true";
+
+  const experiment = await ExperimentResource.findById(id);
+  if (!experiment) return c.notFound();
+
+  const publication = await PublicationResource.findById(experiment, pubId);
+  if (!publication) return c.notFound();
+
+  const pubData = publication.toJSON();
+
+  // Build markdown content
+  let markdown = `# ${pubData.title}\n\n`;
+  markdown += `**Author:** ${pubData.author.name}\n`;
+  markdown += `**Status:** ${pubData.status}\n`;
+  markdown += `**Reference:** ${pubData.reference}\n`;
+  markdown += `**Created:** ${pubData.created.toLocaleString()}\n\n`;
+  markdown += `## Abstract\n\n${pubData.abstract}\n\n`;
+  markdown += `${pubData.content ?? ""}\n\n`;
+
+  if (pubData.citations.from.length > 0) {
+    markdown += `## Citations From This Publication\n\n`;
+    pubData.citations.from.forEach((cit) => {
+      markdown += `- Publication ID: ${cit.to}\n`;
+    });
+    markdown += `\n`;
+  }
+
+  if (pubData.citations.to.length > 0) {
+    markdown += `## Citations To This Publication\n\n`;
+    pubData.citations.to.forEach((cit) => {
+      markdown += `- Publication ID: ${cit.from}\n`;
+    });
+    markdown += `\n`;
+  }
+
+  if (reviews && pubData.reviews.length > 0) {
+    markdown += `## Reviews\n\n`;
+    pubData.reviews.forEach((review) => {
+      markdown += `### Review by ${review.author.name || "Unknown"}\n\n`;
+      if (review.grade) {
+        markdown += `**Grade:** ${review.grade.replace("_", " ")}\n\n`;
+      }
+      if (review.content) {
+        markdown += `${review.content}\n\n`;
+      }
+      markdown += `---\n\n`;
+    });
+  }
+
+  const filename = `${pubData.reference}-${pubData.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.md`;
+
+  return c.body(markdown, 200, {
+    "Content-Type": "text/markdown; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+  });
 };
 
 // Experiment solutions

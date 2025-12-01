@@ -541,15 +541,15 @@ export const baseTemplate = (
       padding-bottom: 10px;
       border-bottom: 1px solid #eee;
     }
-    .filter-btn {
+    .btn {
       color: #0066cc;
       text-decoration: none;
       margin-right: 15px;
     }
-    .filter-btn:hover {
+    .btn:hover {
       text-decoration: underline;
     }
-    .filter-btn.active {
+    .btn.active {
       color: #333;
       font-weight: bold;
     }
