@@ -536,6 +536,23 @@ export const baseTemplate = (
       white-space: pre-wrap;
       word-wrap: break-word;
     }
+    .filter-buttons {
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .filter-btn {
+      color: #0066cc;
+      text-decoration: none;
+      margin-right: 15px;
+    }
+    .filter-btn:hover {
+      text-decoration: underline;
+    }
+    .filter-btn.active {
+      color: #333;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>

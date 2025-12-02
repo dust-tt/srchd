@@ -369,6 +369,7 @@ export const agentOverview = async (c: Input) => {
 // Experiment publications
 export const publicationList = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
+  const statusFilter = c.req.query("status") ?? "all";
 
   const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
@@ -378,9 +379,26 @@ export const publicationList = async (c: Input) => {
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
 
+  // Filter publications based on status
+  const filteredPublications = experimentPublications.filter((pub) => {
+    switch (statusFilter) {
+      case "published":
+        return pub.toJSON().status === "PUBLISHED";
+      case "rejected":
+        return pub.toJSON().status === "REJECTED";
+      default:
+        return true;
+    }
+  });
+
   const content = `
     ${experimentNav(id, "publications")}
-    ${experimentPublications
+    <div class="filter-buttons">
+      <a href="/experiments/${id}/publications?status=all" class="filter-btn ${statusFilter === "all" ? "active" : ""}">All</a>
+      <a href="/experiments/${id}/publications?status=published" class="filter-btn ${statusFilter === "published" ? "active" : ""}">Published</a>
+      <a href="/experiments/${id}/publications?status=rejected" class="filter-btn ${statusFilter === "rejected" ? "active" : ""}">Rejected</a>
+    </div>
+    ${filteredPublications
       .map((pub) => {
         const pubData = pub.toJSON();
         const statusClass = safeStatusClass(pubData.status);
