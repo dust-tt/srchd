@@ -228,9 +228,7 @@ export const reviews = sqliteTable(
     publication: integer("publication")
       .notNull()
       .references(() => publications.id),
-    author: integer("author")
-      .notNull()
-      .references(() => agents.id),
+    author: integer("author").references(() => agents.id),
 
     // null when requested by the system until submitted
     grade: text("grade", {

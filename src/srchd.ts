@@ -35,6 +35,7 @@ import {
   listAgentProfiles,
 } from "./agent_profile";
 import { isDeepseekModel } from "./models/deepseek";
+import { PublicationResource } from "./resources/publication";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -640,6 +641,45 @@ program
       fetch: app.fetch,
       port,
     });
+  });
+
+program
+  .command("review <reference>")
+  .description("Add a human review to a publication")
+  .requiredOption("-e, --experiment <experiment>", "Experiment")
+  .requiredOption("-c, --content <content>", "Review Content")
+  .requiredOption("-g, --grade <grade>", "Review Content")
+  .action(async (reference, options) => {
+    const experimentRes = await experimentAndAgents({
+      experiment: options.experiment,
+    });
+    if (experimentRes.isErr()) {
+      return exitWithError(experimentRes);
+    }
+    const [experiment] = experimentRes.value;
+    const publication = await PublicationResource.findByReference(
+      experiment,
+      reference,
+    );
+
+    if (!publication) {
+      return exitWithError(
+        err(
+          "invalid_parameters_error",
+          `Reference ${reference} does not exist`,
+        ),
+      );
+    }
+
+    const publicationRes = await publication.submitReview("human", {
+      content: options.content,
+      grade: options.grade,
+    });
+    if (publicationRes.isErr()) {
+      return exitWithError(publicationRes);
+    } else {
+      console.log(`Successfully reviewed ${reference}`);
+    }
   });
 
 program.parse();

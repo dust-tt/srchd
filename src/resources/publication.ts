@@ -22,8 +22,14 @@ import { DEFAULT_TOOLS } from "@app/tools/constants";
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
+  author: Agent | "human";
+};
+export type AgentReview = Omit<Review, "author"> & {
   author: Agent;
 };
+export function isAgentReview(r: Review): r is AgentReview {
+  return r.author !== "human";
+}
 export type Citation = InferInsertModel<typeof citations>;
 
 export class PublicationResource {
@@ -83,6 +89,12 @@ export class PublicationResource {
     this.reviews = await concurrentExecutor(
       reviewsResults,
       async (review) => {
+        if (!review.author) {
+          return {
+            ...review,
+            author: "human",
+          };
+        }
         const reviewAgent = await AgentResource.findById(
           this.experiment,
           review.author,
@@ -456,45 +468,58 @@ export class PublicationResource {
   }
 
   async submitReview(
-    reviewer: AgentResource,
+    reviewer: AgentResource | "human",
     data: Omit<
       InferInsertModel<typeof reviews>,
       "id" | "created" | "updated" | "experiment" | "publication" | "author"
     >,
   ): Promise<Result<Review>> {
-    const idx = this.reviews.findIndex(
-      (r) => r.author?.id === reviewer.toJSON().id,
-    );
-    if (idx === -1) {
-      return err(
-        "resource_creation_error",
-        "Review submitted does not match any review request.",
+    if (reviewer !== "human") {
+      const agentReviews: AgentReview[] = this.reviews.filter(isAgentReview);
+      const idx = agentReviews.findIndex(
+        (r) => r.author.id === reviewer.toJSON().id,
       );
+      if (idx === -1) {
+        return err(
+          "resource_creation_error",
+          "Review submitted does not match any review request.",
+        );
+      }
+
+      const [updated] = await db
+        .update(reviews)
+        .set({
+          grade: data.grade,
+          content: data.content,
+          updated: new Date(),
+        })
+        .where(
+          and(
+            eq(reviews.experiment, this.experiment.toJSON().id),
+            eq(reviews.publication, this.data.id),
+            eq(reviews.author, reviewer.toJSON().id),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        return err("not_found_error", "Review not found");
+      }
+
+      this.reviews[idx] = { ...updated, author: reviewer.toJSON() };
+      return ok(this.reviews[idx]);
+    } else {
+      const [humanReview] = await db
+        .insert(reviews)
+        .values({
+          experiment: this.experiment.toJSON().id,
+          publication: this.data.id,
+          author: null, // in db kept as null for human reviews
+          ...data,
+        })
+        .returning();
+      return ok({ ...humanReview, author: "human" });
     }
-
-    const [updated] = await db
-      .update(reviews)
-      .set({
-        grade: data.grade,
-        content: data.content,
-        updated: new Date(),
-      })
-      .where(
-        and(
-          eq(reviews.experiment, this.experiment.toJSON().id),
-          eq(reviews.publication, this.data.id),
-          eq(reviews.author, reviewer.toJSON().id),
-        ),
-      )
-      .returning();
-
-    if (!updated) {
-      return err("not_found_error", "Review not found");
-    }
-
-    this.reviews[idx] = { ...updated, author: reviewer.toJSON() };
-
-    return ok(this.reviews[idx]);
   }
 
   toJSON() {
