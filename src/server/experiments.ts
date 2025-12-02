@@ -1,7 +1,7 @@
 import { ExperimentResource } from "@app/resources/experiment";
 import { AgentResource } from "@app/resources/agent";
 import { MessageResource } from "@app/resources/messages";
-import { PublicationResource } from "@app/resources/publication";
+import { isAgentReview, PublicationResource } from "@app/resources/publication";
 import { SolutionResource } from "@app/resources/solutions";
 import { TokenUsageResource } from "@app/resources/token_usage";
 import {
@@ -548,7 +548,7 @@ export const publicationDetail = async (c: Input) => {
         .map(
           (review) => `
         <div class="card">
-          <h3>Review by ${sanitizeText(review.author.name || "Unknown")}</h3>
+          <h3>Review by ${sanitizeText(isAgentReview(review) ? review.author.name : "Human")}</h3>
           ${review.grade
               ? `<span class="grade ${safeGradeClass(
                 review.grade,
@@ -624,7 +624,7 @@ export const publicationDownload = async (c: Input) => {
   if (reviews && pubData.reviews.length > 0) {
     markdown += `## Reviews\n\n`;
     pubData.reviews.forEach((review) => {
-      markdown += `### Review by ${review.author.name || "Unknown"}\n\n`;
+      markdown += `### Review by ${isAgentReview(review) ? review.author.name : "Human"}\n\n`;
       if (review.grade) {
         markdown += `**Grade:** ${review.grade.replace("_", " ")}\n\n`;
       }

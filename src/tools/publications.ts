@@ -2,7 +2,11 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AgentResource } from "@app/resources/agent";
 import { errorToCallToolResult } from "@app/lib/mcp";
-import { PublicationResource, Review } from "@app/resources/publication";
+import {
+  isAgentReview,
+  PublicationResource,
+  Review,
+} from "@app/resources/publication";
 import { ExperimentResource } from "@app/resources/experiment";
 import { err } from "@app/lib/error";
 import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
@@ -12,7 +16,7 @@ const SERVER_VERSION = "0.1.0";
 
 export const reviewHeader = (review: Review) => {
   return `\
-reviewer=${review.author.name}
+reviewer=${isAgentReview(review) ? review.author.name : "human"}
 grade=${review.grade ?? "PENDING"}`;
 };
 
@@ -231,7 +235,9 @@ ${r.content}`;
         return errorToCallToolResult(reviews);
       }
       if (reviewers.length === 0) {
-        await publication.value.maybePublishOrReject();
+        await publication.value.maybePublishOrReject(
+          config.humanReview ?? false,
+        );
       }
 
       const res = publication.value.toJSON();
@@ -333,7 +339,7 @@ ${r.content}`;
         return errorToCallToolResult(review);
       }
 
-      await publication.maybePublishOrReject();
+      await publication.maybePublishOrReject(config.humanReview ?? false);
 
       return {
         isError: false,
