@@ -13,6 +13,7 @@ import { MistralModel } from "@app/models/mistral";
 import { ToolName } from "@app/tools/constants";
 import { MoonshotAIModel } from "@app/models/moonshotai";
 import { provider } from "@app/models/provider";
+import { DeepseekModel } from "@app/models/deepseek";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -82,6 +83,7 @@ export const agents = sqliteTable(
         | OpenAIModel
         | MistralModel
         | MoonshotAIModel
+        | DeepseekModel
       >()
       .notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),

@@ -34,6 +34,7 @@ import {
   getAgentProfile,
   listAgentProfiles,
 } from "./agent_profile";
+import { isDeepseekModel } from "./models/deepseek";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -254,7 +255,8 @@ agentCmd
           isOpenAIModel(model) ||
           isGeminiModel(model) ||
           isMistralModel(model) ||
-          isMoonshotAIModel(model)
+          isMoonshotAIModel(model) ||
+          isDeepseekModel(model)
         )
       ) {
         return exitWithError(
