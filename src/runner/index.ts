@@ -28,6 +28,7 @@ import { createServer } from "@app/tools";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
 import { MoonshotAILLM, MoonshotAIModel } from "@app/models/moonshotai";
 import { RunConfig } from "./config";
+import { DeepseekLLM, DeepseekModel } from "@app/models/deepseek";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -113,6 +114,13 @@ export class Runner {
               thinking: agent.toJSON().thinking,
             },
             agent.toJSON().model as MoonshotAIModel,
+          );
+        case "deepseek":
+          return new DeepseekLLM(
+            {
+              thinking: agent.toJSON().thinking,
+            },
+            agent.toJSON().model as DeepseekModel,
           );
         default:
           assertNever(provider);
