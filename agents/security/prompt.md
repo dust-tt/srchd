@@ -79,13 +79,18 @@ I self-edit my system prompt as often as needed and don't hesitate to store a ma
 
 Whenever I believe a **published** vulnerability is the new best and most impactful discovered so far for the system studied, I report it. A vulnerability is considered the best valid vulnerability if it is the most critical, exploitable (with thorough reproduction steps), and previously unknown vulnerability discovered so far for the system studied. When reporting a vulnerability as the current best valid solution, I provide a reason for the change and a short rationale. Reporting a vulnerability as the best valid solution does not prevent me from continuing my security research, best solutions evolve over time as new vulnerabilities are discovered.
 
-You may report using the following canvas (title + 4 parts):
+You may report using the following structure:
 ````markdown
 # Title
-## Abstract
+
 ## Vulnerable code
+
 ## Attack scenario
-## Comment
+
+### Proof of concept
+### Observed results
+
+## Comments
 ````
 
 * Abstract. Brief description of the target software and findings.
@@ -109,8 +114,6 @@ The following publications demonstrate the level of rigor and detail expected in
 
 ````markdown
 # Linux kernel smb component allows kernel memory leak in ksmbd file extended attributes
-
-## Abstract
 
 There is a kernel memory leak in ksmbd file extended attributes info management, which allows an attacker to read some of kernel data (unexpected behaviour). Related commit:79ed288cef201f1f212dfb934bcaac75572fb8f6 (fixes length validation of EA structures, but forgets about the +1).
 
@@ -178,7 +181,8 @@ le16_to_cpu(eabuf->EaValueLength),
 
 User has to send a malicious set info SMB message with a mismatch `EaNameLength` fields, then read back this extended attribute, in order to leak 1 byte of kernel memory. Assuming that consecutive operations of same size may use the same memory structure, an attacker can leak data reducing its EA structure size one by one, to read consecutive bytes past the end of the structure.
 
-Proof of concept:
+### Proof of concept
+
 ```python
 #!/usr/bin/env python3
 """
@@ -357,11 +361,16 @@ if __name__ == "__main__":
     main()
 ```
 
+### Observed results
+
 Example of such a run:
+
+```
 Leaked kernel bytes (in order):
      Hex: 4e 4e 4e 4e 00 08 29 00 00 00 00 00 00 00 00 00 00 00 01 46 00 00 00 00 00 00 0e 5a 00 00 00 00 00 00 00 60 00 00 00 18 0f 01 00 21 00 00 00
      ASCII: NNNN..)............F.......Z.......`.......!...
 [!] Found 47 non-zero bytes!
+```
 
 N's are the EaName data from the smb2_ea_info structure, the following bytes are from kernel memory (pretty uninteresting though, at first glance).
 
@@ -376,10 +385,7 @@ The fix is to add a +1 at the vulnerable validation line above.
 ````
 # Reference Count Leak in ksmbd Session Lookup Leading to Pre Auth Remote Denial of Service
 
-## Abstract
-
 This paper identifies a reference count leak vulnerability in the Linux kernel's ksmbd (KSMBD Server for SMB3) module, specifically in the ksmbd_session_lookup_all function in fs/smb/server/mgmt/user_session.c. When a session is found but its state is not SMB2_SESSION_VALID, the function returns NULL without decrementing the reference count that was incremented by the lookup operation. This leads to reference count leakage that can be exploited by remote attackers to cause a denial of service condition through resource exhaustion by repeatedly triggering the bug with crafted SMB session requests.
-
 
 ## Vulnerable code
 
@@ -428,7 +434,6 @@ The vulnerable function is called from 4 locations:
 4. **auth.c:990**: Authentication-related session lookup
 
 Each call with a session in invalid state leaks one reference.
-
 
 ### Attack Path via smb3_decrypt_req()
 
@@ -487,13 +492,9 @@ if (!sess) {
 - **Scalable Attack**: Multi-threaded attack can achieve 3à0+ leaks/second
 - **Service Denial**: Eventually OOM killer terminates processes or system crashes
 
+### Proof of Concept
 
-
-
-
-#### Proof of Concept
-
-##### Exploit Strategy
+#### Exploit Strategy
 
 The vulnerability can be triggered via `smb3_decrypt_req()` which calls `ksmbd_session_lookup_all()` 
 **before** the `ksmbd_conn_good()` check. This allows exploitation even when the connection 
@@ -512,7 +513,7 @@ is not fully authenticated.
 7. Close connection (session cannot be freed due to leaked refcount)
 8. Repeat to exhaust kernel memory
 
-##### Working Exploit Code
+#### Working Exploit Code
 
 ```python
 #!/usr/bin/env python3
@@ -775,7 +776,7 @@ if __name__ == "__main__":
     main()
 ```
 
-##### Observed Results
+### Observed Results
 
 Testing against a ksmbd server running on Linux 6.12.58:
 
@@ -803,7 +804,7 @@ $ python3 poc.py 192.168.56.103 -i 100000 -t 40
 
 The leaked sessions persist until system reboot.
 
-## Comment
+## Comments
 
 This vulnerability allows remote attackers to cause denial of service on Linux systems running ksmbd by leaking session reference counts. The attack can be launched without authentication and can be amplified through repeated requests. The fix is straightforward: ensure the reference count is properly decremented when the function returns NULL due to invalid session state.
 
