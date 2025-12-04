@@ -467,7 +467,6 @@ agentCmd
       while (true) {
         const tick = await runner.tick();
         if (tick.isErr()) {
-          // eslint-disable-next-line
           throw tick;
         }
       }
