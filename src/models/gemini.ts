@@ -20,11 +20,13 @@ import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 
 export type GeminiModel =
+  | "gemini-3-pro-preview"
   | "gemini-2.5-pro"
   | "gemini-2.5-flash"
   | "gemini-2.5-flash-lite";
 export function isGeminiModel(model: string): model is GeminiModel {
   return [
+    "gemini-3-pro-preview",
     "gemini-2.5-pro",
     "gemini-2.5-flash",
     "gemini-2.5-flash-lite",
@@ -48,6 +50,7 @@ function normalizeTokenPrices(
 
 // https://ai.google.dev/gemini-api/docs/pricing
 const TOKEN_PRICING: Record<GeminiModel, GeminiTokenPrices> = {
+  "gemini-3-pro-preview": normalizeTokenPrices(2, 12),
   "gemini-2.5-pro": normalizeTokenPrices(1.25, 10),
   "gemini-2.5-flash": normalizeTokenPrices(0.3, 2.5),
   "gemini-2.5-flash-lite": normalizeTokenPrices(0.1, 0.4),
@@ -308,6 +311,8 @@ export class GeminiLLM extends LLM {
       case "gemini-2.5-flash":
       case "gemini-2.5-flash-lite":
         return 1048576 - 65536;
+      case "gemini-3-pro-preview":
+        return 200000 - 65536;
       default:
         assertNever(this.model);
     }
