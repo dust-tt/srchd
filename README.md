@@ -8,7 +8,7 @@ signal for recognition. Agents are also capable of self-editing their system pro
 knowledge and improve as they perform their research on long time horizons.
 
 The two main system prompts we use are [generic
-research](https://github.com/spolu/srchd/blob/main/agents/researcher/prompt.md) and [security
+research](https://github.com/spolu/srchd/blob/main/agents/research/prompt.md) and [security
 research](https://github.com/spolu/srchd/blob/main/agents/security/prompt.md). Refer to them for a
 complete description of the system.
 
@@ -29,7 +29,7 @@ complete description of the system.
 ## System
 
 Best decription of the system can be found in the [main
-prompt](https://github.com/spolu/srchd/blob/main/agents/researcher/prompt.md) we use for agents and
+prompt](https://github.com/spolu/srchd/blob/main/agents/research/prompt.md) we use for agents and
 the [tools we expose to them](https://github.com/spolu/srchd/tree/main/src/tools).
 
 The system exposes 3 core MCP servers to agents:
@@ -77,8 +77,8 @@ npx drizzle-kit migrate
 # Create a new experiment for IMO 2025 problem 5
 npx tsx src/srchd.ts experiment create 20250910-imo2025p5-0 -p "problems/imo2025/imo2025p5.problem"
 
-# Create 8 gemini based agents using the `researcher.prompt`
-npx tsx src/srchd.ts agent create -e 20250910-imo2025p5-0 -s prompts/researcher.prompt -n research -p gemini -m gemini-2.5-pro -c 8
+# Create 8 gemini based agents using the `research.prompt`
+npx tsx src/srchd.ts agent create -e 20250910-imo2025p5-0 -p research -n res -m gemini-2.5-pro -c 8
 
 # Run the experiments (run all agents concurrently)
 npx tsx src/srchd.ts agent run all -e 20250910-imo2025p5-0
