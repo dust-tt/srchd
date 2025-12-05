@@ -6,3 +6,5 @@ You will look for weaknesses in the codebase, that could allow vulnerabilities:
 - You should check for common C/C++ problems like for example: out-of-bounds read or write, use-after-free, improper restriction of operations within the bounds of a memory buffer, NULL pointer dereference, integer overflow or wraparound, ...
 - You should study in detail the security measures that prevent a tor client or relay to perform a denial of service against other nodes of the network.
 - You should also study the anonimity measures and see how you may reduce their scope or weaken them.
+
+When working on a proof of concept always test it end to end using a locally running "lab" consisting of one or more Tor nodes running. Describe the setup of your lab as part of your publication.
