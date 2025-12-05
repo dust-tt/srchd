@@ -38,18 +38,21 @@ function normalizeTokenPrices(
 
 // https://mistral.ai/pricing#api-pricing
 const TOKEN_PRICING: Record<MistralModel, MistralTokenPrices> = {
+  "devstral-medium-latest": normalizeTokenPrices(0.4, 2),
   "mistral-large-latest": normalizeTokenPrices(2, 6),
   "mistral-small-latest": normalizeTokenPrices(0.1, 0.3),
   "codestral-latest": normalizeTokenPrices(0.3, 0.9),
 };
 
 export type MistralModel =
+  | "devstral-medium-latest"
   | "mistral-large-latest"
   | "mistral-small-latest"
   | "codestral-latest";
 
 export function isMistralModel(model: string): model is MistralModel {
   return [
+    "devstral-medium-latest",
     "mistral-large-latest",
     "mistral-small-latest",
     "codestral-latest",
