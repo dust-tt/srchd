@@ -79,6 +79,7 @@ export class GeminiLLM extends LLM {
               case "text":
                 return {
                   text: content.text,
+                  thoughtSignature: content.provider?.gemini?.thoughtSignature,
                 };
               case "tool_use":
                 return {
@@ -87,6 +88,7 @@ export class GeminiLLM extends LLM {
                     id: content.id,
                     name: content.name,
                   },
+                  thoughtSignature: content.provider?.gemini?.thoughtSignature,
                 };
               case "tool_result":
                 return {
@@ -119,7 +121,6 @@ export class GeminiLLM extends LLM {
         ),
       };
     });
-
     return contents;
   }
 
