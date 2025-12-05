@@ -39,7 +39,7 @@ function normalizeTokenPrices(
 // https://mistral.ai/pricing#api-pricing
 const TOKEN_PRICING: Record<MistralModel, MistralTokenPrices> = {
   "devstral-medium-latest": normalizeTokenPrices(0.4, 2),
-  "mistral-large-latest": normalizeTokenPrices(2, 6),
+  "mistral-large-latest": normalizeTokenPrices(0.5, 1.5),
   "mistral-small-latest": normalizeTokenPrices(0.1, 0.3),
   "codestral-latest": normalizeTokenPrices(0.3, 0.9),
 };
@@ -324,7 +324,7 @@ export class MistralLLM extends LLM {
   maxTokens(): number {
     switch (this.model) {
       case "mistral-large-latest":
-        return 128000;
+        return 256000;
       case "mistral-small-latest":
         return 128000;
       case "codestral-latest":
