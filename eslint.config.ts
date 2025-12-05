@@ -1,12 +1,29 @@
 // @ts-check
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(...tseslint.configs.recommendedTypeChecked, {
-  languageOptions: {
-    parserOptions: {
-      projectService: true,
-    },
+export default tseslint.config(
+  {
+    ignores: [
+      ".prettierrc.js",
+      "eslint.config.ts",
+      "**/*.config.js",
+      "**/node_modules/**",
+      "**/out/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/migrations/**",
+    ],
   },
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ["*.js"],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
   rules: {
     // Enforce trailing commas wherever possible
     "comma-dangle": [
