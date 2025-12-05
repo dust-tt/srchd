@@ -42,6 +42,8 @@ Execute a bash command.
 - To read files, use multi-turn \`sed\`, \`awk\`, \`head\` or \`tail\` to limit the output (e.g. \`sed 1,100p largefile.txt\`).
 - To edit files, use multi-turn \`sed\` commands or the > or >> operators.
 - TUI or graphical applications are not supported.
+
+For long running commands (running a server) make sure to run them in the background using \`&\` and redirect output to files to track their progress. For long running builds you can do the same and execute sleep with appropriate timeoOut to wait until the command is expected to be finished.
 `,
     {
       cmd: z.string().describe("The bash command to execute."),
@@ -53,7 +55,9 @@ Execute a bash command.
       timeout_ms: z
         .number()
         .optional()
-        .describe("Timeout in milliseconds. Defaults to 60000ms."),
+        .describe(
+          "Timeout in millisecond. When timing out the underlying command may still be running. Defaults to 60000.",
+        ),
     },
     async ({ cmd, cwd, env, timeout_ms: timeoutMs }) => {
       const c = await Computer.ensure(computerId(experiment, agent));
@@ -68,7 +72,7 @@ Execute a bash command.
       const r = await c.value.execute(cmd, {
         cwd,
         env,
-        timeoutMs,
+        timeoutMs: timeoutMs ?? 60000,
       });
 
       if (r.isErr()) {
