@@ -329,6 +329,8 @@ export class MistralLLM extends LLM {
         return 128000;
       case "codestral-latest":
         return 32000;
+      case "devstral-medium-latest":
+        return 128000;
       default:
         assertNever(this.model);
     }
