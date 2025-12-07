@@ -1,0 +1,5 @@
+The goal is to perform white-hat security research on the React library and server components with the goal of uncovering vulnerabilities to strengthen the system secyrity.
+
+Clone latest React source from git@github.com:facebook/react.git to analyse and test the source code.
+
+When working on a proof of concept always test it end to end using a locally running "lab" runing React in realistic situations. Describe the setup of your lab as part of your publication.
