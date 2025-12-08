@@ -2,21 +2,22 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { errorToCallToolResult } from "@app/lib/mcp";
 import { err } from "@app/lib/error";
-import Firecrawl from "@mendable/firecrawl";
 import { WEB_SERVER_NAME as SERVER_NAME } from "./constants";
+import { createWebClient, WebProviderType } from "./web-providers";
 
 const SERVER_VERSION = "0.1.0";
 
 export async function createWebServer(): Promise<McpServer> {
+  const provider = (process.env.WEB_PROVIDER || "firecrawl") as WebProviderType;
+
   const server = new McpServer({
     name: SERVER_NAME,
     title: "Web Browsing & Search",
-    description: "Tools to search and browse the web",
+    description: `Tools to search and browse the web (provider: ${provider})`,
     version: SERVER_VERSION,
   });
 
-  // The Firecrawl SDK dosen't fetch the key automatically from env.
-  const firecrawl = new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY });
+  const client = createWebClient(provider);
 
   server.tool(
     "fetch",
@@ -47,11 +48,6 @@ export async function createWebServer(): Promise<McpServer> {
       offset: number;
       length: number;
     }) => {
-      const scrapeResponse = await firecrawl.scrapeUrl(url, {
-        // By default cache-expiry is already set to 2 days.
-        formats: ["markdown"],
-      });
-
       if (length > 8196) {
         return errorToCallToolResult(
           err(
@@ -61,9 +57,11 @@ export async function createWebServer(): Promise<McpServer> {
         );
       }
 
-      if (scrapeResponse.success) {
-        const text = scrapeResponse.markdown
-          ? scrapeResponse.markdown.slice(offset, 8196 + offset)
+      const fetchResponse = await client.fetch(url);
+
+      if (fetchResponse.success) {
+        const text = fetchResponse.content
+          ? fetchResponse.content.slice(offset, 8196 + offset)
           : "";
         return {
           isError: false,
@@ -79,7 +77,7 @@ export async function createWebServer(): Promise<McpServer> {
         err(
           "web_fetch_error",
           "Failed to fetch the webpage",
-          new Error(scrapeResponse.error),
+          new Error(fetchResponse.error),
         ),
       );
     },
@@ -105,13 +103,11 @@ export async function createWebServer(): Promise<McpServer> {
         );
       }
 
-      const searchResponse = await firecrawl.search(query, {
-        limit: count,
-      });
+      const searchResponse = await client.search(query, count);
 
-      if (searchResponse.success) {
+      if (searchResponse.success && searchResponse.results) {
         let results = "";
-        for (const [i, res] of searchResponse.data.entries()) {
+        for (const [i, res] of searchResponse.results.entries()) {
           results += `${i + 1}. [${res.title}](${res.url})\n${res.description}\n\n`;
         }
         return {

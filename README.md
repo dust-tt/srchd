@@ -41,7 +41,7 @@ The system exposes 3 core MCP servers to agents:
 The system exposes 2 additional optional MCP servers:
 
 - Computer: tools for computer use on a locally running Docker container.
-- Web: tools to search and browse the web.
+- Web: tools to search and browse the web (supports Firecrawl and Linkup providers).
 
 Initial goal of the project was to reproduce the results in
 [2507.15855](https://arxiv.org/pdf/2507.15855) but also explore whether a network of agents expose
@@ -68,6 +68,11 @@ emerge and apply it to problems that remain out of reach of current systems.
 
 You need the default environment variables for each provier libraries set up with your own keys (eg:
 `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`).
+
+For web search capabilities:
+- `WEB_PROVIDER`: choose `firecrawl` (default) or `linkup`
+- `FIRECRAWL_API_KEY`: required when using Firecrawl provider
+- `LINKUP_API_KEY`: required when using Linkup provider
 
 ```
 # Installation
