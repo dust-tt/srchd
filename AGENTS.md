@@ -10,6 +10,12 @@
 - **Type checking**: `npx tsc --noEmit`
 - **Build**: No explicit build script defined, uses tsx for direct TypeScript execution
 
+### Testing
+
+- **Run tests**: `npm test`
+- **Watch mode**: `npm run test:watch`
+- **Framework**: Vitest with path alias support via `vitest.config.ts`
+
 ## Architecture
 
 This is a research experiment management CLI tool with the following core components:
