@@ -1,8 +1,13 @@
 {
   "name": "srchd",
   "version": "0.0.1",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "vitest": "^2.1.0",
     "@types/dockerode": "^3.3.44",
     "@types/node": "^22.0.0",
     "@types/sanitize-html": "^2.16.0",
