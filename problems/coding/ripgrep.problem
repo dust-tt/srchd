@@ -1,0 +1,40 @@
+This is a Github Issue for https://github.com/BurntSushi/ripgrep, solve it.
+---
+
+I have a different issue.
+What version of ripgrep are you using?
+ripgrep 15.1.0 (rev 57c190d)
+
+features:-pcre2
+simd(compile):+SSE2,-SSSE3,-AVX2
+simd(runtime):+SSE2,+SSSE3,+AVX2
+
+PCRE2 is not available in this build of ripgrep.
+
+How did you install ripgrep?
+Cargo build from the main branch of git
+
+What operating system are you using ripgrep on?
+Fedora 43
+
+Describe your bug.
+I have a directory full of gzipped files with names or path names that start with a dash. They can be named like '-10:29.log.gz'. When I search in them using rg -z ..., I get the following error:
+
+-------------------------------------------------------------------------------
+gzip: invalid option -- '0'
+Try `gzip --help' for more information.
+-------------------------------------------------------------------------------
+The reason it's happening is that ripgrep calls the compression tools without separating options from file names with the customary -- separator. gzip is treating the filename as a string of options, doesn't recognize a letter (or digit) in them, and bails.
+
+This is likely the case with other compression tools.
+
+What are the steps to reproduce the behavior?
+Create a file named '-10.txt' with some text, gzip it (for example, gzip ./-10.txt), and try to rg -z sometext.
+
+What is the actual behavior?
+-------------------------------------------------------------------------------
+gzip: invalid option -- '0'
+Try `gzip --help' for more information.
+-------------------------------------------------------------------------------
+What is the expected behavior?
+I would expect ripgrep to search within such a file.
