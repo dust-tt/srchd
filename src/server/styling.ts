@@ -63,13 +63,35 @@ export const sanitizeMarkdown = (value: unknown): string => {
         "tr",
         "th",
         "td",
+        // Add KaTeX tags
+        "span",
+        "math",
+        "annotation",
+        "semantics",
+        "mrow",
+        "mi",
+        "mo",
+        "mn",
+        "msup",
+        "msub",
+        "mfrac",
+        "mroot",
+        "msqrt",
+        "mtext",
+        "mspace",
       ],
       allowedAttributes: {
         a: ["href", "title"],
         code: ["class"],
         pre: ["class"],
+        // Add KaTeX attributes
+        span: ["class", "style", "aria-hidden"],
+        math: ["xmlns"],
+        annotation: ["encoding"],
       },
       allowedSchemes: ["http", "https", "mailto"],
+      // Preserve text content (important for $ delimiters)
+      textFilter: (text) => text,
     });
   } catch (_error) {
     // Fallback to plain text sanitization if markdown parsing fails
@@ -554,12 +576,37 @@ export const baseTemplate = (
       font-weight: bold;
     }
   </style>
+  <!-- KaTeX CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 </head>
 <body>
   <div class="container">
     ${breadcrumb ? `<div class="breadcrumb">${breadcrumb}</div>` : ""}
     ${content}
   </div>
+  <!-- KaTeX JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script>
+    // Render math in all markdown content areas
+    document.addEventListener('DOMContentLoaded', function() {
+      const markdownElements = document.querySelectorAll('.markdown-content');
+      markdownElements.forEach(function(element) {
+        if (window.renderMathInElement) {
+          renderMathInElement(element, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\\\[', right: '\\\\]', display: true},
+              {left: '\\\\(', right: '\\\\)', display: false}
+            ],
+            throwOnError: false,
+            ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
 `;
@@ -567,18 +614,14 @@ export const baseTemplate = (
 // Helper to create experiment nav for pages within an experiment
 export const experimentNav = (experimentId: number, current: string) => `
   <div class="nav">
-    <a href="/experiments/${experimentId}"${
-      current === "overview" ? ' style="font-weight: bold;"' : ""
-    }>Overview</a>
-    <a href="/experiments/${experimentId}/agents"${
-      current === "agents" ? ' style="font-weight: bold;"' : ""
-    }>Agents</a>
-    <a href="/experiments/${experimentId}/publications"${
-      current === "publications" ? ' style="font-weight: bold;"' : ""
-    }>Publications</a>
-    <a href="/experiments/${experimentId}/solutions"${
-      current === "solutions" ? ' style="font-weight: bold;"' : ""
-    }>Solutions</a>
+    <a href="/experiments/${experimentId}"${current === "overview" ? ' style="font-weight: bold;"' : ""
+  }>Overview</a>
+    <a href="/experiments/${experimentId}/agents"${current === "agents" ? ' style="font-weight: bold;"' : ""
+  }>Agents</a>
+    <a href="/experiments/${experimentId}/publications"${current === "publications" ? ' style="font-weight: bold;"' : ""
+  }>Publications</a>
+    <a href="/experiments/${experimentId}/solutions"${current === "solutions" ? ' style="font-weight: bold;"' : ""
+  }>Solutions</a>
   </div>
 `;
 
@@ -759,17 +802,17 @@ const renderMetricsTable = <M extends object>(
       </thead>
       <tbody>
         ${agents
-          .map(
-            ([name, metric]) => `
+      .map(
+        ([name, metric]) => `
           <tr>
             <td>${sanitizeText(name)}</td>
             ${metricKeys
-              .map((key) => `<td>${sanitizeText(metric[key as keyof M])}</td>`)
-              .join("")}
+            .map((key) => `<td>${sanitizeText(metric[key as keyof M])}</td>`)
+            .join("")}
           </tr>
         `,
-          )
-          .join("")}
+      )
+      .join("")}
       </tbody>
     </table>`;
 
@@ -841,8 +884,8 @@ const renderContentBlock = (
     Object.keys(tags).length > 0
       ? `
     ${Object.entries(tags)
-      .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
-      .join("")}
+        .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
+        .join("")}
   `
       : "";
   const fullContent = `<pre>${sanitizeText(content)}</pre>`;
