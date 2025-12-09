@@ -14,8 +14,6 @@ export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
 ): Promise<McpServer> {
-  const df = await dockerFile();
-
   const server = new McpServer({
     name: SERVER_NAME,
     title: `Computer: Tools to interact with a computer (docker container).`,
