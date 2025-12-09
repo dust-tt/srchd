@@ -1,10 +1,16 @@
 import { and, eq, sum } from "drizzle-orm";
-import { token_usages } from "@app/db/schema";
+import { token_usages, agents } from "@app/db/schema";
 import { AgentResource } from "./agent";
 import { MessageResource } from "./messages";
 import { db, Tx } from "@app/db";
 import { TokenUsage } from "@app/models/index";
 import { ExperimentResource } from "./experiment";
+import { AnthropicLLM, isAnthropicModel } from "@app/models/anthropic";
+import { DeepseekLLM, isDeepseekModel } from "@app/models/deepseek";
+import { GeminiLLM, isGeminiModel } from "@app/models/gemini";
+import { OpenAILLM, isOpenAIModel } from "@app/models/openai";
+import { MistralLLM, isMistralModel } from "@app/models/mistral";
+import { MoonshotAILLM, isMoonshotAIModel } from "@app/models/moonshotai";
 
 export class TokenUsageResource {
   static async experimentTokenUsage(
@@ -59,6 +65,75 @@ export class TokenUsageResource {
     };
   }
 
+  /**
+   * Calculate total cost for an experiment across all agents
+   */
+  static async experimentCost(
+    experiment: ExperimentResource,
+  ): Promise<number> {
+    // Get all token usages grouped by agent
+    const agentUsages = await db
+      .select({
+        agentId: token_usages.agent,
+        total: sum(token_usages.total),
+        input: sum(token_usages.input),
+        output: sum(token_usages.output),
+        cached: sum(token_usages.cached),
+        thinking: sum(token_usages.thinking),
+      })
+      .from(token_usages)
+      .where(eq(token_usages.experiment, experiment.toJSON().id))
+      .groupBy(token_usages.agent);
+
+    let totalCost = 0;
+
+    // Calculate cost for each agent using their specific model
+    for (const agentUsage of agentUsages) {
+      const agentData = await db
+        .select()
+        .from(agents)
+        .where(eq(agents.id, agentUsage.agentId))
+        .limit(1);
+
+      if (agentData.length > 0) {
+        const tokenUsage: TokenUsage = {
+          total: Number(agentUsage.total),
+          input: Number(agentUsage.input),
+          output: Number(agentUsage.output),
+          cached: Number(agentUsage.cached),
+          thinking: Number(agentUsage.thinking),
+        };
+
+        // Calculate cost using the model's cost method
+        const model = agentData[0].model;
+        const config = {};
+        let llm;
+
+        if (isAnthropicModel(model)) {
+          llm = new AnthropicLLM(config, model);
+        } else if (isDeepseekModel(model)) {
+          llm = new DeepseekLLM(config, model);
+        } else if (isGeminiModel(model)) {
+          llm = new GeminiLLM(config, model);
+        } else if (isOpenAIModel(model)) {
+          llm = new OpenAILLM(config, model);
+        } else if (isMistralModel(model)) {
+          llm = new MistralLLM(config, model);
+        } else if (isMoonshotAIModel(model)) {
+          llm = new MoonshotAILLM(config, model);
+        } else {
+          console.warn(`Unknown model: ${model}, skipping cost`);
+          continue;
+        }
+
+        const cost = llm.cost([tokenUsage]);
+        totalCost += cost;
+      }
+    }
+
+    return totalCost;
+  }
+
   static async logUsage(
     experiment: ExperimentResource,
     agent: AgentResource,
@@ -73,7 +148,11 @@ export class TokenUsageResource {
         experiment: experiment.toJSON().id,
         agent: agent.toJSON().id,
         message: message.toJSON().id,
-        ...tokenUsage,
+        total: tokenUsage.total,
+        input: tokenUsage.input,
+        output: tokenUsage.output,
+        cached: tokenUsage.cached,
+        thinking: tokenUsage.thinking,
       })
       .returning();
   }

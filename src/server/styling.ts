@@ -723,13 +723,18 @@ const renderMetricsTable = <M extends object>(
   title: string,
   metricKeys: string[],
   columnNames: string[],
+  extraExperimentValues?: Record<string, any>,
 ) => {
   const exp = metrics.experiment;
   const agents = Object.entries(metrics.agents);
 
+  // Filter out extra keys for validation
+  const extraKeys = extraExperimentValues ? Object.keys(extraExperimentValues) : [];
+  const keysToValidate = metricKeys.filter((key) => !extraKeys.includes(key));
+
   assert(
-    metricKeys.every((key) => key in exp),
-    `Invalid keys: ${metricKeys.join(", ")}, expected: ${Object.keys(exp).join(", ")}`,
+    keysToValidate.every((key) => key in exp),
+    `Invalid keys: ${keysToValidate.join(", ")}, expected: ${Object.keys(exp).join(", ")}`,
   );
   assert(
     metricKeys.length === columnNames.length,
@@ -740,10 +745,15 @@ const renderMetricsTable = <M extends object>(
     <div class="metrics-grid">
     ${metricKeys
       .map(
-        (key, i) => `<div class="metric-item">
+        (key, i) => {
+          const value = extraExperimentValues && key in extraExperimentValues
+            ? extraExperimentValues[key]
+            : exp[key as keyof M];
+          return `<div class="metric-item">
       <div class="metric-label">${columnNames[i]}</div>
-      <div class="metric-value">${sanitizeText(exp[key as keyof M])}</div>
-      </div>`,
+      <div class="metric-value">${sanitizeText(value)}</div>
+      </div>`;
+        }
       )
       .join("")}
     </div>`;
@@ -764,7 +774,12 @@ const renderMetricsTable = <M extends object>(
           <tr>
             <td>${sanitizeText(name)}</td>
             ${metricKeys
-              .map((key) => `<td>${sanitizeText(metric[key as keyof M])}</td>`)
+              .map((key) => {
+                const value = extraExperimentValues && key in extraExperimentValues
+                  ? "-"
+                  : metric[key as keyof M];
+                return `<td>${sanitizeText(value)}</td>`;
+              })
               .join("")}
           </tr>
         `,
@@ -795,18 +810,28 @@ export const renderMessageMetrics = (
 
 export const renderTokenUsageMetrics = (
   metrics: ExperimentMetrics<TokenUsage>,
+  cost?: string,
 ) => {
+  const keys = ["total", "input", "cached", "thinking", "output"];
+  const names = [
+    "Total Tokens",
+    "Input Tokens",
+    "Cached Tokens",
+    "Thinking Tokens",
+    "Output Tokens",
+  ];
+
+  if (cost) {
+    keys.push("cost");
+    names.push("Cost");
+  }
+
   return renderMetricsTable(
     metrics,
     "Token Usage Metrics",
-    ["total", "input", "cached", "thinking", "output"],
-    [
-      "Total Tokens",
-      "Input Tokens",
-      "Cached Tokens",
-      "Thinking Tokens",
-      "Output Tokens",
-    ],
+    keys,
+    names,
+    cost ? { cost } : undefined,
   );
 };
 

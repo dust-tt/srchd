@@ -3,6 +3,7 @@ import { AgentResource } from "@app/resources/agent";
 import { MessageResource } from "@app/resources/messages";
 import { PublicationResource } from "@app/resources/publication";
 import { SolutionResource } from "@app/resources/solutions";
+import { TokenUsageResource } from "@app/resources/token_usage";
 import {
   baseTemplate,
   experimentNav,
@@ -34,17 +35,31 @@ export const experimentsList = async (c: Input) => {
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
 
+  // Calculate costs for all experiments
+  const experimentsWithCost = await Promise.all(
+    experiments.map(async (exp) => {
+      const cost = await TokenUsageResource.experimentCost(exp);
+      const formattedCost = cost < 0.01
+        ? `$${cost.toFixed(6)}`
+        : cost < 1
+          ? `$${cost.toFixed(4)}`
+          : `$${cost.toFixed(2)}`;
+      return { exp, cost: formattedCost };
+    })
+  );
+
   const content = `
     <h1>Experiments</h1>
-    ${experiments
-      .map((exp) => {
+    ${experimentsWithCost
+      .map(({ exp, cost }) => {
         const data = exp.toJSON();
         return `
         <div class="card">
           <h3><a href="/experiments/${data.id}">${sanitizeText(data.name)}</a></h3>
           <div class="meta">
             Created: ${sanitizeText(data.created.toLocaleString())} |
-            Updated: ${sanitizeText(data.updated.toLocaleString())}
+            Updated: ${sanitizeText(data.updated.toLocaleString())} |
+            Cost: <strong>${sanitizeText(cost)}</strong>
           </div>
         </div>
       `;
@@ -75,6 +90,14 @@ export const experimentOverview = async (c: Input) => {
   const tokenMetrics = await tokenUsageMetricsByExperiment(experiment);
   const publicationMetrics = await publicationMetricsByExperiment(experiment);
 
+  // Calculate cost
+  const cost = await TokenUsageResource.experimentCost(experiment);
+  const formattedCost = cost < 0.01
+    ? `$${cost.toFixed(6)}`
+    : cost < 1
+      ? `$${cost.toFixed(4)}`
+      : `$${cost.toFixed(2)}`;
+
   const content = `
     ${experimentNav(id, "overview")}
     <div class="card">
@@ -84,14 +107,15 @@ export const experimentOverview = async (c: Input) => {
         Updated: ${sanitizeText(expData.updated.toLocaleString())} |
         Agents: ${experimentAgents.length} |
         Publications: ${experimentPublications.length} |
-        Solutions: ${experimentSolutions.length}
+        Solutions: ${experimentSolutions.length} |
+        Cost: <strong>${sanitizeText(formattedCost)}</strong>
       </div>
     </div>
     <div class="card">
       <div class="content">${sanitizeText(expData.problem)}</div>
     </div>
     ${renderMessageMetrics(messageMetrics)}
-    ${renderTokenUsageMetrics(tokenMetrics)}
+    ${renderTokenUsageMetrics(tokenMetrics, formattedCost)}
     ${renderPublicationMetrics(publicationMetrics)}
   `;
 

@@ -127,8 +127,8 @@ export class OpenAILLM extends LLM {
                         output: JSON.stringify(
                           content.isError
                             ? {
-                                error: content.content,
-                              }
+                              error: content.content,
+                            }
                             : content,
                         ),
                       },
@@ -203,7 +203,7 @@ export class OpenAILLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
+    Result<{ message: Message; tokenUsage?: TokenUsage  }>
   > {
     try {
       const input = this.messages(messages);
@@ -219,9 +219,9 @@ export class OpenAILLM extends LLM {
           this.model === "gpt-4.1"
             ? undefined
             : {
-                effort: convertThinking(this.config.thinking),
-                summary: "auto",
-              },
+              effort: convertThinking(this.config.thinking),
+              summary: "auto",
+            },
         tools: tools.map((tool) => ({
           type: "function",
           name: tool.name,
@@ -289,15 +289,7 @@ export class OpenAILLM extends LLM {
         .flat();
 
       const tokenUsage = response.usage
-        ? {
-            total: response.usage.total_tokens,
-            input: response.usage.input_tokens,
-            output: response.usage.output_tokens,
-            cached: response.usage.input_tokens_details?.cached_tokens ?? 0,
-            thinking:
-              response.usage.output_tokens_details?.reasoning_tokens ?? 0,
-            cost: this.cost(response.usage),
-          }
+        ? this.tokenUsage(response.usage)
         : undefined;
 
       return ok({
@@ -312,13 +304,22 @@ export class OpenAILLM extends LLM {
     }
   }
 
-  private cost(usage: ResponseUsage): number {
+  private tokenUsage(usage: ResponseUsage): TokenUsage {
+    return {
+      total: usage.total_tokens,
+      input: usage.input_tokens,
+      output: usage.output_tokens,
+      cached: usage.input_tokens_details?.cached_tokens ?? 0,
+      thinking: usage.output_tokens_details?.reasoning_tokens ?? 0,
+    };
+  }
+
+  protected costPerTokenUsage(tokenUsage: TokenUsage): number {
     const pricing = TOKEN_PRICING[this.model];
-    let c = usage.input_tokens_details.cached_tokens * pricing.cached;
-    c += usage.output_tokens * pricing.output;
-    c +=
-      (usage.input_tokens - usage.input_tokens_details.cached_tokens) *
-      pricing.input;
+    const nonCachedInput = tokenUsage.input - tokenUsage.cached;
+    let c = tokenUsage.cached * pricing.cached;
+    c += tokenUsage.output * pricing.output;
+    c += nonCachedInput * pricing.input;
     return c;
   }
 
@@ -343,9 +344,9 @@ export class OpenAILLM extends LLM {
               this.model === "gpt-4.1"
                 ? undefined
                 : {
-                    effort: convertThinking(this.config.thinking),
-                    summary: "auto",
-                  },
+                  effort: convertThinking(this.config.thinking),
+                  summary: "auto",
+                },
             tools: tools.map((tool) => ({
               type: "function",
               name: tool.name,

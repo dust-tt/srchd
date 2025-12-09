@@ -129,7 +129,7 @@ export class DeepseekLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
+    Result<{ message: Message; tokenUsage?: TokenUsage}>
   > {
     try {
       const input = this.messages(prompt, messages);
@@ -199,15 +199,7 @@ export class DeepseekLLM extends LLM {
       }
 
       const tokenUsage = response.usage
-        ? {
-            total: response.usage.total_tokens,
-            input: response.usage.prompt_tokens,
-            output: response.usage.completion_tokens,
-            cached: response.usage.prompt_tokens_details?.cached_tokens ?? 0,
-            thinking:
-              response.usage.completion_tokens_details?.reasoning_tokens ?? 0,
-            cost: this.cost(response.usage),
-          }
+        ? this.tokenUsage(response.usage)
         : undefined;
 
       return ok({
@@ -223,12 +215,23 @@ export class DeepseekLLM extends LLM {
     }
   }
 
-  private cost(usage: CompletionUsage): number {
+  private tokenUsage(usage: CompletionUsage): TokenUsage {
+    return {
+      total: usage.total_tokens,
+      input: usage.prompt_tokens,
+      output: usage.completion_tokens,
+      cached: usage.prompt_tokens_details?.cached_tokens ?? 0,
+      thinking: usage.completion_tokens_details?.reasoning_tokens ?? 0,
+    };
+  }
+
+  protected costPerTokenUsage(tokenUsage: TokenUsage): number {
     const pricing = TOKEN_PRICING[this.model];
+    const nonCachedInput = tokenUsage.input - tokenUsage.cached;
     const c =
-      (usage.prompt_tokens ?? 0) * pricing.input +
-      (usage.completion_tokens ?? 0) * pricing.output +
-      (usage.prompt_tokens_details?.cached_tokens ?? 0) * pricing.cacheHits;
+      nonCachedInput * pricing.input +
+      tokenUsage.output * pricing.output +
+      tokenUsage.cached * pricing.cacheHits;
     return c;
   }
 

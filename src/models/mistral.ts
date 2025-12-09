@@ -162,7 +162,7 @@ export class MistralLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
+    Result<{ message: Message; tokenUsage?: TokenUsage }>
   > {
     try {
       const chatResponse = await this.client.chat.complete({
@@ -190,14 +190,7 @@ export class MistralLLM extends LLM {
       const tokenUsage =
         !usage.totalTokens || !usage.promptTokens || !usage.completionTokens
           ? undefined
-          : {
-              total: usage.totalTokens,
-              input: usage.promptTokens,
-              output: usage.completionTokens,
-              cached: 0,
-              thinking: 0,
-              cost: this.cost(usage),
-            };
+          : this.tokenUsage(usage);
 
       const msg = chatResponse.choices[0].message;
       const finishReason = chatResponse.choices[0].finishReason;
@@ -272,11 +265,21 @@ export class MistralLLM extends LLM {
     }
   }
 
-  private cost(usage: UsageInfo): number {
+  private tokenUsage(usage: UsageInfo): TokenUsage {
+    return {
+      total: usage.totalTokens ?? 0,
+      input: usage.promptTokens ?? 0,
+      output: usage.completionTokens ?? 0,
+      cached: 0,
+      thinking: 0,
+    };
+  }
+
+  protected costPerTokenUsage(tokenUsage: TokenUsage): number {
     const pricing = TOKEN_PRICING[this.model];
     const c =
-      (usage.promptTokens ?? 0) * pricing.input +
-      (usage.completionTokens ?? 0) * pricing.output;
+      tokenUsage.input * pricing.input +
+      tokenUsage.output * pricing.output;
     return c;
   }
 
