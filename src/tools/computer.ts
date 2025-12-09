@@ -5,7 +5,6 @@ import { errorToCallToolResult } from "@app/lib/mcp";
 import { ExperimentResource } from "@app/resources/experiment";
 import { Computer, computerId } from "@app/computer";
 import { COMPUTER_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
-import { dockerFile } from "@app/computer/image";
 import { err } from "@app/lib/error";
 
 const SERVER_VERSION = "0.1.0";
