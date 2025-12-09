@@ -186,7 +186,7 @@ export class AnthropicLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
+    Result<{ message: Message; tokenUsage?: TokenUsage  }>
   > {
     try {
       const message = await this.client.beta.messages.create({
@@ -249,20 +249,7 @@ export class AnthropicLLM extends LLM {
         betas: ["interleaved-thinking-2025-05-14"],
       });
 
-      const input =
-        message.usage.input_tokens +
-        (message.usage.cache_read_input_tokens ?? 0) +
-        (message.usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) +
-        (message.usage.cache_creation?.ephemeral_5m_input_tokens ?? 0);
-
-      const tokenUsage = {
-        total: message.usage.output_tokens + input,
-        input,
-        output: message.usage.output_tokens,
-        cached: message.usage.cache_read_input_tokens ?? 0,
-        thinking: 0, // Anthropic doesn't give thinking token usage
-        cost: this.cost(message.usage),
-      };
+      const tokenUsage = this.tokenUsage(message.usage);
       // console.log(message.usage);
 
       return ok({
@@ -381,15 +368,30 @@ export class AnthropicLLM extends LLM {
     }
   }
 
-  private cost(usage: BetaUsage): number {
+  private tokenUsage(usage: BetaUsage): TokenUsage {
+    const input =
+      usage.input_tokens +
+      (usage.cache_read_input_tokens ?? 0) +
+      (usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) +
+      (usage.cache_creation?.ephemeral_5m_input_tokens ?? 0);
+
+    return {
+      total: usage.output_tokens + input,
+      input,
+      output: usage.output_tokens,
+      cached: usage.cache_read_input_tokens ?? 0,
+      thinking: 0, // Anthropic doesn't give thinking token usage
+    };
+  }
+
+  protected costPerTokenUsage(tokenUsage: TokenUsage): number {
     const pricing = TOKEN_PRICING[this.model];
-    let c = usage.input_tokens * pricing.baseInput;
-    c += usage.output_tokens * pricing.output;
-    c += (usage.cache_read_input_tokens ?? 0) * pricing.cacheHits;
-    c +=
-      (usage.cache_creation?.ephemeral_5m_input_tokens ?? 0) * pricing.cache5m;
-    c +=
-      (usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) * pricing.cache1h;
+    // For Anthropic, we use a conservative estimate:
+    // baseInput for non-cached tokens, cacheHits for cached tokens
+    const nonCachedInput = tokenUsage.input - tokenUsage.cached;
+    let c = nonCachedInput * pricing.baseInput;
+    c += tokenUsage.cached * pricing.cacheHits;
+    c += tokenUsage.output * pricing.output;
     return c;
   }
 
