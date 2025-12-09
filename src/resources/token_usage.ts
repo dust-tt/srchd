@@ -11,6 +11,7 @@ import { GeminiLLM, isGeminiModel } from "@app/models/gemini";
 import { OpenAILLM, isOpenAIModel } from "@app/models/openai";
 import { MistralLLM, isMistralModel } from "@app/models/mistral";
 import { MoonshotAILLM, isMoonshotAIModel } from "@app/models/moonshotai";
+import { assertNever } from "@app/lib/assert";
 
 export class TokenUsageResource {
   static async experimentTokenUsage(
@@ -122,8 +123,7 @@ export class TokenUsageResource {
         } else if (isMoonshotAIModel(model)) {
           llm = new MoonshotAILLM(config, model);
         } else {
-          console.warn(`Unknown model: ${model}, skipping cost`);
-          continue;
+          assertNever(model);
         }
 
         const cost = llm.cost([tokenUsage]);
