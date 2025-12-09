@@ -96,6 +96,10 @@ export class MessageResource {
     return this.data.position;
   }
 
+  created(): Date {
+    return new Date(this.data.created);
+  }
+
   toJSON(): Message & { id: number } {
     return {
       id: this.data.id,
