@@ -80,20 +80,30 @@ export class PublicationResource {
     this.citations.from = fromCitationsResults;
     this.citations.to = toCitationsResults;
 
-    this.reviews = await concurrentExecutor(
+    const reviewsWithAuthors = await concurrentExecutor(
       reviewsResults,
       async (review) => {
         const reviewAgent = await AgentResource.findById(
           this.experiment,
           review.author,
         );
-        assert(reviewAgent);
+        if (!reviewAgent) {
+          console.warn(
+            `Review ${review.id} references non-existent agent ${review.author}, skipping`,
+          );
+          return null;
+        }
         return {
           ...review,
           author: reviewAgent.toJSON(),
         };
       },
       { concurrency: 8 },
+    );
+
+    // Filter out reviews with missing authors
+    this.reviews = reviewsWithAuthors.filter(
+      (review): review is Review => review !== null,
     );
 
     if (author) {
@@ -318,7 +328,7 @@ export class PublicationResource {
       return err(
         "reference_not_found_error",
         "Reference not found in publication submission content: " +
-          notFound.join(","),
+        notFound.join(","),
       );
     }
 
