@@ -97,11 +97,11 @@ export class GeminiLLM extends LLM {
                     name: content.toolUseName,
                     response: content.isError
                       ? {
-                          error: content.content,
-                        }
+                        error: content.content,
+                      }
                       : {
-                          output: content.content,
-                        },
+                        output: content.content,
+                      },
                   },
                 };
               case "thinking": {
@@ -130,7 +130,7 @@ export class GeminiLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage & { cost: number } }>
+    Result<{ message: Message; tokenUsage?: TokenUsage }>
   > {
     try {
       const response = await this.client.models.generateContent({
@@ -191,17 +191,10 @@ export class GeminiLLM extends LLM {
 
       const tokenUsage =
         response.usageMetadata &&
-        response.usageMetadata.totalTokenCount &&
-        response.usageMetadata.promptTokenCount &&
-        response.usageMetadata.candidatesTokenCount
-          ? {
-              total: response.usageMetadata.totalTokenCount,
-              input: response.usageMetadata.promptTokenCount,
-              output: response.usageMetadata.candidatesTokenCount,
-              cached: response.usageMetadata.cachedContentTokenCount ?? 0,
-              thinking: response.usageMetadata.thoughtsTokenCount ?? 0,
-              cost: this.cost(response.usageMetadata),
-            }
+          response.usageMetadata.totalTokenCount &&
+          response.usageMetadata.promptTokenCount &&
+          response.usageMetadata.candidatesTokenCount
+          ? this.tokenUsage(response.usageMetadata)
           : undefined;
 
       return ok({
@@ -263,11 +256,21 @@ export class GeminiLLM extends LLM {
     }
   }
 
-  private cost(usage: GenerateContentResponseUsageMetadata): number {
+  private tokenUsage(usage: GenerateContentResponseUsageMetadata): TokenUsage {
+    return {
+      total: usage.totalTokenCount ?? 0,
+      input: usage.promptTokenCount ?? 0,
+      output: usage.candidatesTokenCount ?? 0,
+      cached: usage.cachedContentTokenCount ?? 0,
+      thinking: usage.thoughtsTokenCount ?? 0,
+    };
+  }
+
+  protected costPerTokenUsage(tokenUsage: TokenUsage): number {
     const pricing = TOKEN_PRICING[this.model];
     const c =
-      (usage.promptTokenCount ?? 0) * pricing.input +
-      (usage.candidatesTokenCount ?? 0) * pricing.output;
+      tokenUsage.input * pricing.input +
+      tokenUsage.output * pricing.output;
     return c;
   }
 
