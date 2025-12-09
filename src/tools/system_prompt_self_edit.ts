@@ -16,9 +16,8 @@ export async function createSystemPromptSelfEditServer(
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "System prompt self-edit",
-    description:
-      "Tools to self-edit your system prompt. The new system prompt version will be effective immediately.",
+    title:
+      "System prompt self-edit: Tools to self-edit your system prompt. The new system prompt version will be effective immediately.",
     version: SERVER_VERSION,
   });
 

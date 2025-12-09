@@ -1,6 +1,6 @@
 import type { JSONSchema7 as JSONSchema } from "json-schema";
 import { Result } from "@app/lib/error";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { provider } from "./provider";
 
 export type ProviderData = Partial<Record<provider, any>>;

@@ -895,7 +895,7 @@ const renderToolResult = (c: ToolResult, maxPreviewLength = 150) => {
     },
     c.content
       .map((c) =>
-        c.type === "text" ? c.text : JSON.stringify(c.text, null, 2),
+        c.type === "text" ? c.text : JSON.stringify(c, null, 2),
       )
       .join("\n"),
     c.isError ? "tool-error" : "tool-success",

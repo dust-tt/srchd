@@ -18,16 +18,7 @@ export async function createComputerServer(
 
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "Computer",
-    description: `\
-Tools to interact with a computer (docker container).
-
-Dockerfile used to create the computer:
-\`\`\`
-${df}
-\`\`\`
-
-Additional programs can be installed using apt-get (with sudo) or source download/compilation.`,
+    title: `Computer: Tools to interact with a computer (docker container).`,
     version: SERVER_VERSION,
   });
 

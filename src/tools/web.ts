@@ -10,8 +10,7 @@ const SERVER_VERSION = "0.1.0";
 export async function createWebServer(): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "Web Browsing & Search",
-    description: "Tools to search and browse the web",
+    title: "Web Browsing & Search: Tools to search and browse the web",
     version: SERVER_VERSION,
   });
 

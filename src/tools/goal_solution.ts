@@ -16,9 +16,8 @@ export async function createGoalSolutionServer(
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "Research goal solution reporting",
-    description:
-      "Tools to report that a publication is the current best solution to the reseach goal.",
+    title:
+      "Research goal solution reporting: Tools to report that a publication is the current best solution to the research goal.",
     version: SERVER_VERSION,
   });
 

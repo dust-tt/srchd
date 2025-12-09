@@ -62,8 +62,7 @@ export async function createPublicationsServer(
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
-    title: "Publications",
-    description: "Tools to submit, review and access publications.",
+    title: "Publications: Tools to submit, review and access publications.",
     version: SERVER_VERSION,
   });
 

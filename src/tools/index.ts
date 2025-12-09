@@ -6,7 +6,7 @@ import { createWebServer } from "./web";
 import { ToolName } from "./constants";
 import type { AgentResource } from "@app/resources/agent";
 import type { ExperimentResource } from "@app/resources/experiment";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RunConfig } from "@app/runner/config";
 
 export async function createServer(
