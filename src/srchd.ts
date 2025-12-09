@@ -35,6 +35,7 @@ import {
   listAgentProfiles,
 } from "./agent_profile";
 import { isDeepseekModel } from "./models/deepseek";
+import { TokenUsageResource } from "./resources/token_usage";
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -121,9 +122,26 @@ metricsCmd
 
 metricsCmd
   .command("token-usage")
-  .description("Show token usage")
+  .description("Show token usage and cost")
   .argument("<experiment>", "Experiment name")
-  .action(async (e) => displayMetrics(e, tokenUsageMetricsByExperiment));
+  .action(async (experiment) => {
+    const res = await experimentAndAgents({ experiment });
+    if (res.isErr()) {
+      return exitWithError(res);
+    }
+    const [experimentRes] = res.value;
+
+    await displayMetrics(experiment, tokenUsageMetricsByExperiment);
+
+    // Display cost separately
+    const cost = await TokenUsageResource.experimentCost(experimentRes);
+    const formattedCost = cost < 0.01
+      ? `$${cost.toFixed(6)}`
+      : cost < 1
+        ? `$${cost.toFixed(4)}`
+        : `$${cost.toFixed(2)}`;
+    console.log(`\nTotal Cost: ${formattedCost}`);
+  });
 
 metricsCmd
   .command("publications")

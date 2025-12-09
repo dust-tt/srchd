@@ -3,6 +3,7 @@ import { AgentResource } from "@app/resources/agent";
 import { MessageResource } from "@app/resources/messages";
 import { PublicationResource } from "@app/resources/publication";
 import { SolutionResource } from "@app/resources/solutions";
+import { TokenUsageResource } from "@app/resources/token_usage";
 import {
   baseTemplate,
   experimentNav,
@@ -34,17 +35,31 @@ export const experimentsList = async (c: Input) => {
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
 
+  // Calculate costs for all experiments
+  const experimentsWithCost = await Promise.all(
+    experiments.map(async (exp) => {
+      const cost = await TokenUsageResource.experimentCost(exp);
+      const formattedCost = cost < 0.01
+        ? `$${cost.toFixed(6)}`
+        : cost < 1
+          ? `$${cost.toFixed(4)}`
+          : `$${cost.toFixed(2)}`;
+      return { exp, cost: formattedCost };
+    }),
+  );
+
   const content = `
     <h1>Experiments</h1>
-    ${experiments
-      .map((exp) => {
+    ${experimentsWithCost
+      .map(({ exp, cost }) => {
         const data = exp.toJSON();
         return `
         <div class="card">
           <h3><a href="/experiments/${data.id}">${sanitizeText(data.name)}</a></h3>
           <div class="meta">
             Created: ${sanitizeText(data.created.toLocaleString())} |
-            Updated: ${sanitizeText(data.updated.toLocaleString())}
+            Updated: ${sanitizeText(data.updated.toLocaleString())} |
+            Cost: <strong>${sanitizeText(cost)}</strong>
           </div>
         </div>
       `;
@@ -75,6 +90,14 @@ export const experimentOverview = async (c: Input) => {
   const tokenMetrics = await tokenUsageMetricsByExperiment(experiment);
   const publicationMetrics = await publicationMetricsByExperiment(experiment);
 
+  // Calculate cost
+  const cost = await TokenUsageResource.experimentCost(experiment);
+  const formattedCost = cost < 0.01
+    ? `$${cost.toFixed(6)}`
+    : cost < 1
+      ? `$${cost.toFixed(4)}`
+      : `$${cost.toFixed(2)}`;
+
   const content = `
     ${experimentNav(id, "overview")}
     <div class="card">
@@ -84,14 +107,15 @@ export const experimentOverview = async (c: Input) => {
         Updated: ${sanitizeText(expData.updated.toLocaleString())} |
         Agents: ${experimentAgents.length} |
         Publications: ${experimentPublications.length} |
-        Solutions: ${experimentSolutions.length}
+        Solutions: ${experimentSolutions.length} |
+        Cost: <strong>${sanitizeText(formattedCost)}</strong>
       </div>
     </div>
     <div class="card">
       <div class="content">${sanitizeText(expData.problem)}</div>
     </div>
     ${renderMessageMetrics(messageMetrics)}
-    ${renderTokenUsageMetrics(tokenMetrics)}
+    ${renderTokenUsageMetrics(tokenMetrics, formattedCost)}
     ${renderPublicationMetrics(publicationMetrics)}
   `;
 
@@ -118,15 +142,14 @@ export const experimentAgents = async (c: Input) => {
         return `
         <div class="card">
           <h3><a href="/experiments/${id}/agents/${agentData.id}">${sanitizeText(
-            agentData.name,
-          )}</a></h3>
+          agentData.name,
+        )}</a></h3>
           <div class="meta">
             Provider: ${sanitizeText(agentData.provider)} | Model: ${sanitizeText(
-              agentData.model,
-            )} |
-            Thikning: ${sanitizeText(agentData.thinking)} | Evolutions: ${
-              agentData.evolutions.length
-            } |
+          agentData.model,
+        )} |
+            Thikning: ${sanitizeText(agentData.thinking)} | Evolutions: ${agentData.evolutions.length
+          } |
             Tools: ${sanitizeText(agentData.tools.join(", "))} |
             Created: ${sanitizeText(agentData.created.toLocaleString())}
           </div>
@@ -170,9 +193,8 @@ export const agentOverview = async (c: Input) => {
     agentData.evolutions.length > 0
       ? `
 
-    <h2>Evolutions <span class="count">(${
-      agentData.evolutions.length
-    })</span></h2>
+    <h2>Evolutions <span class="count">(${agentData.evolutions.length
+      })</span></h2>
     <div class="evolution-carousel">
       <div class="evolution-header">
         <a onclick="previousEvolution()" id="prevBtn">← Prev</a>
@@ -182,11 +204,10 @@ export const agentOverview = async (c: Input) => {
       <div class="evolution-content">
         <div id="evolutionDisplay">
           <div class="evolution-meta" id="evolutionMeta">
-            Evolution #${
-              agentData.evolutions.length
-            } (Latest) - Created: ${sanitizeText(
-              agentData.evolutions[0].created.toLocaleString(),
-            )}
+            Evolution #${agentData.evolutions.length
+      } (Latest) - Created: ${sanitizeText(
+        agentData.evolutions[0].created.toLocaleString(),
+      )}
           </div>
           <div class="diff-content" id="diffContent"></div>
         </div>
@@ -283,14 +304,13 @@ export const agentOverview = async (c: Input) => {
       <p><strong>Model:</strong> ${sanitizeText(agentData.model)}</p>
       <p><strong>Tools:</strong> ${sanitizeText(agentData.tools.join(", "))}</p>
       <div class="meta">Created: ${sanitizeText(
-        agentData.created.toLocaleString(),
-      )}</div>
+    agentData.created.toLocaleString(),
+  )}</div>
     </div>
 
     ${evolutionsCarousel}
 
-    <h2>Publications <span class="count">(${
-      agentPublications.length
+    <h2>Publications <span class="count">(${agentPublications.length
     })</span></h2>
     ${agentPublications
       .map((pub) => {
@@ -299,13 +319,13 @@ export const agentOverview = async (c: Input) => {
         return `
         <div class="card">
           <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
-            pubData.title,
-          )}</a></h3>
+          pubData.title,
+        )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
           <div class="meta">
             <span class="status ${statusClass}">${sanitizeText(
-              pubData.status,
-            )}</span> |
+          pubData.status,
+        )}</span> |
             Reference: ${sanitizeText(pubData.reference)}
           </div>
         </div>
@@ -321,8 +341,7 @@ export const agentOverview = async (c: Input) => {
         return `
         <div class="card">
           <h3>Solution</h3>
-          <div><span class="reason-badge ${
-            reasonClass
+          <div><span class="reason-badge ${reasonClass
           }">${sanitizeText(solData.reason.replace("_", " "))}</span></div>
           <p>${sanitizeText(solData.rationale)}</p>
           <div class="meta">Created: ${sanitizeText(
@@ -338,11 +357,11 @@ export const agentOverview = async (c: Input) => {
 
     <div class="activity-feed">
       ${agentMessages
-        .map((msg) => {
-          const msgData = msg.toJSON();
-          return renderMessage(msgData, msg.position());
-        })
-        .join("")}
+      .map((msg) => {
+        const msgData = msg.toJSON();
+        return renderMessage(msgData, msg.position());
+      })
+      .join("")}
     </div>
 
     <script>
@@ -405,28 +424,27 @@ export const publicationList = async (c: Input) => {
         return `
         <div class="card">
           <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
-            pubData.title,
-          )}</a></h3>
+          pubData.title,
+        )}</a></h3>
           <div class="abstract">${sanitizeText(pubData.abstract)}</div>
           <div class="meta">
             Reference: ${sanitizeText(pubData.reference)} |
             <span class="status ${statusClass}">${sanitizeText(
-              pubData.status,
-            )}</span> |
+          pubData.status,
+        )}</span> |
             Author: ${sanitizeText(pubData.author.name)} |
             Created: ${sanitizeText(pubData.created.toLocaleString())} |
             Citations: ${pubData.citations.to.length} |
-            Reviews: ${
-              pubData.reviews
-                .filter((r) => r.grade)
-                .map(
-                  (r) =>
-                    `<span class="grade ${safeGradeClass(
-                      r.grade,
-                    )}">${sanitizeText(r.grade ?? "")}</span>`,
-                )
-                .join("") || "No reviews yet"
-            }
+            Reviews: ${pubData.reviews
+            .filter((r) => r.grade)
+            .map(
+              (r) =>
+                `<span class="grade ${safeGradeClass(
+                  r.grade,
+                )}">${sanitizeText(r.grade ?? "")}</span>`,
+            )
+            .join("") || "No reviews yet"
+          }
           </div>
         </div>
       `;
@@ -478,84 +496,76 @@ export const publicationDetail = async (c: Input) => {
       <h3>Content</h3>
       <div class="content markdown-content">${sanitizeMarkdown(pubData.content ?? "")}</div>
     </div>
-    ${
-      pubData.citations.from.length > 0
-        ? `
-      <h2>Citations From This Publication <span class="count">(${
-        pubData.citations.from.length
+    ${pubData.citations.from.length > 0
+      ? `
+      <h2>Citations From This Publication <span class="count">(${pubData.citations.from.length
       })</span></h2>
       <div class="citations">
         ${pubData.citations.from
-          .map(
-            (cit) => `
+        .map(
+          (cit) => `
           <div class="citation">→ <a href="/experiments/${id}/publications/${cit.to}">${sanitizeText(
             String(cit.to),
           )}</a></div>
         `,
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `
-        : ""
+      : ""
     }
-    ${
-      pubData.citations.to.length > 0
-        ? `
-      <h2>Citations To This Publication <span class="count">(${
-        pubData.citations.to.length
+    ${pubData.citations.to.length > 0
+      ? `
+      <h2>Citations To This Publication <span class="count">(${pubData.citations.to.length
       })</span></h2>
       <div class="citations">
         ${pubData.citations.to
-          .map(
-            (cit) => `
+        .map(
+          (cit) => `
           <div class="citation">← <a href="/experiments/${id}/publications/${cit.from}">${sanitizeText(
             String(cit.from),
           )}</a></div>
         `,
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `
-        : ""
+      : ""
     }
-    ${
-      pubData.reviews.length > 0
-        ? `
+    ${pubData.reviews.length > 0
+      ? `
       <h2>Reviews <span class="count">(${pubData.reviews.length})</span></h2>
       ${pubData.reviews
         .map(
           (review) => `
         <div class="card">
           <h3>Review by ${sanitizeText(review.author.name || "Unknown")}</h3>
-          ${
-            review.grade
+          ${review.grade
               ? `<span class="grade ${safeGradeClass(
-                  review.grade,
-                )}">${sanitizeText(review.grade.replace("_", " "))}</span>`
+                review.grade,
+              )}">${sanitizeText(review.grade.replace("_", " "))}</span>`
               : ""
-          }
-          <div class="meta">Created: ${
-            review.created
+            }
+          <div class="meta">Created: ${review.created
               ? sanitizeText(new Date(review.created).toLocaleString())
               : "Unknown"
-          }</div>
+            }</div>
         </div>
-        ${
-          review.content
-            ? `
+        ${review.content
+              ? `
         <div class="card">
           <div class="content markdown-content">${sanitizeMarkdown(
-            review.content || "(empty)",
-          )}</div>
+                review.content || "(empty)",
+              )}</div>
         </div>
         `
-            : ""
-        }
+              : ""
+            }
       `,
         )
         .join("")}
     `
-        : ""
+      : ""
     }
   `;
 
@@ -641,9 +651,8 @@ export const solutionList = async (c: Input) => {
 
   const content = `
     ${experimentNav(id, "solutions")}
-    ${
-      chartData.publicationLines.length > 0
-        ? `
+    ${chartData.publicationLines.length > 0
+      ? `
     <div class="card">
       <h3>Solution Evolution Timeline</h3>
       <div class="solution-chart">
@@ -652,17 +661,17 @@ export const solutionList = async (c: Input) => {
         </svg>
         <div class="chart-legend">
           ${chartData.publicationLines
-            .map(
-              (line, _index) => `
+        .map(
+          (line, _index) => `
             <div class="legend-item">
               <div class="legend-color" style="background-color: ${line.color};"></div>
               <span>${sanitizeText(
-                line.reference,
-              )} (current: ${line.currentSupport})</span>
+            line.reference,
+          )} (current: ${line.currentSupport})</span>
             </div>
           `,
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
       </div>
     </div>
@@ -787,7 +796,7 @@ export const solutionList = async (c: Input) => {
       renderSolutionChart(chartData);
     </script>
     `
-        : ""
+      : ""
     }
 
     ${experimentSolutions
@@ -797,16 +806,14 @@ export const solutionList = async (c: Input) => {
         return `
         <div class="card">
           <h3>Solution by ${sanitizeText(solData.agent.name)}</h3>
-          <div><span class="reason-badge ${
-            reasonClass
+          <div><span class="reason-badge ${reasonClass
           }">${sanitizeText(solData.reason.replace("_", " "))}</span>
-          ${
-            solData.publication
-              ? `
+          ${solData.publication
+            ? `
             <a href="/experiments/${id}/publications/${solData.publication.id}">${sanitizeText(
               solData.publication.reference,
             )}</a>`
-              : ""
+            : ""
           }
           </div>
           <p>${sanitizeText(solData.rationale)}</p>
