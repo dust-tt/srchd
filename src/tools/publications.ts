@@ -236,7 +236,7 @@ ${r.content}`;
 
       const res = publication.value.toJSON();
 
-      delete (res as any).reviews;
+      delete (res).reviews;
 
       return {
         isError: false,
