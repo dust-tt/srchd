@@ -113,6 +113,9 @@ export class DeepseekLLM extends LLM {
                       break;
                   }
                 });
+                if (message.tool_calls && message.tool_calls.length > 0 && !message.reasoning_content) {
+                  message.reasoning_content = "";
+                }
                 return [message];
             }
           })
@@ -200,14 +203,14 @@ export class DeepseekLLM extends LLM {
 
       const tokenUsage = response.usage
         ? {
-            total: response.usage.total_tokens,
-            input: response.usage.prompt_tokens,
-            output: response.usage.completion_tokens,
-            cached: response.usage.prompt_tokens_details?.cached_tokens ?? 0,
-            thinking:
-              response.usage.completion_tokens_details?.reasoning_tokens ?? 0,
-            cost: this.cost(response.usage),
-          }
+          total: response.usage.total_tokens,
+          input: response.usage.prompt_tokens,
+          output: response.usage.completion_tokens,
+          cached: response.usage.prompt_tokens_details?.cached_tokens ?? 0,
+          thinking:
+            response.usage.completion_tokens_details?.reasoning_tokens ?? 0,
+          cost: this.cost(response.usage),
+        }
         : undefined;
 
       return ok({
