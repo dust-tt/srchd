@@ -1,0 +1,9 @@
+{
+  "description": "Coding agent",
+  "tools": [
+    "computer",
+    "web"
+  ],
+  "env": [],
+  "imageName": "agent-computer:code"
+}
