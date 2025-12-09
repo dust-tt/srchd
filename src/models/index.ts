@@ -86,4 +86,36 @@ export abstract class LLM {
   ): Promise<Result<number>>;
 
   abstract maxTokens(): number;
+
+  /**
+   * Calculate the cost for a single TokenUsage.
+   * Each provider implements its own pricing logic.
+   */
+  protected abstract costPerTokenUsage(tokenUsage: TokenUsage): number;
+
+  /**
+   * Calculate the total cost for a list of TokenUsage objects.
+   * Accumulates tokens and calculates the total price.
+   */
+  public cost(tokenUsages: TokenUsage[]): number {
+    // Accumulate all token usages
+    const accumulated: TokenUsage = {
+      total: 0,
+      input: 0,
+      output: 0,
+      cached: 0,
+      thinking: 0,
+    };
+
+    for (const usage of tokenUsages) {
+      accumulated.total += usage.total;
+      accumulated.input += usage.input;
+      accumulated.output += usage.output;
+      accumulated.cached += usage.cached;
+      accumulated.thinking += usage.thinking;
+    }
+
+    // Calculate cost for the accumulated usage
+    return this.costPerTokenUsage(accumulated);
+  }
 }
