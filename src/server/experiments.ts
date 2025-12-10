@@ -4,6 +4,8 @@ import { MessageResource } from "@app/resources/messages";
 import { isAgentReview, PublicationResource } from "@app/resources/publication";
 import { SolutionResource } from "@app/resources/solutions";
 import { TokenUsageResource } from "@app/resources/token_usage";
+import fs from "fs";
+import path from "path";
 import {
   baseTemplate,
   experimentNav,
@@ -493,6 +495,10 @@ export const publicationDetail = async (c: Input) => {
     <h1>${publicationTitle}</h1>
     <div style="margin-bottom: 15px;">
       <a href="/experiments/${id}/publications/${pubId}/download" class="btn" download>Download as Markdown</a>
+      ${fs.existsSync(path.join("attachments", `${publicationReference}.tar`))
+        ? `<a href="/experiments/${id}/publications/${pubId}/attachment" class="btn" download>Download Attachment</a>`
+        : ""
+      }
     </div>
     <div class="card">
       <p><strong>Author:</strong> ${publicationAuthor}</p>
@@ -639,6 +645,33 @@ export const publicationDownload = async (c: Input) => {
 
   return c.body(markdown, 200, {
     "Content-Type": "text/markdown; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+  });
+};
+
+// Publication attachment download
+export const publicationAttachmentDownload = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
+  const pubId = parseInt(c.req.param("pubId"));
+
+  const experiment = await ExperimentResource.findById(id);
+  if (!experiment) return c.notFound();
+
+  const publication = await PublicationResource.findById(experiment, pubId);
+  if (!publication) return c.notFound();
+
+  const pubData = publication.toJSON();
+  const attachmentPath = path.join("attachments", `${pubData.reference}.tar`);
+
+  if (!fs.existsSync(attachmentPath)) {
+    return c.notFound();
+  }
+
+  const fileContent = fs.readFileSync(attachmentPath);
+  const filename = `${pubData.reference}.tar`;
+
+  return c.body(fileContent, 200, {
+    "Content-Type": "application/x-tar",
     "Content-Disposition": `attachment; filename="${filename}"`,
   });
 };
