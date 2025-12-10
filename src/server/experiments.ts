@@ -7,6 +7,7 @@ import { TokenUsageResource } from "@app/resources/token_usage";
 import {
   baseTemplate,
   experimentNav,
+  isPatchContent,
   prepareChartData,
   renderMessage,
   renderMessageMetrics,
@@ -17,6 +18,7 @@ import {
   safeScriptJSON,
   safeStatusClass,
   sanitizeMarkdown,
+  sanitizePatchContent,
   sanitizeText,
 } from "./styling";
 import { BlankEnv, BlankInput } from "hono/types";
@@ -112,7 +114,7 @@ export const experimentOverview = async (c: Input) => {
       </div>
     </div>
     <div class="card">
-      <div class="content">${sanitizeText(expData.problem)}</div>
+      <div class="content">${sanitizeMarkdown(expData.problem)}</div>
     </div>
     ${renderMessageMetrics(messageMetrics)}
     ${renderTokenUsageMetrics(tokenMetrics, formattedCost)}
@@ -479,6 +481,13 @@ export const publicationDetail = async (c: Input) => {
   const experimentName = sanitizeText(expData.name);
   const publicationStatusClass = safeStatusClass(pubData.status);
 
+  // Check if content is a patch/diff file
+  const contentRaw = pubData.content ?? "";
+  const isPatch = isPatchContent(contentRaw);
+  const renderedContent = isPatch
+    ? `<div class="content diff-content">${sanitizePatchContent(contentRaw)}</div>`
+    : `<div class="content markdown-content">${sanitizeMarkdown(contentRaw)}</div>`;
+
   const content = `
     ${experimentNav(id, "publications")}
     <h1>${publicationTitle}</h1>
@@ -494,7 +503,7 @@ export const publicationDetail = async (c: Input) => {
     </div>
     <div class="card">
       <h3>Content</h3>
-      <div class="content markdown-content">${sanitizeMarkdown(pubData.content ?? "")}</div>
+      ${renderedContent}
     </div>
     ${pubData.citations.from.length > 0
       ? `
