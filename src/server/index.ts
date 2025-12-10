@@ -7,6 +7,7 @@ import {
   experimentsList,
   publicationDetail,
   publicationDownload,
+  publicationAttachmentDownload,
   publicationList,
   solutionList,
 } from "./experiments";
@@ -39,6 +40,7 @@ export const createApp = (auth?: BasicAuthConfig) => {
   app.get("/experiments/:id/publications", publicationList);
   app.get("/experiments/:id/publications/:pubId", publicationDetail);
   app.get("/experiments/:id/publications/:pubId/download", publicationDownload);
+  app.get("/experiments/:id/publications/:pubId/attachment", publicationAttachmentDownload);
   app.get("/experiments/:id/solutions", solutionList);
 
   return app;
