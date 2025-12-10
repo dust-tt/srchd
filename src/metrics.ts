@@ -22,6 +22,10 @@ export type PublicationMetric = {
   totalPublished: number;
 };
 
+export type RuntimeMetric = {
+  totalRuntimeMs: number;
+};
+
 function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
   const totalMessages = messages.length;
   const fullMessages = messages.map((msg) => msg.toJSON());
@@ -89,6 +93,54 @@ export async function publicationMetricsByExperiment(
     (e, a) => PublicationResource.listByAuthor(e, a),
     calculatePublicationMetrics,
   );
+}
+
+function calculateRuntimeMetrics(messages: MessageResource[]): RuntimeMetric {
+  if (messages.length === 0) {
+    return {
+      totalRuntimeMs: 0,
+    };
+  }
+
+  // Sort messages by creation timestamp
+  const sortedMessages = messages
+    .map((msg) => msg.created())
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  let totalRuntimeMs = 0;
+  const GAP_THRESHOLD_MS = 60 * 1000; // 1 minute
+
+  // Start first run with the first message
+  let runStartTime = sortedMessages[0].getTime();
+  let lastMessageTime = runStartTime;
+
+  for (let i = 1; i < sortedMessages.length; i++) {
+    const currentMessageTime = sortedMessages[i].getTime();
+    const gap = currentMessageTime - lastMessageTime;
+
+    if (gap > GAP_THRESHOLD_MS) {
+      // Gap detected - close current run and add to total
+      totalRuntimeMs += lastMessageTime - runStartTime;
+      // Start new run
+      runStartTime = currentMessageTime;
+    }
+
+    lastMessageTime = currentMessageTime;
+  }
+
+  // Add the final run
+  totalRuntimeMs += lastMessageTime - runStartTime;
+
+  return {
+    totalRuntimeMs,
+  };
+}
+
+export async function runtimeMetricsByExperiment(
+  experiment: ExperimentResource,
+): Promise<RuntimeMetric> {
+  const messages = await MessageResource.listMessagesByExperiment(experiment);
+  return calculateRuntimeMetrics(messages);
 }
 
 async function metricsForExperiment<M, D>(

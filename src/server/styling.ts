@@ -4,6 +4,7 @@ import {
   ExperimentMetrics,
   MessageMetric,
   PublicationMetric,
+  RuntimeMetric,
 } from "@app/metrics";
 import {
   Message,
@@ -948,6 +949,38 @@ export const renderPublicationMetrics = (
     ["totalPublications", "totalPublished"],
     ["Total Publications", "Published"],
   );
+};
+
+export const renderRuntimeMetrics = (metrics: RuntimeMetric) => {
+  // Format the runtime
+  const totalSeconds = Math.floor(metrics.totalRuntimeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  let formatted = "";
+  if (hours > 0) {
+    formatted += `${hours}h `;
+  }
+  if (minutes > 0 || hours > 0) {
+    formatted += `${minutes}m `;
+  }
+  formatted += `${seconds}s`;
+  return `
+    <div class="card">
+      <h3>Runtime Metrics</h3>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <span class="metric-label">Total Runtime:</span>
+          <span class="metric-value">${sanitizeText(formatted)}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Total Runtime (ms):</span>
+          <span class="metric-value">${sanitizeText(metrics.totalRuntimeMs)}</span>
+        </div>
+      </div>
+    </div>
+  `;
 };
 
 const renderContentBlock = (

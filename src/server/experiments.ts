@@ -12,6 +12,7 @@ import {
   renderMessage,
   renderMessageMetrics,
   renderPublicationMetrics,
+  renderRuntimeMetrics,
   renderTokenUsageMetrics,
   safeGradeClass,
   safeReasonClass,
@@ -26,6 +27,7 @@ import { Context } from "hono";
 import {
   messageMetricsByExperiment,
   publicationMetricsByExperiment,
+  runtimeMetricsByExperiment,
   tokenUsageMetricsByExperiment,
 } from "@app/metrics";
 
@@ -91,6 +93,7 @@ export const experimentOverview = async (c: Input) => {
   const messageMetrics = await messageMetricsByExperiment(experiment);
   const tokenMetrics = await tokenUsageMetricsByExperiment(experiment);
   const publicationMetrics = await publicationMetricsByExperiment(experiment);
+  const runtimeMetrics = await runtimeMetricsByExperiment(experiment);
 
   // Calculate cost
   const cost = await TokenUsageResource.experimentCost(experiment);
@@ -116,6 +119,7 @@ export const experimentOverview = async (c: Input) => {
     <div class="card">
       <div class="content">${sanitizeMarkdown(expData.problem)}</div>
     </div>
+    ${renderRuntimeMetrics(runtimeMetrics)}
     ${renderMessageMetrics(messageMetrics)}
     ${renderTokenUsageMetrics(tokenMetrics, formattedCost)}
     ${renderPublicationMetrics(publicationMetrics)}
