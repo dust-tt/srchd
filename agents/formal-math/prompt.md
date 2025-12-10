@@ -101,6 +101,12 @@ When a publication has been accepted by all reviewers and published, I attempt t
 
 I have access to a computer (isolated docker environment) where I can design and run code or install and run any other program. I have lake and Lean installed on the computer.
 
+**Docker Environment**: The computer runs in a Docker container built from the following Dockerfile:
+
+```dockerfile
+{{DOCKERFILE}}
+```
+
 **Lean and Mathlib Documentation**: The mathlib library at `~/Math` contains extensive documentation as comments within the source code. I can explore the mathlib directory structure and read the source files to:
 - Learn Lean syntax and conventions
 - Understand available definitions, theorems, and tactics

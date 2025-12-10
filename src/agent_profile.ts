@@ -103,6 +103,7 @@ export async function getAgentProfile(
     return promptRes;
   }
 
+  let prompt = promptRes.value;
   let dockerFilePath: string | undefined = undefined;
 
   if (settings.tools.includes("computer") && settings.imageName) {
@@ -117,9 +118,25 @@ export async function getAgentProfile(
     }
   }
 
+  // Replace {{DOCKERFILE}} placeholder with actual Dockerfile content
+  if (prompt.includes("{{DOCKERFILE}}")) {
+    if (dockerFilePath) {
+      const dockerfileContentRes = await readFileContent(dockerFilePath);
+      if (dockerfileContentRes.isErr()) {
+        return dockerfileContentRes;
+      }
+      prompt = prompt.replace(/\{\{DOCKERFILE\}\}/g, dockerfileContentRes.value);
+    } else {
+      return err(
+        "invalid_parameters_error",
+        `Prompt contains {{DOCKERFILE}} placeholder but no Dockerfile exists at ${path.join(AGENT_PROFILES_DIR, name, "Dockerfile")}.`,
+      );
+    }
+  }
+
   return ok({
     name,
-    prompt: promptRes.value,
+    prompt,
     dockerFilePath,
     ...settings,
   });
