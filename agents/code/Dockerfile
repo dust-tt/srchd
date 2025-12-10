@@ -29,7 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Search Tools
     ripgrep \
     # Qemu
-    qemu-system
+    qemu-system \
+    # ssh
+    openssh-client
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
@@ -45,6 +47,7 @@ RUN mkdir -p /home/agent/.ssh && \
     chmod 700 /home/agent/.ssh
 
 USER agent
+# IDENTITY_FILES_COPY_PLACEHOLDER
 WORKDIR /home/agent
 
 # Create Python virtual environment and install common packages
