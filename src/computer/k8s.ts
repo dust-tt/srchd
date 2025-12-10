@@ -42,6 +42,7 @@ export async function computerExec(
   computerId: string,
   timeoutMs?: number,
   stdinStream?: Readable,
+  stdoutStream?: Writable,
 ): Promise<Result<{ stdout: string; stderr: string; exitCode: number }>> {
   const k8sExec = new k8s.Exec(kc);
   let stdout = "";
@@ -49,7 +50,7 @@ export async function computerExec(
   let exitCode = 0;
   let failReason: "commandRunFailed" | "executionFailed" | undefined;
   const execPromise = new Promise<void>((resolve, reject) => {
-    const stdoutStream = new Writable({
+    stdoutStream = stdoutStream ?? new Writable({
       write(chunk, _enc, callback) {
         stdout += chunk.toString();
         callback();
@@ -185,6 +186,43 @@ export async function copyToComputer(
     return err(
       "copy_file_error",
       `Couldn't copy file to computer: ${podName(namespace, computerId)}:
+      Got exit code: ${res.value.exitCode}
+      And error: ${res.value.stderr}`,
+    );
+  }
+
+  return ok(undefined);
+}
+
+export async function copyFromComputer(
+  computerId: string,
+  remotePath: string,
+  localPath: string,
+  namespace: string = K8S_NAMESPACE,
+): Promise<Result<void>> {
+  const copyCommand = ["tar", "cf", "-", "-C", p.dirname(remotePath), p.basename(remotePath)];
+
+  const writeStream = fs.createWriteStream(localPath);
+
+  const res = await computerExec(
+    copyCommand,
+    namespace,
+    computerId,
+    undefined,
+    undefined,
+    writeStream,
+  );
+
+  writeStream.end();
+
+  if (res.isErr()) {
+    return res;
+  }
+
+  if (res.value.exitCode !== 0) {
+    return err(
+      "copy_file_error",
+      `Couldn't copy file from computer: ${podName(namespace, computerId)}:
       Got exit code: ${res.value.exitCode}
       And error: ${res.value.stderr}`,
     );
