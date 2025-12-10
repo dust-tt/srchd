@@ -99,6 +99,67 @@ export const sanitizeMarkdown = (value: unknown): string => {
   }
 };
 
+/**
+ * Detects if content is a patch/diff file by checking for common patch patterns
+ * This is strict to avoid false positives with markdown containing code blocks with patches
+ */
+export const isPatchContent = (content: string): boolean => {
+  if (!content || typeof content !== "string") return false;
+
+  const lines = content.trim().split("\n");
+  if (lines.length < 3) return false;
+
+  // First line must be a patch indicator (not markdown)
+  const firstLine = lines[0].trim();
+  const hasValidFirstLine =
+    firstLine.startsWith("diff --git") ||
+    firstLine.startsWith("--- ") ||
+    firstLine.startsWith("Index: ") ||
+    firstLine.startsWith("From ") ||
+    firstLine.startsWith("@@");
+
+  if (!hasValidFirstLine) return false;
+
+  // Check for patch-specific patterns in the first 20 lines
+  let hasFileHeaders = false;
+  let hasHunkHeaders = false;
+  const checkLines = lines.slice(0, Math.min(20, lines.length));
+
+  for (const line of checkLines) {
+    // Check for unified diff headers
+    if ((line.startsWith("--- ") && line.length > 4) ||
+      (line.startsWith("+++ ") && line.length > 4)) {
+      hasFileHeaders = true;
+    }
+    // Check for hunk headers (@@)
+    if (line.startsWith("@@") && line.includes("@@")) {
+      hasHunkHeaders = true;
+    }
+    // Check for diff --git
+    if (line.startsWith("diff --git ")) {
+      hasFileHeaders = true;
+    }
+  }
+
+  // Must have either file headers or hunk headers to be considered a patch
+  return hasFileHeaders || hasHunkHeaders;
+};
+
+/**
+ * Sanitizes patch/diff content for safe HTML display as plain text
+ */
+export const sanitizePatchContent = (content: string): string => {
+  if (!content) return "";
+
+  // Just escape HTML special characters, no syntax highlighting
+  return content
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
 export const safeScriptJSON = (value: unknown): string =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")
