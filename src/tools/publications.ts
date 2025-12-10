@@ -11,6 +11,10 @@ import { ExperimentResource } from "@app/resources/experiment";
 import { err } from "@app/lib/error";
 import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 import { RunConfig } from "@app/runner/config";
+import { copyFromComputer, copyToComputer } from "@app/computer/k8s";
+import { computerId } from "@app/computer";
+import fs from "fs";
+import path from "path";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -24,6 +28,9 @@ export const publicationHeader = (
   publication: PublicationResource,
   { withAbstract }: { withAbstract: boolean },
 ) => {
+  const attachmentPath = path.join("attachments", `${publication.toJSON().reference}.tar`);
+  const hasAttachment = fs.existsSync(attachmentPath);
+
   return (
     `\
 reference=[${publication.toJSON().reference}]
@@ -34,7 +41,8 @@ reviews:${publication
       .reviews.map((r) => `${r.grade ?? "PENDING"}`)
       .join(", ")}
 status=${publication.toJSON().status}
-citations_count=${publication.toJSON().citations.to.length}` +
+citations_count=${publication.toJSON().citations.to.length}
+attachment=${hasAttachment ? "yes" : "no"}` +
     (withAbstract
       ? `\nabstract=${publication.toJSON().abstract.replace("\n", " ")}`
       : "")
@@ -194,8 +202,14 @@ ${r.content}`;
         .describe(
           "Full content of the publication. Use [{ref}] or [{ref},{ref}] inlined in content for citations.",
         ),
+      attachment_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional path to a file or directory in your computer to attach to the publication. Requires the computer tool to be active, otherwise this parameter is ignored.",
+        ),
     },
-    async ({ title, abstract, content }) => {
+    async ({ title, abstract, content, attachment_path }) => {
       const pendingReviews =
         await PublicationResource.listByExperimentAndReviewRequested(
           experiment,
@@ -230,6 +244,26 @@ ${r.content}`;
         return errorToCallToolResult(publication);
       }
 
+      if (attachment_path) {
+        const reference = publication.value.toJSON().reference;
+        const localPath = path.join("attachments", `${reference}.tar`);
+
+        // Ensure attachments directory exists
+        if (!fs.existsSync("attachments")) {
+          fs.mkdirSync("attachments", { recursive: true });
+        }
+
+        const copyRes = await copyFromComputer(
+          computerId(experiment, agent),
+          attachment_path,
+          localPath,
+        );
+
+        if (copyRes.isErr()) {
+          return errorToCallToolResult(copyRes);
+        }
+      }
+
       const reviews = await publication.value.requestReviewers(reviewers);
       if (reviews.isErr()) {
         return errorToCallToolResult(reviews);
@@ -251,7 +285,52 @@ ${r.content}`;
             type: "text",
             text: `Publication submitted. Reference: [${
               publication.value.toJSON().reference
-            }].`,
+            }].${attachment_path ? " Attachment included." : ""}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "download_publication_attachment",
+    "Download the attachment of a publication to your computer. The attachment will be saved as a tar archive that you need to extract manually using `tar xf <filename>`.",
+    {
+      reference: z.string().describe("Reference of the publication."),
+    },
+    async ({ reference }) => {
+      const publication = await PublicationResource.findByReference(
+        experiment,
+        reference,
+      );
+      if (!publication) {
+        return errorToCallToolResult(
+          err("not_found_error", "Publication not found"),
+        );
+      }
+
+      const localPath = path.join("attachments", `${reference}.tar`);
+      if (!fs.existsSync(localPath)) {
+        return errorToCallToolResult(
+          err("not_found_error", "Attachment file not found"),
+        );
+      }
+
+      const copyRes = await copyToComputer(
+        computerId(experiment, agent),
+        localPath,
+      );
+
+      if (copyRes.isErr()) {
+        return errorToCallToolResult(copyRes);
+      }
+
+      return {
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: `Attachment downloaded to /home/agent/${reference}.tar. Extract it using: tar xf ${reference}.tar`,
           },
         ],
       };
