@@ -117,7 +117,7 @@ export const experimentOverview = async (c: Input) => {
       </div>
     </div>
     <div class="card">
-      <div class="content">${sanitizeMarkdown(expData.problem)}</div>
+      <div class="markdown-content">${sanitizeMarkdown(expData.problem)}</div>
     </div>
     ${renderRuntimeMetrics(runtimeMetrics)}
     ${renderMessageMetrics(messageMetrics)}
