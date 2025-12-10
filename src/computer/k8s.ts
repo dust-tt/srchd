@@ -75,7 +75,7 @@ export async function computerExec(
         stdinStream ?? null,
         false,
         (status: k8s.V1Status) => {
-          stdoutStream.end();
+          stdoutStream?.end();
           stderrStream.end();
 
           /* Error Status example:
