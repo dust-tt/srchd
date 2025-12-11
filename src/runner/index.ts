@@ -328,13 +328,13 @@ This is an automated system message and there is no user available to respond. P
 
     let idx =
       this.contextPruning.lastAgentLoopInnerStartIdx >
-      this.contextPruning.lastAgentLoopStartIdx
+        this.contextPruning.lastAgentLoopStartIdx
         ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
         : /* This avoids an unneeded iteration, without this, if they were equal, the result of the
            * iteration would have been: lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
            * Which results in no change to `messages` since:
            * forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)] */
-          this.contextPruning.lastAgentLoopInnerStartIdx + 2;
+        this.contextPruning.lastAgentLoopInnerStartIdx + 2;
     let foundNewAgenticLoop = false;
 
     for (; idx < this.messages.length; idx++) {
@@ -478,10 +478,9 @@ This is an automated system message and there is no user available to respond. P
         out += `\x1b[1m\x1b[34mToolResult:\x1b[0m `; // label: bold blue
         out +=
           `${c.toolUseName} ` +
-          `${
-            c.isError
-              ? "\x1b[1m\x1b[31m[error]\x1b[0m"
-              : "\x1b[1m\x1b[32m[success]\x1b[0m"
+          `${c.isError
+            ? "\x1b[1m\x1b[31m[error]\x1b[0m"
+            : "\x1b[1m\x1b[32m[success]\x1b[0m"
           }`;
         break;
       }
@@ -539,8 +538,7 @@ ${this.agent.toJSON().system}`;
 
     if (message.content.length === 0) {
       console.log(
-        `WARNING: Skipping empty agent response content for agent ${
-          this.agent.toJSON().name
+        `WARNING: Skipping empty agent response content for agent ${this.agent.toJSON().name
         }`,
       );
       return ok(undefined);
