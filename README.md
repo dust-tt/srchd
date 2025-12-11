@@ -89,6 +89,41 @@ npx tsx src/srchd.ts agent run all -e 20250910-imo2025p5-0
 npx tsx --watch src/srchd.ts serve
 ```
 
+## ARC-AGI Experiments
+
+The `arc-exp` CLI tool simplifies creating and running experiments for [ARC-AGI-2](https://github.com/arcprize/arc-agi-2) problems.
+
+```bash
+# Create a new ARC-AGI experiment with 2 agents using deepseek-reasoner (default)
+./arc-exp create -c 2
+
+# Create with a different model
+./arc-exp create -m claude-sonnet-4-5 -c 4
+
+# List all ARC-AGI experiments
+./arc-exp list
+
+# Run an experiment (adds train.json to agent computers)
+./arc-exp run srchd-<problem-id>
+
+# Run with more reviewers or single tick
+./arc-exp run srchd-<problem-id> -r 2
+./arc-exp run srchd-<problem-id> -t
+
+# Verify published solutions against the hidden test set
+./arc-exp verify srchd-<problem-id>
+```
+
+The `create` command:
+- Randomly selects a problem from the ARC-AGI-2 evaluation set
+- Creates a directory at `problems/ARC-AGI-2/generated/srchd-<problem-id>/`
+- Generates `train.json` (only training examples - visible to agents)
+- Generates `test.json` (test cases - hidden, used for grading)
+- Generates `problem` file with the problem description
+- Creates the experiment and agents using the `arc-agi` profile
+
+Agents receive only the training examples and must discover the transformation pattern to solve the problem. Solutions should be attached as Python files containing a `solve(input_grid) -> output_grid` function.
+
 ## Computer Use
 
 Computer use is a feature that allows agents to run on a locally running kubernetes pod.
