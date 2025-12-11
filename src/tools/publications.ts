@@ -20,12 +20,28 @@ reviewer=${review.author.name}
 grade=${review.grade ?? "PENDING"}`;
 };
 
+
+export function attachmentPath(experimentId: number, reference: string, filename?: string) {
+  const pth = [
+    "attachments",
+    `${experimentId}`,
+    `${reference}`,
+  ];
+  if (filename) {
+    pth.push(path.basename(filename));
+  }
+  return path.join(...pth);
+}
+
 export const publicationHeader = (
   publication: PublicationResource,
   { withAbstract }: { withAbstract: boolean },
 ) => {
-  const attachmentPath = path.join("attachments", `${publication.toJSON().reference}.tar`);
-  const hasAttachment = fs.existsSync(attachmentPath);
+  const experimentId = publication.toJSON().experiment;
+  const reference = publication.toJSON().reference;
+
+  const attachmentsDir = attachmentPath(experimentId, reference);
+  const attachments = fs.existsSync(attachmentsDir) ? fs.readdirSync(attachmentsDir) : [];
 
   return (
     `\
@@ -38,10 +54,10 @@ reviews:${publication
       .join(", ")}
 status=${publication.toJSON().status}
 citations_count=${publication.toJSON().citations.to.length}
-attachment=${hasAttachment ? "yes" : "no"}` +
+attachments=[${attachments.join(",") + "]" +
     (withAbstract
-      ? `\nabstract=${publication.toJSON().abstract.replace("\n", " ")}`
-      : "")
+      ? `\nabstract = ${publication.toJSON().abstract.replace("\n", " ")}`
+      : "")}`
   );
 };
 
@@ -73,6 +89,7 @@ export async function createPublicationsServer(
     title: "Publications: Tools to submit, review and access publications.",
     version: SERVER_VERSION,
   });
+
 
   server.tool(
     "list_publications",
@@ -171,19 +188,21 @@ ${publication.toJSON().content}` +
               (publication.toJSON().status === "PUBLISHED"
                 ? `\
 ${publication
-  .toJSON()
-  .reviews.map((r) => {
-    return `\
+                  .toJSON()
+                  .reviews.map((r) => {
+                    return `\
 ${reviewHeader(r)}
 ${r.content}`;
-  })
-  .join("\n\n")}`
+                  })
+                  .join("\n\n")}`
                 : "(reviews are hidden until publication/rejection)"),
           },
         ],
       };
     },
   );
+
+  const hasComputerTool = agent.toJSON().tools.includes("computer");
 
   server.tool(
     "submit_publication",
@@ -198,14 +217,15 @@ ${r.content}`;
         .describe(
           "Full content of the publication. Use [{ref}] or [{ref},{ref}] inlined in content for citations.",
         ),
-      attachment_path: z
-        .string()
-        .optional()
-        .describe(
-          "Optional path to a file or directory in your computer to attach to the publication. Requires the computer tool to be active, otherwise this parameter is ignored.",
-        ),
+      ...(hasComputerTool ? {
+        attachments: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Optional paths to files in your computer to attach to the publication.",
+          ) } : {}),
     },
-    async ({ title, abstract, content, attachment_path }) => {
+    async ({ title, abstract, content, attachments }) => {
       const pendingReviews =
         await PublicationResource.listByExperimentAndReviewRequested(
           experiment,
@@ -240,23 +260,26 @@ ${r.content}`;
         return errorToCallToolResult(publication);
       }
 
-      if (attachment_path) {
+      if (attachments && hasComputerTool) {
         const reference = publication.value.toJSON().reference;
-        const localPath = path.join("attachments", `${reference}.tar`);
+        const attachmentsDir = attachmentPath(experiment.toJSON().id, reference);
 
         // Ensure attachments directory exists
-        if (!fs.existsSync("attachments")) {
-          fs.mkdirSync("attachments", { recursive: true });
+        if (!fs.existsSync(attachmentsDir)) {
+          fs.mkdirSync(attachmentsDir, { recursive: true });
         }
 
-        const copyRes = await copyFromComputer(
-          computerId(experiment, agent),
-          attachment_path,
-          localPath,
-        );
+        for (const attachment_path of attachments) {
+          const localFilePath = attachmentPath(experiment.toJSON().id, reference, attachment_path);
+          const copyRes = await copyFromComputer(
+            computerId(experiment, agent),
+            attachment_path,
+            localFilePath,
+          );
 
-        if (copyRes.isErr()) {
-          return errorToCallToolResult(copyRes);
+          if (copyRes.isErr()) {
+            return errorToCallToolResult(copyRes);
+          }
         }
       }
 
@@ -277,59 +300,60 @@ ${r.content}`;
         content: [
           {
             type: "text",
-            text: `Publication submitted. Reference: [${
-              publication.value.toJSON().reference
-            }].${attachment_path ? " Attachment included." : ""}`,
+            text: `Publication submitted. Reference: [${publication.value.toJSON().reference
+              }]. " Attachments included." : ""}`,
           },
         ],
       };
     },
   );
 
-  server.tool(
-    "download_publication_attachment",
-    "Download the attachment of a publication to your computer. The attachment will be saved as a tar archive that you need to extract manually using `tar xf <filename>`.",
-    {
-      reference: z.string().describe("Reference of the publication."),
-    },
-    async ({ reference }) => {
-      const publication = await PublicationResource.findByReference(
-        experiment,
-        reference,
-      );
-      if (!publication) {
-        return errorToCallToolResult(
-          err("not_found_error", "Publication not found"),
+  if (hasComputerTool) {
+    server.tool(
+      "download_publication_attachments",
+      "Download the attachments of a publication to your computer. The attachments will be saved under the folder /home/agent/`${reference}` in your computer.",
+      {
+        reference: z.string().describe("Reference of the publication."),
+      },
+      async ({ reference }) => {
+        const publication = await PublicationResource.findByReference(
+          experiment,
+          reference,
         );
-      }
+        if (!publication) {
+          return errorToCallToolResult(
+            err("not_found_error", "Publication not found"),
+          );
+        }
 
-      const localPath = path.join("attachments", `${reference}.tar`);
-      if (!fs.existsSync(localPath)) {
-        return errorToCallToolResult(
-          err("not_found_error", "Attachment file not found"),
+        const attachmentsDir = attachmentPath(publication.experiment.toJSON().id, reference);
+        if (!fs.existsSync(attachmentsDir)) {
+          return errorToCallToolResult(
+            err("not_found_error", "Attachment files not found"),
+          );
+        }
+
+        const copyRes = await copyToComputer(
+          computerId(experiment, agent),
+          attachmentsDir,
         );
-      }
 
-      const copyRes = await copyToComputer(
-        computerId(experiment, agent),
-        localPath,
-      );
+        if (copyRes.isErr()) {
+          return errorToCallToolResult(copyRes);
+        }
 
-      if (copyRes.isErr()) {
-        return errorToCallToolResult(copyRes);
-      }
-
-      return {
-        isError: false,
-        content: [
-          {
-            type: "text",
-            text: `Attachment downloaded to /home/agent/${reference}.tar. Extract it using: tar xf ${reference}.tar`,
-          },
-        ],
-      };
-    },
-  );
+        return {
+          isError: false,
+          content: [
+            {
+              type: "text",
+              text: `Attachment downloaded to /home/agent/${reference}.`,
+            },
+          ],
+        };
+      },
+    );
+  }
 
   server.tool(
     "list_review_requests",
