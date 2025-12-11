@@ -202,7 +202,19 @@ export async function copyFromComputer(
 ): Promise<Result<void>> {
   const copyCommand = ["tar", "cf", "-", "-C", p.dirname(remotePath), p.basename(remotePath)];
 
-  const writeStream = fs.createWriteStream(localPath);
+  const extract = tar.extract();
+  const remoteName = p.basename(remotePath);
+
+  extract.on('entry', (header, stream, next) => {
+    if (header.name === remoteName) {
+      const writeStream = fs.createWriteStream(localPath);
+      stream.pipe(writeStream);
+      stream.on('end', next);
+    } else {
+      stream.on('end', next);
+      stream.resume();
+    }
+  });
 
   const res = await computerExec(
     copyCommand,
@@ -210,10 +222,8 @@ export async function copyFromComputer(
     computerId,
     undefined,
     undefined,
-    writeStream,
+    extract,
   );
-
-  writeStream.end();
 
   if (res.isErr()) {
     return res;
