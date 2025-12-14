@@ -46,6 +46,13 @@ RUN chmod 600 /home/agent/.ssh/${privateKeyFilename} && \\
     chmod 644 /home/agent/.ssh/${publicKeyFilename}
 
 RUN ssh-keyscan github.com >> /home/agent/.ssh/known_hosts
+
+
+RUN echo "Host github.com" >> /home/agent/.ssh/config && \\
+    echo "    HostName github.com" >> /home/agent/.ssh/config && \\
+    echo "    User git" >> /home/agent/.ssh/config && \\
+    echo "    IdentityFile /home/agent/.ssh/${privateKeyFilename}" >> /home/agent/.ssh/config && \\
+    echo "    IdentitiesOnly yes" >> /home/agent/.ssh/config
 `;
 
   const df = await dockerFile(dfPath);
