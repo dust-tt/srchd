@@ -318,7 +318,7 @@ export class PublicationResource {
       return err(
         "reference_not_found_error",
         "Reference not found in publication submission content: " +
-          notFound.join(","),
+        notFound.join(","),
       );
     }
 
