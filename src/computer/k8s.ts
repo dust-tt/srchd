@@ -105,9 +105,9 @@ export async function computerExec(
           resolve();
         },
       )
-      .catch((err: any) => {
+      .catch((e: any) => {
         failReason = "executionFailed";
-        reject(new Error(err));
+        reject(e as Error);
       });
   });
 
@@ -117,7 +117,7 @@ export async function computerExec(
     } else {
       await Promise.race([execPromise, timeout(timeoutMs)]);
     }
-  } catch (err: any) {
+  } catch (e: any) {
     if (failReason === "commandRunFailed") {
       return ok({
         exitCode,
@@ -126,14 +126,14 @@ export async function computerExec(
       });
     }
 
-    if (err instanceof Err) {
-      return err;
+    if (e instanceof Err) {
+      return e;
     }
 
     return err(
       "pod_run_error",
       `Failed to execute ${cmd.join(" ")}`,
-      new Error(err),
+      e,
     );
   }
 
