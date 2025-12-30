@@ -201,6 +201,14 @@ export class DeepseekLLM extends LLM {
         );
       }
 
+      if (!textContent && !toolCalls) {
+        output.push({
+          type: "text" as const,
+          text: "",
+          provider: null,
+        });
+      }
+
       const tokenUsage = response.usage
         ? this.tokenUsage(response.usage)
         : undefined;
