@@ -49,22 +49,24 @@ function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
 
 export async function messageMetricsByExperiment(
   experiment: ExperimentResource,
+  options?: { before?: Date },
 ): Promise<ExperimentMetrics<MessageMetric>> {
   return metricsForExperiment(
     experiment,
-    async (e) => MessageResource.listMessagesByExperiment(e),
-    async (e, a) => MessageResource.listMessagesByAgent(e, a),
+    async (e) => MessageResource.listMessagesByExperiment(e, options),
+    async (e, a) => MessageResource.listMessagesByAgent(e, a, options),
     calculateMessageMetrics,
   );
 }
 
 export async function tokenUsageMetricsByExperiment(
   experiment: ExperimentResource,
+  options?: { before?: Date },
 ): Promise<ExperimentMetrics<TokenUsage>> {
   return metricsForExperiment(
     experiment,
-    async (e) => TokenUsageResource.experimentTokenUsage(e),
-    async (e, a) => TokenUsageResource.agentTokenUsage(e, a),
+    async (e) => TokenUsageResource.experimentTokenUsage(e, options),
+    async (e, a) => TokenUsageResource.agentTokenUsage(e, a, options),
     (d) => d,
   );
 }
@@ -86,41 +88,57 @@ function calculatePublicationMetrics(
 
 export async function publicationMetricsByExperiment(
   experiment: ExperimentResource,
+  options?: { before?: Date },
 ): Promise<ExperimentMetrics<PublicationMetric>> {
   return await metricsForExperiment(
     experiment,
-    (e) => PublicationResource.listByExperiment(e),
-    (e, a) => PublicationResource.listByAuthor(e, a),
+    (e) => PublicationResource.listByExperiment(e, options),
+    (e, a) => PublicationResource.listByAuthor(e, a, options),
     calculatePublicationMetrics,
   );
 }
 
-function calculateRuntimeMetrics(messages: MessageResource[]): RuntimeMetric {
-  if (messages.length === 0) {
-    return {
-      totalRuntimeMs: 0,
-    };
+interface RuntimeRun {
+  startTimestampMs: number;
+  endTimestampMs: number;
+  durationMs: number;
+}
+
+/**
+ * Detects runtime runs by finding gaps in message timestamps.
+ * A gap is defined as > 1 minute between consecutive messages.
+ * Returns an array of continuous runtime segments.
+ */
+function detectRuntimeRuns(
+  messages: MessageResource[],
+): RuntimeRun[] {
+  // Extract and sort timestamps
+  const sortedTimestampsMs = messages
+    .map((msg) => msg.created().getTime())
+    .sort((a, b) => a - b);
+
+  if (sortedTimestampsMs.length === 0) {
+    return [];
   }
 
-  // Sort messages by creation timestamp
-  const sortedMessages = messages
-    .map((msg) => msg.created())
-    .sort((a, b) => a.getTime() - b.getTime());
-
-  let totalRuntimeMs = 0;
   const GAP_THRESHOLD_MS = 60 * 1000; // 1 minute
+  const runs: RuntimeRun[] = [];
 
-  // Start first run with the first message
-  let runStartTime = sortedMessages[0].getTime();
+  let runStartTime = sortedTimestampsMs[0];
   let lastMessageTime = runStartTime;
 
-  for (let i = 1; i < sortedMessages.length; i++) {
-    const currentMessageTime = sortedMessages[i].getTime();
+  for (let i = 1; i < sortedTimestampsMs.length; i++) {
+    const currentMessageTime = sortedTimestampsMs[i];
     const gap = currentMessageTime - lastMessageTime;
 
     if (gap > GAP_THRESHOLD_MS) {
-      // Gap detected - close current run and add to total
-      totalRuntimeMs += lastMessageTime - runStartTime;
+      // Gap detected - close current run
+      runs.push({
+        startTimestampMs: runStartTime,
+        endTimestampMs: lastMessageTime,
+        durationMs: lastMessageTime - runStartTime,
+      });
+
       // Start new run
       runStartTime = currentMessageTime;
     }
@@ -129,17 +147,60 @@ function calculateRuntimeMetrics(messages: MessageResource[]): RuntimeMetric {
   }
 
   // Add the final run
-  totalRuntimeMs += lastMessageTime - runStartTime;
+  runs.push({
+    startTimestampMs: runStartTime,
+    endTimestampMs: lastMessageTime,
+    durationMs: lastMessageTime - runStartTime,
+  });
 
-  return {
-    totalRuntimeMs,
-  };
+  return runs;
+}
+
+/**
+ * Calculate total runtime by summing all runtime runs.
+ */
+function calculateRuntimeMetrics(messages: MessageResource[]): RuntimeMetric {
+  const runs = detectRuntimeRuns(messages);
+  return { totalRuntimeMs: runs.reduce((total, run) => total + run.durationMs, 0) };
+}
+
+/**
+ * Find the timestamp that corresponds to a specific runtime offset from experiment start.
+ * Returns null if the target runtime exceeds the available runtime.
+ */
+export function findTimestampAtRuntimeOffset(
+  messages: MessageResource[],
+  targetRuntimeMs: number,
+): Date | null {
+  const runs = detectRuntimeRuns(messages);
+
+  if (runs.length === 0) {
+    return null;
+  }
+
+  let accumulatedRuntimeMs = 0;
+
+  for (const run of runs) {
+    const runEndRuntime = accumulatedRuntimeMs + run.durationMs;
+
+    if (runEndRuntime >= targetRuntimeMs) {
+      // Target is within this run
+      const offsetIntoRun = targetRuntimeMs - accumulatedRuntimeMs;
+      return new Date(run.startTimestampMs + offsetIntoRun);
+    }
+
+    accumulatedRuntimeMs = runEndRuntime;
+  }
+
+  // Target runtime exceeds total runtime
+  return null;
 }
 
 export async function runtimeMetricsByExperiment(
   experiment: ExperimentResource,
+  options?: { before?: Date },
 ): Promise<RuntimeMetric> {
-  const messages = await MessageResource.listMessagesByExperiment(experiment);
+  const messages = await MessageResource.listMessagesByExperiment(experiment, options);
   return calculateRuntimeMetrics(messages);
 }
 

@@ -1,4 +1,4 @@
-import { and, eq, sum } from "drizzle-orm";
+import { and, eq, sum, lte } from "drizzle-orm";
 import { token_usages, agents } from "@app/db/schema";
 import { AgentResource } from "./agent";
 import { MessageResource } from "./messages";
@@ -16,7 +16,13 @@ import { assertNever } from "@app/lib/assert";
 export class TokenUsageResource {
   static async experimentTokenUsage(
     experiment: ExperimentResource,
+    options?: { before?: Date },
   ): Promise<TokenUsage> {
+    const whereConditions = [eq(token_usages.experiment, experiment.toJSON().id)];
+    if (options?.before) {
+      whereConditions.push(lte(token_usages.created, options.before));
+    }
+
     const results = await db
       .select({
         total: sum(token_usages.total),
@@ -26,7 +32,7 @@ export class TokenUsageResource {
         thinking: sum(token_usages.thinking),
       })
       .from(token_usages)
-      .where(eq(token_usages.experiment, experiment.toJSON().id));
+      .where(and(...whereConditions));
 
     return {
       total: Number(results[0].total),
@@ -40,7 +46,16 @@ export class TokenUsageResource {
   static async agentTokenUsage(
     experiment: ExperimentResource,
     agent: AgentResource,
+    options?: { before?: Date },
   ): Promise<TokenUsage> {
+    const whereConditions = [
+      eq(token_usages.experiment, experiment.toJSON().id),
+      eq(token_usages.agent, agent.toJSON().id),
+    ];
+    if (options?.before) {
+      whereConditions.push(lte(token_usages.created, options.before));
+    }
+
     const results = await db
       .select({
         total: sum(token_usages.total),
@@ -50,12 +65,7 @@ export class TokenUsageResource {
         thinking: sum(token_usages.thinking),
       })
       .from(token_usages)
-      .where(
-        and(
-          eq(token_usages.experiment, experiment.toJSON().id),
-          eq(token_usages.agent, agent.toJSON().id),
-        ),
-      );
+      .where(and(...whereConditions));
 
     return {
       total: Number(results[0].total),
@@ -71,8 +81,14 @@ export class TokenUsageResource {
    */
   static async experimentCost(
     experiment: ExperimentResource,
+    options?: { before?: Date },
   ): Promise<number> {
     // Get all token usages grouped by agent
+    const whereConditions = [eq(token_usages.experiment, experiment.toJSON().id)];
+    if (options?.before) {
+      whereConditions.push(lte(token_usages.created, options.before));
+    }
+
     const agentUsages = await db
       .select({
         agentId: token_usages.agent,
@@ -83,7 +99,7 @@ export class TokenUsageResource {
         thinking: sum(token_usages.thinking),
       })
       .from(token_usages)
-      .where(eq(token_usages.experiment, experiment.toJSON().id))
+      .where(and(...whereConditions))
       .groupBy(token_usages.agent);
 
     let totalCost = 0;

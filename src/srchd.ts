@@ -5,6 +5,8 @@ import { readFileContent } from "./lib/fs";
 import { Err, err, ok, Result, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
+import { MessageResource } from "./resources/messages";
+import { PublicationResource } from "./resources/publication";
 import { Runner } from "./runner";
 import { isArrayOf, isString, newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
@@ -19,6 +21,8 @@ import {
   messageMetricsByExperiment,
   tokenUsageMetricsByExperiment,
   publicationMetricsByExperiment,
+  runtimeMetricsByExperiment,
+  findTimestampAtRuntimeOffset,
 } from "./metrics";
 import { ExperimentMetrics } from "./metrics";
 import {
@@ -92,14 +96,18 @@ const metricsCmd = program.command("metrics").description("Show metrics");
 
 async function displayMetrics<M>(
   experiment: string,
-  metricsByExperiment: (e: ExperimentResource) => Promise<ExperimentMetrics<M>>,
+  metricsByExperiment: (
+    e: ExperimentResource,
+    options?: { before?: Date },
+  ) => Promise<ExperimentMetrics<M>>,
+  options?: { before?: Date },
 ): Promise<void> {
   const res = await experimentAndAgents({ experiment });
   if (res.isErr()) {
     return exitWithError(res);
   }
   const [experimentRes] = res.value;
-  const metrics = await metricsByExperiment(experimentRes);
+  const metrics = await metricsByExperiment(experimentRes, options);
   if (!metrics) {
     return exitWithError(
       err("not_found_error", `Experiment '${experiment}' not found.`),
@@ -114,40 +122,134 @@ async function displayMetrics<M>(
   console.table(agents);
 }
 
+async function displayRuntimeAndCost(
+  experiment: ExperimentResource,
+  options?: { before?: Date },
+): Promise<void> {
+  const cost = await TokenUsageResource.experimentCost(experiment, options);
+  const formattedCost = cost < 0.01
+    ? `$${cost.toFixed(6)}`
+    : cost < 1
+      ? `$${cost.toFixed(4)}`
+      : `$${cost.toFixed(2)}`;
+
+  const runtime = await runtimeMetricsByExperiment(experiment, options);
+  const runtimeSeconds = runtime.totalRuntimeMs / 1000;
+  const runtimeMinutes = runtimeSeconds / 60;
+  const runtimeHours = runtimeMinutes / 60;
+
+  const formattedRuntime = runtimeHours >= 1
+    ? `${runtimeHours.toFixed(2)} hours`
+    : runtimeMinutes >= 1
+      ? `${runtimeMinutes.toFixed(2)} minutes`
+      : `${runtimeSeconds.toFixed(2)} seconds`;
+
+  console.log(`\nTotal Cost: ${formattedCost}`);
+  console.log(`Total Runtime: ${formattedRuntime}`);
+}
+
+async function handleBefore(
+  experiment: string,
+  beforeValue: string | undefined,
+): Promise<{ experimentRes: ExperimentResource; beforeDate: Date | undefined }> {
+  const res = await experimentAndAgents({ experiment });
+  if (res.isErr()) {
+    return exitWithError(res);
+  }
+  const [experimentRes] = res.value;
+
+  if (!beforeValue) {
+    return { experimentRes, beforeDate: undefined };
+  }
+
+  // Determine if it's minutes (<=3 digits) or publication reference (all 4 chars) (>3 chars)
+  const isMinutes = beforeValue.length <= 3;
+
+  if (isMinutes) {
+    // Parse as minutes of runtime from start
+    const minutes = parseInt(beforeValue, 10);
+    if (isNaN(minutes) || minutes < 1 || minutes > 999) {
+      return exitWithError(
+        err(
+          "invalid_parameters_error",
+          `Invalid minutes value '${beforeValue}'. Must be a positive number between 1 and 999.`,
+        ),
+      );
+    }
+    const targetRuntimeMs = minutes * 60 * 1000;
+
+    // Fetch messages and calculate runtime offset
+    const messages = await MessageResource.listMessagesByExperiment(experimentRes);
+    const timestamp = findTimestampAtRuntimeOffset(messages, targetRuntimeMs);
+
+    if (!timestamp) {
+      console.warn(`Warning: Target runtime ${minutes} minutes exceeds total experiment runtime.`);
+      return { experimentRes, beforeDate: undefined };
+    }
+
+    return { experimentRes, beforeDate: timestamp };
+  } else {
+    // Treat as publication reference
+    const publication = await PublicationResource.findByReference(
+      experimentRes,
+      beforeValue,
+    );
+    if (!publication) {
+      console.warn(`Warning: Publication with reference '${beforeValue}' not found.`);
+      return { experimentRes, beforeDate: undefined };
+    }
+
+    return { experimentRes, beforeDate: publication.toJSON().updated };
+  }
+}
+
 metricsCmd
   .command("messages")
   .description("Show message metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (e) => displayMetrics(e, messageMetricsByExperiment));
+  .option(
+    "--before <value>",
+    "Only count messages before: minutes of runtime (1-999) or publication reference (e.g., ejhy)",
+  )
+  .action(async (experiment, cmdOptions) => {
+    const { beforeDate } = await handleBefore(experiment, cmdOptions.before);
+    await displayMetrics(experiment, messageMetricsByExperiment, {
+      before: beforeDate,
+    });
+  });
 
 metricsCmd
   .command("token-usage")
   .description("Show token usage and cost")
   .argument("<experiment>", "Experiment name")
-  .action(async (experiment) => {
-    const res = await experimentAndAgents({ experiment });
-    if (res.isErr()) {
-      return exitWithError(res);
-    }
-    const [experimentRes] = res.value;
+  .option(
+    "--before <value>",
+    "Only count token usage before: minutes of runtime (1-999) or publication reference (e.g., ejhy)",
+  )
+  .action(async (experiment, cmdOptions) => {
+    const { experimentRes, beforeDate } = await handleBefore(experiment, cmdOptions.before);
 
-    await displayMetrics(experiment, tokenUsageMetricsByExperiment);
+    await displayMetrics(experiment, tokenUsageMetricsByExperiment, {
+      before: beforeDate,
+    });
 
-    // Display cost separately
-    const cost = await TokenUsageResource.experimentCost(experimentRes);
-    const formattedCost = cost < 0.01
-      ? `$${cost.toFixed(6)}`
-      : cost < 1
-        ? `$${cost.toFixed(4)}`
-        : `$${cost.toFixed(2)}`;
-    console.log(`\nTotal Cost: ${formattedCost}`);
+    await displayRuntimeAndCost(experimentRes, { before: beforeDate });
   });
 
 metricsCmd
   .command("publications")
   .description("Calculate publication metrics")
   .argument("<experiment>", "Experiment name")
-  .action(async (e) => displayMetrics(e, publicationMetricsByExperiment));
+  .option(
+    "--before <value>",
+    "Only count publications before: minutes of runtime (1-999) or publication reference (e.g., ejhy)",
+  )
+  .action(async (experiment, cmdOptions) => {
+    const { beforeDate } = await handleBefore(experiment, cmdOptions.before);
+    await displayMetrics(experiment, publicationMetricsByExperiment, {
+      before: beforeDate,
+    });
+  });
 
 // Experiment commands
 const experimentCmd = program

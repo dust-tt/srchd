@@ -1,6 +1,6 @@
 import { db, Tx } from "@app/db";
 import { messages } from "@app/db/schema";
-import { eq, InferSelectModel, and, asc } from "drizzle-orm";
+import { eq, InferSelectModel, and, asc, lte } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { AgentResource } from "./agent";
 import { Message } from "@app/models";
@@ -40,16 +40,20 @@ export class MessageResource {
   static async listMessagesByAgent(
     experiment: ExperimentResource,
     agent: AgentResource,
+    options?: { before?: Date },
   ): Promise<MessageResource[]> {
+    const whereConditions = [
+      eq(messages.experiment, experiment.toJSON().id),
+      eq(messages.agent, agent.toJSON().id),
+    ];
+    if (options?.before) {
+      whereConditions.push(lte(messages.created, options.before));
+    }
+
     const results = await db
       .select()
       .from(messages)
-      .where(
-        and(
-          eq(messages.experiment, experiment.toJSON().id),
-          eq(messages.agent, agent.toJSON().id),
-        ),
-      )
+      .where(and(...whereConditions))
       .orderBy(asc(messages.position));
 
     return results.map((msg) => new MessageResource(msg, experiment));
@@ -57,11 +61,17 @@ export class MessageResource {
 
   static async listMessagesByExperiment(
     experiment: ExperimentResource,
+    options?: { before?: Date },
   ): Promise<MessageResource[]> {
+    const whereConditions = [eq(messages.experiment, experiment.toJSON().id)];
+    if (options?.before) {
+      whereConditions.push(lte(messages.created, options.before));
+    }
+
     const results = await db
       .select()
       .from(messages)
-      .where(eq(messages.experiment, experiment.toJSON().id))
+      .where(and(...whereConditions))
       .orderBy(asc(messages.position));
 
     return results.map((msg) => new MessageResource(msg, experiment));

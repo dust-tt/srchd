@@ -10,6 +10,7 @@ import {
   count,
   isNull,
   getTableColumns,
+  lte,
 } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
@@ -210,16 +211,20 @@ export class PublicationResource {
   static async listByAuthor(
     experiment: ExperimentResource,
     author: AgentResource,
+    options?: { before?: Date },
   ): Promise<PublicationResource[]> {
+    const whereConditions = [
+      eq(publications.experiment, experiment.toJSON().id),
+      eq(publications.author, author.toJSON().id),
+    ];
+    if (options?.before) {
+      whereConditions.push(lte(publications.created, options.before));
+    }
+
     const results = await db
       .select()
       .from(publications)
-      .where(
-        and(
-          eq(publications.experiment, experiment.toJSON().id),
-          eq(publications.author, author.toJSON().id),
-        ),
-      );
+      .where(and(...whereConditions));
 
     return await concurrentExecutor(
       results,
@@ -232,11 +237,17 @@ export class PublicationResource {
 
   static async listByExperiment(
     experiment: ExperimentResource,
+    options?: { before?: Date },
   ): Promise<PublicationResource[]> {
+    const whereConditions = [eq(publications.experiment, experiment.toJSON().id)];
+    if (options?.before) {
+      whereConditions.push(lte(publications.created, options.before));
+    }
+
     const results = await db
       .select()
       .from(publications)
-      .where(eq(publications.experiment, experiment.toJSON().id))
+      .where(and(...whereConditions))
       .orderBy(desc(publications.created));
 
     return await concurrentExecutor(
