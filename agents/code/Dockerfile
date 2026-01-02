@@ -28,15 +28,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq xmlstarlet \
     # Search Tools
     ripgrep \
-    # Qemu
-    qemu-system \
     # ssh
     openssh-client
 
 # Install Node.js 24.x from NodeSource
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs
-
 
 # Install Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
