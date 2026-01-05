@@ -5,13 +5,7 @@ import { MessageResource } from "./messages";
 import { db, Tx } from "@app/db";
 import { TokenUsage } from "@app/models/index";
 import { ExperimentResource } from "./experiment";
-import { AnthropicLLM, isAnthropicModel } from "@app/models/anthropic";
-import { DeepseekLLM, isDeepseekModel } from "@app/models/deepseek";
-import { GeminiLLM, isGeminiModel } from "@app/models/gemini";
-import { OpenAILLM, isOpenAIModel } from "@app/models/openai";
-import { MistralLLM, isMistralModel } from "@app/models/mistral";
-import { MoonshotAILLM, isMoonshotAIModel } from "@app/models/moonshotai";
-import { assertNever } from "@app/lib/assert";
+import { createLLM } from "@app/models/provider";
 
 export class TokenUsageResource {
   static async experimentTokenUsage(
@@ -106,26 +100,7 @@ export class TokenUsageResource {
         };
 
         // Calculate cost using the model's cost method
-        const model = agentData[0].model;
-        const config = {};
-        let llm;
-
-        if (isAnthropicModel(model)) {
-          llm = new AnthropicLLM(config, model);
-        } else if (isDeepseekModel(model)) {
-          llm = new DeepseekLLM(config, model);
-        } else if (isGeminiModel(model)) {
-          llm = new GeminiLLM(config, model);
-        } else if (isOpenAIModel(model)) {
-          llm = new OpenAILLM(config, model);
-        } else if (isMistralModel(model)) {
-          llm = new MistralLLM(config, model);
-        } else if (isMoonshotAIModel(model)) {
-          llm = new MoonshotAILLM(config, model);
-        } else {
-          assertNever(model);
-        }
-
+        const llm = createLLM(agentData[0].model);
         const cost = llm.cost([tokenUsage]);
         totalCost += cost;
       }

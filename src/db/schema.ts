@@ -6,14 +6,8 @@ import {
   index,
 } from "drizzle-orm/sqlite-core";
 import { Message, ThinkingConfig } from "@app/models";
-import { AnthropicModel } from "@app/models/anthropic";
-import { GeminiModel } from "@app/models/gemini";
-import { OpenAIModel } from "@app/models/openai";
-import { MistralModel } from "@app/models/mistral";
 import { ToolName } from "@app/tools/constants";
-import { MoonshotAIModel } from "@app/models/moonshotai";
-import { provider } from "@app/models/provider";
-import { DeepseekModel } from "@app/models/deepseek";
+import { provider, Model } from "@app/models/provider";
 
 export const experiments = sqliteTable(
   "experiments",
@@ -76,16 +70,7 @@ export const agents = sqliteTable(
       .references(() => experiments.id),
     name: text("name").notNull(),
     provider: text("provider").$type<provider>().notNull(),
-    model: text("model")
-      .$type<
-        | AnthropicModel
-        | GeminiModel
-        | OpenAIModel
-        | MistralModel
-        | MoonshotAIModel
-        | DeepseekModel
-      >()
-      .notNull(),
+    model: text("model").$type<Model>().notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
     tools: text("tools", { mode: "json" }).$type<ToolName[]>(),
   },
