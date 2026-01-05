@@ -42,6 +42,7 @@ export async function computerExec(
   computerId: string,
   timeoutMs?: number,
   stdinStream?: Readable,
+  stdoutStream?: Writable,
 ): Promise<Result<{ stdout: string; stderr: string; exitCode: number }>> {
   const k8sExec = new k8s.Exec(kc);
   let stdout = "";
@@ -49,7 +50,7 @@ export async function computerExec(
   let exitCode = 0;
   let failReason: "commandRunFailed" | "executionFailed" | undefined;
   const execPromise = new Promise<void>((resolve, reject) => {
-    const stdoutStream = new Writable({
+    stdoutStream = stdoutStream ?? new Writable({
       write(chunk, _enc, callback) {
         stdout += chunk.toString();
         callback();
@@ -74,7 +75,7 @@ export async function computerExec(
         stdinStream ?? null,
         false,
         (status: k8s.V1Status) => {
-          stdoutStream.end();
+          stdoutStream?.end();
           stderrStream.end();
 
           /* Error Status example:
@@ -170,7 +171,17 @@ export async function copyToComputer(
   }
   pack.finalize();
 
-  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent"];
+  const createPublicationsDirIfNotExistsRes = await computerExec(
+    ["mkdir", "-p", "/home/agent/publications"],
+    namespace,
+    computerId,
+  );
+
+  if (createPublicationsDirIfNotExistsRes.isErr()) {
+    return createPublicationsDirIfNotExistsRes;
+  }
+
+  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent/publications"];
   const res = await computerExec(
     copyCommand,
     namespace,
@@ -185,6 +196,53 @@ export async function copyToComputer(
     return err(
       "copy_file_error",
       `Couldn't copy file to computer: ${podName(namespace, computerId)}:
+      Got exit code: ${res.value.exitCode}
+      And error: ${res.value.stderr}`,
+    );
+  }
+
+  return ok(undefined);
+}
+
+export async function copyFromComputer(
+  computerId: string,
+  remotePath: string,
+  localPath: string,
+  namespace: string = K8S_NAMESPACE,
+): Promise<Result<void>> {
+  const copyCommand = ["tar", "cf", "-", "-C", p.dirname(remotePath), p.basename(remotePath)];
+
+  const extract = tar.extract();
+  const remoteName = p.basename(remotePath);
+
+  extract.on('entry', (header, stream, next) => {
+    if (header.name === remoteName) {
+      const writeStream = fs.createWriteStream(localPath);
+      stream.pipe(writeStream);
+      stream.on('end', next);
+    } else {
+      stream.on('end', next);
+      stream.resume();
+    }
+  });
+
+  const res = await computerExec(
+    copyCommand,
+    namespace,
+    computerId,
+    undefined,
+    undefined,
+    extract,
+  );
+
+  if (res.isErr()) {
+    return res;
+  }
+
+  if (res.value.exitCode !== 0) {
+    return err(
+      "copy_file_error",
+      `Couldn't copy file from computer: ${podName(namespace, computerId)}:
       Got exit code: ${res.value.exitCode}
       And error: ${res.value.stderr}`,
     );

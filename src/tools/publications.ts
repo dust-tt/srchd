@@ -7,6 +7,10 @@ import { ExperimentResource } from "@app/resources/experiment";
 import { err } from "@app/lib/error";
 import { PUBLICATIONS_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 import { RunConfig } from "@app/runner/config";
+import { copyFromComputer, copyToComputer } from "@app/computer/k8s";
+import { computerId } from "@app/computer";
+import fs from "fs";
+import path from "path";
 
 const SERVER_VERSION = "0.1.0";
 
@@ -16,10 +20,29 @@ reviewer=${review.author.name}
 grade=${review.grade ?? "PENDING"}`;
 };
 
+
+export function getAttachmentPath(experimentId: number, reference: string, filename?: string) {
+  const pth = [
+    "attachments",
+    `${experimentId}`,
+    `${reference}`,
+  ];
+  if (filename) {
+    pth.push(path.basename(filename));
+  }
+  return path.join(...pth);
+}
+
 export const publicationHeader = (
   publication: PublicationResource,
   { withAbstract }: { withAbstract: boolean },
 ) => {
+  const experimentId = publication.toJSON().experiment;
+  const reference = publication.toJSON().reference;
+
+  const attachmentsDir = getAttachmentPath(experimentId, reference);
+  const attachments = fs.existsSync(attachmentsDir) ? fs.readdirSync(attachmentsDir) : [];
+
   return (
     `\
 reference=[${publication.toJSON().reference}]
@@ -30,10 +53,11 @@ reviews:${publication
       .reviews.map((r) => `${r.grade ?? "PENDING"}`)
       .join(", ")}
 status=${publication.toJSON().status}
-citations_count=${publication.toJSON().citations.to.length}` +
+citations_count=${publication.toJSON().citations.to.length}
+attachments=[${attachments.join(",") + "]" +
     (withAbstract
-      ? `\nabstract=${publication.toJSON().abstract.replace("\n", " ")}`
-      : "")
+      ? `\nabstract = ${publication.toJSON().abstract.replace("\n", " ")}`
+      : "")}`
   );
 };
 
@@ -65,6 +89,7 @@ export async function createPublicationsServer(
     title: "Publications: Tools to submit, review and access publications.",
     version: SERVER_VERSION,
   });
+
 
   server.tool(
     "list_publications",
@@ -163,19 +188,21 @@ ${publication.toJSON().content}` +
               (publication.toJSON().status === "PUBLISHED"
                 ? `\
 ${publication
-  .toJSON()
-  .reviews.map((r) => {
-    return `\
+                  .toJSON()
+                  .reviews.map((r) => {
+                    return `\
 ${reviewHeader(r)}
 ${r.content}`;
-  })
-  .join("\n\n")}`
+                  })
+                  .join("\n\n")}`
                 : "(reviews are hidden until publication/rejection)"),
           },
         ],
       };
     },
   );
+
+  const hasComputerTool = agent.toJSON().tools.includes("computer");
 
   server.tool(
     "submit_publication",
@@ -190,8 +217,15 @@ ${r.content}`;
         .describe(
           "Full content of the publication. Use [{ref}] or [{ref},{ref}] inlined in content for citations.",
         ),
+      ...(hasComputerTool ? {
+        attachments: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Optional paths to files in your computer to attach to the publication.",
+          ) } : {}),
     },
-    async ({ title, abstract, content }) => {
+    async ({ title, abstract, content, attachments }) => {
       const pendingReviews =
         await PublicationResource.listByExperimentAndReviewRequested(
           experiment,
@@ -226,6 +260,29 @@ ${r.content}`;
         return errorToCallToolResult(publication);
       }
 
+      if (attachments && hasComputerTool) {
+        const reference = publication.value.toJSON().reference;
+        const attachmentsDir = getAttachmentPath(experiment.toJSON().id, reference);
+
+        // Ensure attachments directory exists
+        if (!fs.existsSync(attachmentsDir)) {
+          fs.mkdirSync(attachmentsDir, { recursive: true });
+        }
+
+        for (const attachmentPath of attachments) {
+          const localFilePath = getAttachmentPath(experiment.toJSON().id, reference, attachmentPath);
+          const copyRes = await copyFromComputer(
+            computerId(experiment, agent),
+            attachmentPath,
+            localFilePath,
+          );
+
+          if (copyRes.isErr()) {
+            return errorToCallToolResult(copyRes);
+          }
+        }
+      }
+
       const reviews = await publication.value.requestReviewers(reviewers);
       if (reviews.isErr()) {
         return errorToCallToolResult(reviews);
@@ -243,14 +300,59 @@ ${r.content}`;
         content: [
           {
             type: "text",
-            text: `Publication submitted. Reference: [${
-              publication.value.toJSON().reference
-            }].`,
+            text: "Publication submitted.",
           },
         ],
       };
     },
   );
+
+  if (hasComputerTool) {
+    server.tool(
+      "download_publication_attachments",
+      "Download the attachments of a publication to your computer. The attachments will be saved under the folder /home/agent/publications/`${reference}` in your computer.",
+      {
+        reference: z.string().describe("Reference of the publication."),
+      },
+      async ({ reference }) => {
+        const publication = await PublicationResource.findByReference(
+          experiment,
+          reference,
+        );
+        if (!publication) {
+          return errorToCallToolResult(
+            err("not_found_error", "Publication not found"),
+          );
+        }
+
+        const attachmentsDir = getAttachmentPath(publication.experiment.toJSON().id, reference);
+        if (!fs.existsSync(attachmentsDir)) {
+          return errorToCallToolResult(
+            err("not_found_error", "Attachment files not found"),
+          );
+        }
+
+        const copyRes = await copyToComputer(
+          computerId(experiment, agent),
+          attachmentsDir,
+        );
+
+        if (copyRes.isErr()) {
+          return errorToCallToolResult(copyRes);
+        }
+
+        return {
+          isError: false,
+          content: [
+            {
+              type: "text",
+              text: `Attachment downloaded to /home/agent/publications/${reference}.`,
+            },
+          ],
+        };
+      },
+    );
+  }
 
   server.tool(
     "list_review_requests",

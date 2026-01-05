@@ -4,6 +4,8 @@ import { MessageResource } from "@app/resources/messages";
 import { PublicationResource } from "@app/resources/publication";
 import { SolutionResource } from "@app/resources/solutions";
 import { TokenUsageResource } from "@app/resources/token_usage";
+import fs from "fs";
+import path from "path";
 import {
   baseTemplate,
   experimentNav,
@@ -30,6 +32,7 @@ import {
   runtimeMetricsByExperiment,
   tokenUsageMetricsByExperiment,
 } from "@app/metrics";
+import { getAttachmentPath } from "@app/tools/publications";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 
@@ -484,6 +487,9 @@ export const publicationDetail = async (c: Input) => {
   const publicationCreated = sanitizeText(pubData.created.toLocaleString());
   const experimentName = sanitizeText(expData.name);
   const publicationStatusClass = safeStatusClass(pubData.status);
+  const attachments = fs.existsSync(path.join("attachments", `${id}`, `${publicationReference}`))
+    ? fs.readdirSync(path.join("attachments", `${id}`, `${publicationReference}`))
+    : [];
 
   // Check if content is a patch/diff file
   const contentRaw = pubData.content ?? "";
@@ -497,6 +503,9 @@ export const publicationDetail = async (c: Input) => {
     <h1>${publicationTitle}</h1>
     <div style="margin-bottom: 15px;">
       <a href="/experiments/${id}/publications/${pubId}/download" class="btn" download>Download as Markdown</a>
+      ${attachments.map(
+    (a) => `<a href="/experiments/${id}/publications/${pubId}/attachments/${a}" class="btn" download>Download Attachment [${a}]</a>`,
+  ).join("")}
     </div>
     <div class="card">
       <p><strong>Author:</strong> ${publicationAuthor}</p>
@@ -643,6 +652,34 @@ export const publicationDownload = async (c: Input) => {
 
   return c.body(markdown, 200, {
     "Content-Type": "text/markdown; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+  });
+};
+
+// Publication attachment download
+export const publicationAttachmentDownload = async (c: Input) => {
+  const id = parseInt(c.req.param("id"));
+  const pubId = parseInt(c.req.param("pubId"));
+  const attachment = c.req.param("attachment");
+
+  const experiment = await ExperimentResource.findById(id);
+  if (!experiment) return c.notFound();
+
+  const publication = await PublicationResource.findById(experiment, pubId);
+  if (!publication) return c.notFound();
+
+  const pubData = publication.toJSON();
+  const localPath = getAttachmentPath(pubData.experiment, pubData.reference, attachment);
+
+  if (!fs.existsSync(localPath)) {
+    return c.notFound();
+  }
+
+  const fileContent = fs.readFileSync(localPath);
+  const filename = `${experiment.toJSON().name}_${pubData.reference}_${attachment}`;
+
+  return c.body(fileContent, 200, {
+    "Content-Type": "application/x-tar",
     "Content-Disposition": `attachment; filename="${filename}"`,
   });
 };
