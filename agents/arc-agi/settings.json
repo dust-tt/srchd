@@ -1,0 +1,8 @@
+{
+  "description": "ARC-AGI-II optimised agent",
+  "tools": [
+    "computer"
+  ],
+  "env": [],
+  "imageName": "agent-computer:arc-agi"
+}
