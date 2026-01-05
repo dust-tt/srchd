@@ -410,6 +410,8 @@ agentCmd
   )
   .option("-p, --path <path...>", "Add a file or directory to the computer")
   .option("-t, --tick", "Run one tick only")
+  .option("--max-tokens <tokens>", "Max tokens (in millions) before stopping run")
+  .option("--max-cost <cost>", "Max cost (in dollars) before stopping run")
   .action(async (name, options) => {
     const res = await experimentAndAgents({
       experiment: options.experiment,
@@ -447,6 +449,34 @@ agentCmd
       }
     }
 
+    let maxTokens: number | undefined;
+    let maxCost: number | undefined;
+
+    if (options.maxTokens) {
+      maxTokens = parseInt(options.maxTokens);
+      if (isNaN(maxTokens) || maxTokens < 0) {
+        return exitWithError(
+          err(
+            "invalid_parameters_error",
+            "Max tokens must be a valid integer greater than 0",
+          ),
+        );
+      }
+      maxTokens *= 1_000_000; // convert to millions
+    }
+
+    if (options.maxCost) {
+      maxCost = parseFloat(options.maxCost);
+      if (isNaN(maxCost) || maxCost < 0) {
+        return exitWithError(
+          err(
+            "invalid_parameters_error",
+            "Max cost must be a valid number greater than 0",
+          ),
+        );
+      }
+    }
+
     const builders = await Promise.all(
       agents.map((a) =>
         Runner.builder(experiment, a, {
@@ -480,16 +510,47 @@ agentCmd
       return;
     }
 
+    // Check every 20 ticks except when near the max value
+    const shouldCheck = (
+      tickCount: number,
+      lastVal: number,
+      maxVal: number,
+    ): boolean => (lastVal / maxVal) < 0.95
+        ? tickCount % 20 === 0
+        : true;
+
+    let tickCount = 0;
+    let lastCost = await TokenUsageResource.experimentCost(experiment);
+    let lastTokens = (await TokenUsageResource.experimentTokenUsage(experiment)).total;
     // For continuous running, start each agent in its own independent loop
     const runnerPromises = runners.map(async (runner) => {
       while (true) {
+        if (maxCost && shouldCheck(tickCount, lastCost, maxCost)) {
+          lastCost = await TokenUsageResource.experimentCost(experiment);
+          if (lastCost > maxCost) {
+            console.log(`Cost exceeded: ${lastCost.toFixed(2)}`);
+            process.exit(0);
+          }
+        }
+
+        // Check if max tokens is reached
+        if (maxTokens && shouldCheck(tickCount, lastTokens, maxTokens)) {
+          lastTokens = (await TokenUsageResource.experimentTokenUsage(experiment)).total;
+          if (lastTokens > maxTokens) {
+            console.log(`Tokens exceeded: ${lastTokens.toFixed(2)}`);
+            process.exit(0);
+          }
+        }
+
         const tick = await runner.tick();
+        tickCount++;
         if (tick.isErr()) {
           // eslint-disable-next-line
           throw tick;
         }
       }
     });
+
 
     // Wait for any agent to fail, then exit
     try {
