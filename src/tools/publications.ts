@@ -21,7 +21,7 @@ grade=${review.grade ?? "PENDING"}`;
 };
 
 
-export function attachmentPath(experimentId: number, reference: string, filename?: string) {
+export function getAttachmentPath(experimentId: number, reference: string, filename?: string) {
   const pth = [
     "attachments",
     `${experimentId}`,
@@ -40,7 +40,7 @@ export const publicationHeader = (
   const experimentId = publication.toJSON().experiment;
   const reference = publication.toJSON().reference;
 
-  const attachmentsDir = attachmentPath(experimentId, reference);
+  const attachmentsDir = getAttachmentPath(experimentId, reference);
   const attachments = fs.existsSync(attachmentsDir) ? fs.readdirSync(attachmentsDir) : [];
 
   return (
@@ -262,18 +262,18 @@ ${r.content}`;
 
       if (attachments && hasComputerTool) {
         const reference = publication.value.toJSON().reference;
-        const attachmentsDir = attachmentPath(experiment.toJSON().id, reference);
+        const attachmentsDir = getAttachmentPath(experiment.toJSON().id, reference);
 
         // Ensure attachments directory exists
         if (!fs.existsSync(attachmentsDir)) {
           fs.mkdirSync(attachmentsDir, { recursive: true });
         }
 
-        for (const attachment_path of attachments) {
-          const localFilePath = attachmentPath(experiment.toJSON().id, reference, attachment_path);
+        for (const attachmentPath of attachments) {
+          const localFilePath = getAttachmentPath(experiment.toJSON().id, reference, attachmentPath);
           const copyRes = await copyFromComputer(
             computerId(experiment, agent),
-            attachment_path,
+            attachmentPath,
             localFilePath,
           );
 
@@ -300,8 +300,7 @@ ${r.content}`;
         content: [
           {
             type: "text",
-            text: `Publication submitted. Reference: [${publication.value.toJSON().reference
-              }]. " Attachments included." : ""}`,
+            text: "Publication submitted.",
           },
         ],
       };
@@ -311,7 +310,7 @@ ${r.content}`;
   if (hasComputerTool) {
     server.tool(
       "download_publication_attachments",
-      "Download the attachments of a publication to your computer. The attachments will be saved under the folder /home/agent/`${reference}` in your computer.",
+      "Download the attachments of a publication to your computer. The attachments will be saved under the folder /home/agent/publications/`${reference}` in your computer.",
       {
         reference: z.string().describe("Reference of the publication."),
       },
@@ -326,7 +325,7 @@ ${r.content}`;
           );
         }
 
-        const attachmentsDir = attachmentPath(publication.experiment.toJSON().id, reference);
+        const attachmentsDir = getAttachmentPath(publication.experiment.toJSON().id, reference);
         if (!fs.existsSync(attachmentsDir)) {
           return errorToCallToolResult(
             err("not_found_error", "Attachment files not found"),
@@ -347,7 +346,7 @@ ${r.content}`;
           content: [
             {
               type: "text",
-              text: `Attachment downloaded to /home/agent/${reference}.`,
+              text: `Attachment downloaded to /home/agent/publications/${reference}.`,
             },
           ],
         };

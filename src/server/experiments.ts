@@ -28,7 +28,7 @@ import {
   publicationMetricsByExperiment,
   tokenUsageMetricsByExperiment,
 } from "@app/metrics";
-import { attachmentPath } from "@app/tools/publications";
+import { getAttachmentPath } from "@app/tools/publications";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 
@@ -656,7 +656,7 @@ export const publicationAttachmentDownload = async (c: Input) => {
   if (!publication) return c.notFound();
 
   const pubData = publication.toJSON();
-  const localPath = attachmentPath(pubData.experiment, pubData.reference, attachment);
+  const localPath = getAttachmentPath(pubData.experiment, pubData.reference, attachment);
 
   if (!fs.existsSync(localPath)) {
     return c.notFound();

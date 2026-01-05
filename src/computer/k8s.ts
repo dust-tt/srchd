@@ -171,7 +171,17 @@ export async function copyToComputer(
   }
   pack.finalize();
 
-  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent"];
+  const createPublicationsDirIfNotExistsRes = await computerExec(
+    ["mkdir", "-p", "/home/agent/publications"],
+    namespace,
+    computerId,
+  );
+
+  if (createPublicationsDirIfNotExistsRes.isErr()) {
+    return createPublicationsDirIfNotExistsRes;
+  }
+
+  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent/publications"];
   const res = await computerExec(
     copyCommand,
     namespace,
