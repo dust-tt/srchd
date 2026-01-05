@@ -186,7 +186,7 @@ export class AnthropicLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage  }>
+    Result<{ message: Message; tokenUsage?: TokenUsage }>
   > {
     try {
       const message = await this.client.beta.messages.create({
@@ -249,7 +249,11 @@ export class AnthropicLLM extends LLM {
         betas: ["interleaved-thinking-2025-05-14"],
       });
 
-      const tokenUsage = this.tokenUsage(message.usage);
+      const tokenUsageRes = await this.tokenUsage(message.usage, messages, prompt, toolChoice, tools);
+      if (tokenUsageRes.isErr()) {
+        return tokenUsageRes;
+      }
+      const tokenUsage = tokenUsageRes.value;
       // console.log(message.usage);
 
       return ok({
@@ -368,20 +372,30 @@ export class AnthropicLLM extends LLM {
     }
   }
 
-  private tokenUsage(usage: BetaUsage): TokenUsage {
+  private async tokenUsage(usage: BetaUsage, messages: Message[], prompt: string, toolChoice: ToolChoice, tools: Tool[]): Promise<Result<TokenUsage>> {
     const input =
       usage.input_tokens +
       (usage.cache_read_input_tokens ?? 0) +
       (usage.cache_creation?.ephemeral_1h_input_tokens ?? 0) +
       (usage.cache_creation?.ephemeral_5m_input_tokens ?? 0);
 
-    return {
+
+    // According to Anthropic, to get the thinking tokens, we subtract what we get from the token-counting api
+    // from the output tokens:
+    const countRes = await this.tokens(messages, prompt, toolChoice, tools);
+    if (countRes.isErr()) {
+      return countRes;
+    }
+    const thinking = usage.output_tokens - countRes.value;
+    const realOutput = countRes.value;
+
+    return ok({
       total: usage.output_tokens + input,
       input,
-      output: usage.output_tokens,
+      output: realOutput,
       cached: usage.cache_read_input_tokens ?? 0,
-      thinking: 0, // Anthropic doesn't give thinking token usage
-    };
+      thinking,
+    });
   }
 
   protected costPerTokenUsage(tokenUsage: TokenUsage): number {
