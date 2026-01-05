@@ -482,6 +482,7 @@ agentCmd
 
     // For continuous running, start each agent in its own independent loop
     const runnerPromises = runners.map(async (runner) => {
+      await runner.saveMessageHistoryToComputer();
       while (true) {
         const tick = await runner.tick();
         if (tick.isErr()) {

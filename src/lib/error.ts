@@ -19,7 +19,7 @@ import { isString } from "./utils";
  */
 
 export class Ok<T> {
-  constructor(public value: T) {}
+  constructor(public value: T) { }
 
   isOk(): this is Ok<T> {
     return true;
@@ -31,7 +31,7 @@ export class Ok<T> {
 }
 
 export class Err<E> {
-  constructor(public error: E) {}
+  constructor(public error: E) { }
 
   isOk(): this is Ok<never> {
     return false;
@@ -69,7 +69,8 @@ export type ErrorCode =
   | "pod_initialization_error"
   | "namespace_deletion_error"
   | "port_forward_error"
-  | "string_edit_error";
+  | "string_edit_error"
+  | "message_history_save_error";
 
 export class SrchdError extends Error {
   constructor(

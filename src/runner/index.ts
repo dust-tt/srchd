@@ -24,6 +24,8 @@ import { createServer } from "@app/tools";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
 import { RunConfig } from "./config";
 import { createLLM } from "@app/models/provider";
+import { saveMessageHistoryToComputer } from "@app/computer/message_history";
+import { computerId } from "@app/computer";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -248,7 +250,28 @@ This is an automated system message and there is no user available to respond. P
       position,
     );
 
+    // Save message history to the agent's computer
+    await this.saveMessageHistoryToComputer();
+
     return ok(message);
+  }
+
+  async saveMessageHistoryToComputer(): Promise<void> {
+
+    if (!this.agent.toJSON().tools.includes("computer")) {
+      return;
+    }
+    // Save the message history
+    const saveResult = await saveMessageHistoryToComputer(
+      computerId(this.experiment, this.agent),
+      this.messages,
+    );
+
+    if (saveResult.isErr()) {
+      console.warn(
+        `Failed to save message history: ${saveResult.error.message}`,
+      );
+    }
   }
 
   private isAgentLoopStartMessage(message: Message): boolean {
@@ -454,6 +477,8 @@ This is an automated system message and there is no user available to respond. P
         return newMessage;
       }
       this.messages.push(newMessage.value);
+      // Save message history to the agent's computer if we have a new user message
+      await this.saveMessageHistoryToComputer();
     }
 
     const systemPrompt = `\

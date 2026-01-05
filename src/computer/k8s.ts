@@ -156,7 +156,6 @@ export async function copyToComputer(
   }
   const stat = fs.statSync(path);
   const name = p.basename(path);
-  // If the path isn't absolute, we'll append the cwd to it.
 
   const pack = tar.pack();
   if (stat.isFile()) {
@@ -208,6 +207,8 @@ export async function copyToComputer(
 
   return ok(undefined);
 }
+
+
 
 export async function copyFromComputer(
   computerId: string,
