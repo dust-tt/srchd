@@ -39,8 +39,8 @@ export const experimentsList = async (c: Input) => {
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
 
-  // Calculate costs for all experiments
-  const experimentsWithCost = await Promise.all(
+  // Calculate costs, publications, and solutions for all experiments
+  const experimentsWithMetadata = await Promise.all(
     experiments.map(async (exp) => {
       const cost = await TokenUsageResource.experimentCost(exp);
       const formattedCost = cost < 0.01
@@ -48,14 +48,23 @@ export const experimentsList = async (c: Input) => {
         : cost < 1
           ? `$${cost.toFixed(4)}`
           : `$${cost.toFixed(2)}`;
-      return { exp, cost: formattedCost };
+
+      const publications = await PublicationResource.listByExperiment(exp);
+      const solutions = await SolutionResource.listByExperiment(exp);
+
+      return {
+        exp,
+        cost: formattedCost,
+        publicationsCount: publications.length,
+        solutionsCount: solutions.length,
+      };
     }),
   );
 
   const content = `
     <h1>Experiments</h1>
-    ${experimentsWithCost
-      .map(({ exp, cost }) => {
+    ${experimentsWithMetadata
+      .map(({ exp, cost, publicationsCount, solutionsCount }) => {
         const data = exp.toJSON();
         return `
         <div class="card">
@@ -63,7 +72,9 @@ export const experimentsList = async (c: Input) => {
           <div class="meta">
             Created: ${sanitizeText(data.created.toLocaleString())} |
             Updated: ${sanitizeText(data.updated.toLocaleString())} |
-            Cost: <strong>${sanitizeText(cost)}</strong>
+            Cost: <strong>${sanitizeText(cost)}</strong> |
+            Publications: <strong>${publicationsCount}</strong> |
+            Solutions: <strong>${solutionsCount}</strong>
           </div>
         </div>
       `;
