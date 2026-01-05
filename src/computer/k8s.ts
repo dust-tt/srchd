@@ -149,6 +149,7 @@ export async function copyToComputer(
   computerId: string,
   path: string,
   namespace: string = K8S_NAMESPACE,
+  destinationDir?: string,
 ): Promise<Result<void>> {
   if (!fs.existsSync(path)) {
     return err("reading_file_error", `Path ${path} does not exist`);
@@ -171,17 +172,21 @@ export async function copyToComputer(
   }
   pack.finalize();
 
-  const createPublicationsDirIfNotExistsRes = await computerExec(
-    ["mkdir", "-p", "/home/agent/publications"],
+  const destinationPath = destinationDir
+    ? `/home/agent/${destinationDir}`
+    : "/home/agent";
+
+  const createDestinationDirIfNotExistsRes = await computerExec(
+    ["mkdir", "-p", destinationPath],
     namespace,
     computerId,
   );
 
-  if (createPublicationsDirIfNotExistsRes.isErr()) {
-    return createPublicationsDirIfNotExistsRes;
+  if (createDestinationDirIfNotExistsRes.isErr()) {
+    return createDestinationDirIfNotExistsRes;
   }
 
-  const copyCommand = ["tar", "xf", "-", "-C", "/home/agent/publications"];
+  const copyCommand = ["tar", "xf", "-", "-C", destinationPath];
   const res = await computerExec(
     copyCommand,
     namespace,

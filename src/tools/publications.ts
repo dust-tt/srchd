@@ -335,6 +335,8 @@ ${r.content}`;
         const copyRes = await copyToComputer(
           computerId(experiment, agent),
           attachmentsDir,
+          undefined,
+          "publications",
         );
 
         if (copyRes.isErr()) {
