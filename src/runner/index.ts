@@ -18,17 +18,12 @@ import { PublicationResource } from "@app/resources/publication";
 import { renderListOfPublications } from "@app/tools/publications";
 import { createClientServerPair, errorToCallToolResult } from "@app/lib/mcp";
 import { concurrentExecutor } from "@app/lib/async";
-import { AnthropicLLM, AnthropicModel } from "@app/models/anthropic";
 import { assertNever } from "@app/lib/assert";
-import { GeminiLLM, GeminiModel } from "@app/models/gemini";
-import { OpenAILLM, OpenAIModel } from "@app/models/openai";
-import { MistralLLM, MistralModel } from "@app/models/mistral";
 import { TokenUsageResource } from "@app/resources/token_usage";
 import { createServer } from "@app/tools";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
-import { MoonshotAILLM, MoonshotAIModel } from "@app/models/moonshotai";
 import { RunConfig } from "./config";
-import { DeepseekLLM, DeepseekModel } from "@app/models/deepseek";
+import { createLLM } from "@app/models/provider";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -77,55 +72,9 @@ export class Runner {
       }),
     );
 
-    const model = (() => {
-      const provider = agent.toJSON().provider;
-      switch (provider) {
-        case "anthropic":
-          return new AnthropicLLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as AnthropicModel,
-          );
-        case "gemini":
-          return new GeminiLLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as GeminiModel,
-          );
-        case "openai":
-          return new OpenAILLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as OpenAIModel,
-          );
-        case "mistral":
-          return new MistralLLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as MistralModel,
-          );
-        case "moonshotai":
-          return new MoonshotAILLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as MoonshotAIModel,
-          );
-        case "deepseek":
-          return new DeepseekLLM(
-            {
-              thinking: agent.toJSON().thinking,
-            },
-            agent.toJSON().model as DeepseekModel,
-          );
-        default:
-          assertNever(provider);
-      }
-    })();
+    const model = createLLM(agent.toJSON().model, {
+      thinking: agent.toJSON().thinking,
+    });
 
     const runner = await Runner.initialize(experiment, agent, clients, model);
     if (runner.isErr()) {
