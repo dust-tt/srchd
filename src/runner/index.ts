@@ -30,6 +30,7 @@ export class Runner {
   private agent: AgentResource;
   private mcpClients: Client[];
   private model: LLM;
+  private config: RunConfig;
 
   private contextPruning: {
     lastAgentLoopStartIdx: number;
@@ -42,11 +43,13 @@ export class Runner {
     agent: AgentResource,
     mcpClients: Client[],
     model: LLM,
+    config: RunConfig,
   ) {
     this.experiment = experiment;
     this.agent = agent;
     this.mcpClients = mcpClients;
     this.model = model;
+    this.config = config;
 
     this.messages = [];
     this.contextPruning = {
@@ -76,7 +79,7 @@ export class Runner {
       thinking: agent.toJSON().thinking,
     });
 
-    const runner = await Runner.initialize(experiment, agent, clients, model);
+    const runner = await Runner.initialize(experiment, agent, clients, model, config);
     if (runner.isErr()) {
       return runner;
     }
@@ -89,8 +92,9 @@ export class Runner {
     agent: AgentResource,
     mcpClients: Client[],
     model: LLM,
+    config: RunConfig,
   ): Promise<Result<Runner>> {
-    const runner = new Runner(experiment, agent, mcpClients, model);
+    const runner = new Runner(experiment, agent, mcpClients, model, config);
 
     const messages = await MessageResource.listMessagesByAgent(
       runner.experiment,
@@ -456,8 +460,20 @@ This is an automated system message and there is no user available to respond. P
       this.messages.push(newMessage.value);
     }
 
+    const soloModePrefix = this.config.reviewers === 0 ? `\
+<solo_mode>
+You are working alone on this research with no reviewers or collaborators. There is no peer review process - your publications will be automatically published without review. You should:
+- Continue working independently and improving upon your own publications
+- Critically evaluate and critique your own work as if you were reviewing it
+- Iterate on your publications to make them better over time
+- Question your own assumptions and look for ways to improve your solutions
+- Build upon your previous work to make progress on the research goals
+</solo_mode>
+
+` : '';
+
     const systemPrompt = `\
-<goal>
+${soloModePrefix}<goal>
 ${this.experiment.toJSON().problem}
 </goal>
 

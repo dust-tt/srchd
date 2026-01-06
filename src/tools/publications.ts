@@ -226,30 +226,38 @@ ${r.content}`;
           ) } : {}),
     },
     async ({ title, abstract, content, attachments }) => {
-      const pendingReviews =
-        await PublicationResource.listByExperimentAndReviewRequested(
-          experiment,
-          agent,
-        );
-      if (pendingReviews.length > 0) {
-        return errorToCallToolResult(
-          err(
-            "publication_error",
-            "You have pending reviews. Please complete them before submitting a new publication.",
-          ),
-        );
+      // Only check for pending reviews if reviewers are configured
+      if (config.reviewers > 0) {
+        const pendingReviews =
+          await PublicationResource.listByExperimentAndReviewRequested(
+            experiment,
+            agent,
+          );
+        if (pendingReviews.length > 0) {
+          return errorToCallToolResult(
+            err(
+              "publication_error",
+              "You have pending reviews. Please complete them before submitting a new publication.",
+            ),
+          );
+        }
       }
 
       const agents = await AgentResource.listByExperiment(experiment);
       const pool = agents.filter((a) => a.toJSON().id !== agent.toJSON().id);
-      if (pool.length < config.reviewers) {
-        return errorToCallToolResult(
-          err("publication_error", "Not enough reviewers available"),
-        );
+
+      // When reviewers = 0, skip reviewer assignment and auto-publish
+      let reviewers: AgentResource[] = [];
+      if (config.reviewers > 0) {
+        if (pool.length < config.reviewers) {
+          return errorToCallToolResult(
+            err("publication_error", "Not enough reviewers available"),
+          );
+        }
+        reviewers = pool
+          .sort(() => 0.5 - Math.random())
+          .slice(0, config.reviewers);
       }
-      const reviewers = pool
-        .sort(() => 0.5 - Math.random())
-        .slice(0, config.reviewers);
 
       const publication = await PublicationResource.submit(experiment, agent, {
         title,
@@ -283,11 +291,13 @@ ${r.content}`;
         }
       }
 
-      const reviews = await publication.value.requestReviewers(reviewers);
-      if (reviews.isErr()) {
-        return errorToCallToolResult(reviews);
-      }
-      if (reviewers.length === 0) {
+      if (config.reviewers > 0) {
+        const reviews = await publication.value.requestReviewers(reviewers);
+        if (reviews.isErr()) {
+          return errorToCallToolResult(reviews);
+        }
+      } else {
+        // Auto-publish when no reviewers are configured
         await publication.value.maybePublishOrReject();
       }
 
