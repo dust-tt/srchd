@@ -38,11 +38,15 @@ type Input = Context<BlankEnv, any, BlankInput>;
 
 // Experiments list
 export const experimentsList = async (c: Input) => {
+  // Get query parameters for filters
+  const contentFilter = c.req.query("content") ?? "all";
+  const activityFilter = c.req.query("activity") ?? "all";
+
   const experiments = (await ExperimentResource.all()).sort(
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
 
-  // Calculate costs, publications, and solutions for all experiments
+  // Calculate costs, publications, solutions, and last message time for all experiments
   const experimentsWithMetadata = await Promise.all(
     experiments.map(async (exp) => {
       const cost = await TokenUsageResource.experimentCost(exp);
@@ -54,19 +58,66 @@ export const experimentsList = async (c: Input) => {
 
       const publications = await PublicationResource.listByExperiment(exp);
       const solutions = await SolutionResource.listByExperiment(exp);
+      const allMessages = await MessageResource.listMessagesByExperiment(exp);
+
+      // Get the last message timestamp
+      let lastMessageTime: Date | null = null;
+      if (allMessages.length > 0) {
+        const lastMessage = allMessages[allMessages.length - 1];
+        lastMessageTime = lastMessage.created();
+      }
 
       return {
         exp,
         cost: formattedCost,
         publicationsCount: publications.length,
         solutionsCount: solutions.length,
+        lastMessageTime,
       };
     }),
   );
 
+  // Filter by content type
+  const contentFiltered = experimentsWithMetadata.filter(({ publicationsCount, solutionsCount }) => {
+    switch (contentFilter) {
+      case "solutions":
+        return solutionsCount > 0;
+      case "publications":
+        return publicationsCount > 0;
+      default:
+        return true;
+    }
+  });
+
+  // Filter by activity status
+  const filteredExperiments = contentFiltered.filter(({ lastMessageTime }) => {
+    if (activityFilter === "all") return true;
+
+    if (!lastMessageTime) {
+      // No messages means it's stopped
+      return activityFilter === "stopped";
+    }
+
+    const now = new Date();
+    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+    const isRunning = lastMessageTime > oneMinuteAgo;
+
+    return activityFilter === "running" ? isRunning : !isRunning;
+  });
+
   const content = `
     <h1>Experiments</h1>
-    ${experimentsWithMetadata
+    <div class="filter-buttons">
+      <a href="/experiments?content=all&activity=${activityFilter}" class="btn ${contentFilter === "all" ? "active" : ""}">All</a>
+      <a href="/experiments?content=solutions&activity=${activityFilter}" class="btn ${contentFilter === "solutions" ? "active" : ""}">With Solutions</a>
+      <a href="/experiments?content=publications&activity=${activityFilter}" class="btn ${contentFilter === "publications" ? "active" : ""}">With Publications</a>
+    </div>
+    <div class="filter-buttons" style="margin-top: 10px;">
+      <a href="/experiments?content=${contentFilter}&activity=all" class="btn ${activityFilter === "all" ? "active" : ""}">All</a>
+      <a href="/experiments?content=${contentFilter}&activity=running" class="btn ${activityFilter === "running" ? "active" : ""}">Running</a>
+      <a href="/experiments?content=${contentFilter}&activity=stopped" class="btn ${activityFilter === "stopped" ? "active" : ""}">Stopped</a>
+    </div>
+    ${filteredExperiments
       .map(({ exp, cost, publicationsCount, solutionsCount }) => {
         const data = exp.toJSON();
         return `
