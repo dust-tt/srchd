@@ -1,9 +1,7 @@
 name: Lint & TypeCheck
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 jobs:
   eslint:
     name: Run eslint scanning
@@ -12,11 +10,35 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v2
-      
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
       - name: Install dependencies
-        run: npm i
-      
+        run: npm ci
+
+      - name: Restore ESLint cache
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: eslint-cache-${{ runner.os }}-${{ hashFiles('**/eslint.config.ts') }}-${{ hashFiles('**/tsconfig.json') }}
+          restore-keys: |
+            eslint-cache-${{ runner.os }}-${{ hashFiles('**/eslint.config.ts') }}-
+            eslint-cache-${{ runner.os }}-
+
+      - name: Restore TypeScript build info cache
+        uses: actions/cache@v4
+        with:
+          path: .tsbuildinfo
+          key: tsbuildinfo-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-${{ hashFiles('src/**/*.ts') }}
+          restore-keys: |
+            tsbuildinfo-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-
+            tsbuildinfo-${{ runner.os }}-
+
       - name: Lint
         run: npm run lint
 

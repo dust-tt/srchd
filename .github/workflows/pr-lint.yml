@@ -1,0 +1,61 @@
+name: Lint & TypeCheck
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint-changed:
+    name: Lint changed files in PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for changed files detection
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get changed TypeScript files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            src/**/*.ts
+            src/**/*.tsx
+          files_ignore: |
+            **/*.test.ts
+            **/*.spec.ts
+
+      - name: Restore ESLint cache
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: eslint-cache-pr-${{ runner.os }}-${{ hashFiles('**/eslint.config.ts') }}-${{ hashFiles('**/tsconfig.json') }}
+          restore-keys: |
+            eslint-cache-pr-${{ runner.os }}-${{ hashFiles('**/eslint.config.ts') }}-
+            eslint-cache-pr-${{ runner.os }}-
+            eslint-cache-${{ runner.os }}-
+
+      - name: Lint changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          echo "Linting changed files:"
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
+          NODE_OPTIONS='--max-old-space-size=8192' npx eslint --cache --cache-location .eslintcache ${{ steps.changed-files.outputs.all_changed_files }}
+
+      - name: No files to lint
+        if: steps.changed-files.outputs.any_changed != 'true'
+        run: echo "No TypeScript files changed in this PR"
+
+      - name: TypeCheck
+        run: npm run typecheck
