@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- **Node.js**: v20+ required
-  - On macOS with Homebrew: `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"`
+- **Node.js**: v24+ required
+  - On macOS with Homebrew: `export PATH="/opt/homebrew/opt/node@24/bin:$PATH"`
 
 ## Commands
 
