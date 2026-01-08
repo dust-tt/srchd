@@ -1,1 +1,0 @@
-ALTER TABLE `agents` RENAME COLUMN "system_prompt" TO "prompt";

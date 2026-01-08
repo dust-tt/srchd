@@ -1,6 +1,9 @@
 {
   "name": "srchd",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "typecheck": "tsgo --noEmit",
     "lint": "NODE_OPTIONS='--max-old-space-size=8192' eslint --cache --cache-location .eslintcache src/"
@@ -9,6 +12,7 @@
     "@typescript/native-preview": "^7.0.0-dev",
     "@types/better-sqlite3": "^7.6.13",
     "@types/dockerode": "^3.3.44",
+    "@types/marked-terminal": "^3.1.3",
     "@types/node": "^22.0.0",
     "@types/sanitize-html": "^2.16.0",
     "@types/tar-stream": "^3.1.4",
@@ -35,6 +39,7 @@
     "hono": "^4.9.6",
     "jiti": "^2.6.1",
     "marked": "^16.4.1",
+    "marked-terminal": "^7.2.1",
     "openai": "^5.16.0",
     "sanitize-html": "^2.17.0",
     "tar-stream": "^3.1.7"
