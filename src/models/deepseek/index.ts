@@ -141,6 +141,8 @@ export class DeepseekLLM extends LLM {
         {
           model: this.model,
           messages: input,
+          // 32K is the default, but we want to be able to use the full context window
+          max_completion_tokens: this.model === "deepseek-reasoner" ? (this.config.thinking && this.config.thinking === "high" ? 64000 : 32000) : 8000,
           tool_choice: convertToolChoice(toolChoice),
           tools: tools.map((tool) => ({
             type: "function",
