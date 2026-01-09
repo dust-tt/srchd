@@ -12,7 +12,7 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 type OpenAITokenPrices = {
@@ -203,7 +203,7 @@ export class OpenAILLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage  }>
+    Result<{ message: Message; tokenUsage?: TokenUsage }>
   > {
     try {
       const input = this.messages(messages);
@@ -300,7 +300,7 @@ export class OpenAILLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return err("model_error", "Failed to run model", normalizeError(error));
+      return err("model_error", "Failed to run model", error);
     }
   }
 
@@ -359,7 +359,7 @@ export class OpenAILLM extends LLM {
       );
       return ok(input_tokens);
     } catch (error) {
-      return err("model_error", "Failed to run model", normalizeError(error));
+      return err("model_error", "Failed to run model", error);
     }
   }
   maxTokens(): number {

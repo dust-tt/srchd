@@ -15,7 +15,7 @@ import {
   ToolUse,
   TokenUsage,
 } from "./index";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 
@@ -252,7 +252,7 @@ export class GeminiLLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return err("model_error", "Failed to run model", normalizeError(error));
+      return err("model_error", "Failed to run model", error);
     }
   }
 
@@ -304,7 +304,7 @@ export class GeminiLLM extends LLM {
       return err(
         "model_error",
         "Failed to count tokens",
-        normalizeError(error),
+        error,
       );
     }
   }

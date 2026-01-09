@@ -19,7 +19,7 @@ import { isString } from "./utils";
  */
 
 export class Ok<T> {
-  constructor(public value: T) {}
+  constructor(public value: T) { }
 
   isOk(): this is Ok<T> {
     return true;
@@ -31,7 +31,7 @@ export class Ok<T> {
 }
 
 export class Err<E> {
-  constructor(public error: E) {}
+  constructor(public error: E) { }
 
   isOk(): this is Ok<never> {
     return false;
@@ -75,7 +75,7 @@ export class SrchdError extends Error {
   constructor(
     readonly code: ErrorCode,
     message: string,
-    readonly cause?: Error | null,
+    readonly cause?: any,
   ) {
     super(message);
   }
@@ -88,9 +88,22 @@ export function ok<T>(value: T): Ok<T> {
 export function err(
   code: ErrorCode,
   message: string,
-  cause?: Error | null,
+  cause?: any,
 ): Err<SrchdError> {
-  return new Err(new SrchdError(code, message, cause));
+  // Normalize the cause: if it's an Err, extract the error; otherwise use normalizeError
+  let normalizedCause: Error | undefined;
+
+  if (cause !== undefined && cause !== null) {
+    if (cause instanceof Err) {
+      // It's an Err wrapper, extract the error
+      normalizedCause = cause.error;
+    } else {
+      // Use the existing normalizeError function for all other cases
+      normalizedCause = normalizeError(cause);
+    }
+  }
+
+  return new Err(new SrchdError(code, message, normalizedCause));
 }
 
 export function errorToString(error: unknown): string {

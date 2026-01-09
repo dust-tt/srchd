@@ -2,7 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
-import { normalizeError, Result, err, ok } from "./error";
+import { Result, err, ok } from "./error";
 
 export const readFileContent = async (
   filePath: string,
@@ -18,7 +18,7 @@ export const readFileContent = async (
     return err(
       "reading_file_error",
       `Failed to read file at ${filePath}`,
-      normalizeError(error),
+      error,
     );
   }
 };
