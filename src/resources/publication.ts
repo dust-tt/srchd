@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Agent, AgentResource } from "./agent";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { newID4, removeNulls } from "@app/lib/utils";
 import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
@@ -395,7 +395,7 @@ export class PublicationResource {
       return err(
         "resource_update_error",
         "Failed to publish publication",
-        normalizeError(error),
+        error,
       );
     }
   }
@@ -421,7 +421,7 @@ export class PublicationResource {
       return err(
         "resource_update_error",
         "Failed to reject publication",
-        normalizeError(error),
+        error,
       );
     }
   }

@@ -1,4 +1,4 @@
-import { normalizeError, withRetries, Result, err, ok } from "@app/lib/error";
+import { withRetries, Result, err, ok } from "@app/lib/error";
 import {
   K8S_NAMESPACE,
   k8sApi,
@@ -99,8 +99,7 @@ export class Computer {
 
       return ok(computerIds);
     } catch (e) {
-      const error = normalizeError(e);
-      return err("computer_run_error", "Failed to list computers", error);
+      return err("computer_run_error", "Failed to list computers", e);
     }
   }
 
@@ -150,8 +149,7 @@ export class Computer {
 
       return ok(true);
     } catch (e) {
-      const error = normalizeError(e);
-      return err("computer_run_error", "Failed to terminate computer", error);
+      return err("computer_run_error", "Failed to terminate computer", e);
     }
   }
 

@@ -9,7 +9,7 @@ import {
   Thinking,
   TokenUsage,
 } from "./index";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 
 import { Mistral } from "@mistralai/mistralai";
@@ -198,7 +198,7 @@ export class MistralLLM extends LLM {
         return err(
           "model_error",
           `Unexpected finish reason: ${finishReason}`,
-          normalizeError(`Unexpected finish reason: ${finishReason}`),
+          `Unexpected finish reason: ${finishReason}`,
         );
       }
 
@@ -261,7 +261,7 @@ export class MistralLLM extends LLM {
         tokenUsage,
       });
     } catch (error) {
-      return err("model_error", "Failed to run model", normalizeError(error));
+      return err("model_error", "Failed to run model", error);
     }
   }
 
@@ -319,7 +319,7 @@ export class MistralLLM extends LLM {
       return err(
         "model_error",
         "Failed to count tokens",
-        normalizeError(error),
+        error,
       );
     }
   }

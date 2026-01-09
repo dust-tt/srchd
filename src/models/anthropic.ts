@@ -8,7 +8,7 @@ import {
   TokenUsage,
 } from "./index";
 import Anthropic from "@anthropic-ai/sdk";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { assertNever } from "@app/lib/assert";
 import { removeNulls } from "@app/lib/utils";
 import { BetaUsage } from "@anthropic-ai/sdk/resources/beta/messages/messages";
@@ -186,7 +186,7 @@ export class AnthropicLLM extends LLM {
     toolChoice: ToolChoice,
     tools: Tool[],
   ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage  }>
+    Result<{ message: Message; tokenUsage?: TokenUsage }>
   > {
     try {
       const message = await this.client.beta.messages.create({
@@ -313,7 +313,7 @@ export class AnthropicLLM extends LLM {
         tokenUsage, // also inlcude cached or input tokens ?
       });
     } catch (error) {
-      return err("model_error", "Failed to run model", normalizeError(error));
+      return err("model_error", "Failed to run model", error);
     }
   }
 
@@ -363,7 +363,7 @@ export class AnthropicLLM extends LLM {
       return err(
         "model_error",
         "Failed to count tokens",
-        normalizeError(error),
+        error,
       );
     }
   }

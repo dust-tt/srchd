@@ -11,7 +11,7 @@ import {
 import { AgentResource } from "@app/resources/agent";
 import { ExperimentResource } from "@app/resources/experiment";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { normalizeError, withRetries, Result, err, ok } from "@app/lib/error";
+import { withRetries, Result, err, ok } from "@app/lib/error";
 import { MessageResource } from "@app/resources/messages";
 import assert from "assert";
 import { PublicationResource } from "@app/resources/publication";
@@ -119,7 +119,7 @@ export class Runner {
         return err(
           "tool_error",
           `Error listing tools from client ${client.getServerVersion()?.name}`,
-          normalizeError(error),
+          error,
         );
       }
     }
@@ -167,7 +167,7 @@ export class Runner {
             err(
               "tool_execution_error",
               `Error executing tool ${t.name}`,
-              normalizeError(error),
+              error,
             ),
           ).content,
           isError: true,

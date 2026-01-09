@@ -6,7 +6,7 @@ import {
   STRING_EDIT_INSTRUCTIONS,
   stringEdit,
 } from "@app/lib/mcp";
-import { err, normalizeError } from "@app/lib/error";
+import { err } from "@app/lib/error";
 import { SYSTEM_PROMPT_SELF_EDIT_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
 
 const SERVER_VERSION = "0.1.0";
@@ -104,7 +104,7 @@ ${STRING_EDIT_INSTRUCTIONS}`,
           err(
             "tool_execution_error",
             `Error editing system prompt`,
-            normalizeError(error),
+            error,
           ),
         );
       }

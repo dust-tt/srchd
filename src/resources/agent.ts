@@ -2,7 +2,7 @@ import { db } from "@app/db";
 import { agents, evolutions } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
-import { normalizeError, Result, err, ok } from "@app/lib/error";
+import { Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
 
 export type Agent = InferSelectModel<typeof agents>;
@@ -156,7 +156,7 @@ export class AgentResource {
       return err(
         "resource_creation_error",
         "Failed to create agent evolution",
-        normalizeError(error),
+        error,
       );
     }
   }
