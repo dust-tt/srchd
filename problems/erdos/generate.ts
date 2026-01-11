@@ -3,7 +3,8 @@
  *
  * Data sources:
  * - Metadata from teorth/erdosproblems (problems.yaml)
- * - Problem statements from google-deepmind/formal-conjectures (for formalized problems)
+ * - Problem statements from Wayback Machine (erdosproblems.com archives)
+ * - Additional content from google-deepmind/formal-conjectures (Lean files)
  *
  * Structure:
  * - problems/erdos/open/         - Problems that are still open
@@ -35,9 +36,16 @@ interface ProblemMetadata {
   comments?: string;
 }
 
+interface WebContent {
+  statement: string;
+  additionalText: string;
+  status: string;
+}
+
 const BASE_DIR = __dirname;
 const YAML_URL = 'https://raw.githubusercontent.com/teorth/erdosproblems/main/data/problems.yaml';
 const LEAN_BASE_URL = 'https://raw.githubusercontent.com/google-deepmind/formal-conjectures/main/FormalConjectures/ErdosProblems';
+const WAYBACK_BASE = 'https://web.archive.org/web/2025/https://www.erdosproblems.com';
 
 // Status states that indicate a problem is "solved" (proved, disproved, or otherwise resolved)
 const SOLVED_STATES = new Set([
@@ -138,6 +146,103 @@ function parseYaml(yamlText: string): ProblemMetadata[] {
   return problems;
 }
 
+async function fetchFromWayback(number: string): Promise<WebContent | null> {
+  // First, get the latest snapshot timestamp from the CDX API
+  const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=erdosproblems.com/${number}&output=json&limit=1&fl=timestamp&filter=statuscode:200`;
+  try {
+    const cdxResponse = await fetch(cdxUrl);
+    if (!cdxResponse.ok) return null;
+
+    const cdxData = await cdxResponse.json() as string[][];
+    if (cdxData.length < 2) return null; // No snapshots found
+
+    const timestamp = cdxData[1][0];
+    const archiveUrl = `https://web.archive.org/web/${timestamp}/https://www.erdosproblems.com/${number}`;
+
+    const response = await fetch(archiveUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; research bot)'
+      },
+      redirect: 'follow'
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const html = await response.text();
+    return extractWebContent(html);
+  } catch {
+    return null;
+  }
+}
+
+function extractWebContent(html: string): WebContent {
+  const result: WebContent = {
+    statement: '',
+    additionalText: '',
+    status: ''
+  };
+
+  // Extract status/prize from <div id="prize">
+  const prizeMatch = html.match(/<div id="prize">\s*([\s\S]*?)\s*<\/div>/i);
+  if (prizeMatch) {
+    result.status = cleanHtml(prizeMatch[1]).trim();
+  }
+
+  // Extract main problem statement from <div id="content">
+  const contentMatch = html.match(/<div id="content">([\s\S]*?)<\/div>/i);
+  if (contentMatch) {
+    result.statement = cleanHtml(contentMatch[1]);
+  }
+
+  // Extract additional text from <div class="problem-additional-text">
+  const additionalMatch = html.match(/<div class="problem-additional-text">\s*([\s\S]*?)<\/div>\s*(?:<div class="problem-ack">|<div class="image-container"|<div id="next_id">)/i);
+  if (additionalMatch) {
+    let additionalText = cleanHtml(additionalMatch[1]);
+    // Remove trailing navigation links and whitespace
+    additionalText = additionalText.replace(/\s*\[(Previous|Next)\]\([^)]+\)\s*$/gi, '');
+    additionalText = additionalText.replace(/\s{2,}/g, ' ').trim();
+    result.additionalText = additionalText;
+  }
+
+  return result;
+}
+
+function cleanHtml(html: string): string {
+  return html
+    // Remove wayback machine URL rewrites
+    .replace(/\/web\/\d+\//g, '')
+    .replace(/https:\/\/web\.archive\.org/g, '')
+    // Remove script tags
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    // Remove style tags
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Convert links to markdown
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '[$2]($1)')
+    // Remove javascript: links
+    .replace(/\[([^\]]+)\]\(javascript:[^)]*\)/g, '**$1**')
+    // Convert br tags to newlines
+    .replace(/<br\s*\/?>/gi, '\n')
+    // Convert p tags to double newlines
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '')
+    // Remove remaining HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Decode HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#337;/g, 'ő')
+    // Clean up LaTeX
+    .replace(/\\\[/g, '$$')
+    .replace(/\\\]/g, '$$')
+    // Clean up whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 interface LeanContent {
   mainStatement: string;
   variants: string[];
@@ -164,18 +269,6 @@ function extractLeanDocstrings(leanContent: string): LeanContent {
     definitions: []
   };
 
-  // Extract the module header docstring (problem description)
-  const headerMatch = leanContent.match(/\/-!\s*\n([\s\S]*?)\n-\//);
-  if (headerMatch) {
-    // Clean up the header - remove leading # and asterisks
-    let header = headerMatch[1]
-      .split('\n')
-      .map(line => line.replace(/^#\s*/, '').replace(/^\*/, ''))
-      .join('\n')
-      .trim();
-    // Don't use header as main statement - it's just the title
-  }
-
   // Extract all docstrings with their associated theorems/definitions
   const docstringPattern = /\/\--\s*([\s\S]*?)\s*-\/\s*\n\s*(?:@\[.*?\]\s*\n\s*)?(?:theorem|def|abbrev|lemma)\s+(\w+(?:\.\w+)*)/g;
   let match;
@@ -183,19 +276,19 @@ function extractLeanDocstrings(leanContent: string): LeanContent {
   while ((match = docstringPattern.exec(leanContent)) !== null) {
     const docstring = match[1].trim();
     const name = match[2];
-
-    // Clean up the docstring - convert LaTeX-style math to standard
     const cleanedDoc = cleanLeanDocstring(docstring);
 
+    // Main theorem is usually named erdos_N or similar without variants
     if (name.includes('.variants.')) {
       result.variants.push(cleanedDoc);
+    } else if (/^erdos_\d+$/.test(name) || /^Erdos\d+$/.test(name)) {
+      // This is the main theorem
+      result.mainStatement = cleanedDoc;
     } else if (name.startsWith('Is') || name.startsWith('has') || /^[a-z]/.test(name)) {
       result.definitions.push(cleanedDoc);
-    } else {
-      // Main theorem - look for the one with the problem number
-      if (!result.mainStatement) {
-        result.mainStatement = cleanedDoc;
-      }
+    } else if (!result.mainStatement) {
+      // Fallback: first non-variant, non-definition theorem
+      result.mainStatement = cleanedDoc;
     }
   }
 
@@ -204,13 +297,9 @@ function extractLeanDocstrings(leanContent: string): LeanContent {
 
 function cleanLeanDocstring(doc: string): string {
   return doc
-    // Keep LaTeX math delimiters
     .replace(/\\\$/g, '$')
-    // Clean up references
     .replace(/\[([A-Za-z]+\d+)\]/g, '[$1]')
-    // Remove trailing by sorry comments
     .replace(/:= by\s*sorry/g, '')
-    // Clean extra whitespace
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -230,7 +319,11 @@ function getTargetDirectory(metadata: ProblemMetadata): string {
   }
 }
 
-function generateMarkdown(metadata: ProblemMetadata, leanContent: LeanContent | null): string {
+function generateMarkdown(
+  metadata: ProblemMetadata,
+  webContent: WebContent | null,
+  leanContent: LeanContent | null
+): string {
   const lines: string[] = [];
 
   // Title
@@ -271,15 +364,25 @@ function generateMarkdown(metadata: ProblemMetadata, leanContent: LeanContent | 
     }
   }
 
-  // Problem statement
+  // Problem statement - prefer web content, fall back to Lean
   lines.push('## Problem Statement');
   lines.push('');
-  if (leanContent?.mainStatement) {
+  if (webContent?.statement) {
+    lines.push(webContent.statement);
+  } else if (leanContent?.mainStatement) {
     lines.push(leanContent.mainStatement);
   } else {
-    lines.push(`*Problem statement not available locally. See [erdosproblems.com/${metadata.number}](https://www.erdosproblems.com/${metadata.number}) for details.*`);
+    lines.push(`*Problem statement not available. See [erdosproblems.com/${metadata.number}](https://www.erdosproblems.com/${metadata.number}) for details.*`);
   }
   lines.push('');
+
+  // Additional text from website
+  if (webContent?.additionalText) {
+    lines.push('## Background');
+    lines.push('');
+    lines.push(webContent.additionalText);
+    lines.push('');
+  }
 
   // Variants section (if any from Lean)
   if (leanContent?.variants && leanContent.variants.length > 0) {
@@ -303,6 +406,12 @@ function generateMarkdown(metadata: ProblemMetadata, leanContent: LeanContent | 
 }
 
 async function main() {
+  // Parse command line args
+  const args = process.argv.slice(2);
+  const limitIndex = args.indexOf('--limit');
+  const limit = limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : null;
+  const openOnly = args.includes('--open-only');
+
   // Create directory structure
   const dirs = [
     path.join(BASE_DIR, 'open'),
@@ -315,49 +424,81 @@ async function main() {
   }
 
   // Fetch problem metadata
-  const problems = await fetchYaml();
+  let problems = await fetchYaml();
   console.log(`Found ${problems.length} problems`);
 
-  // Identify formalized problems
+  // Apply filters
+  if (openOnly) {
+    problems = problems.filter(p => !SOLVED_STATES.has(p.status?.state || 'open'));
+    console.log(`Filtered to ${problems.length} open problems`);
+  }
+  if (limit) {
+    problems = problems.slice(0, limit);
+    console.log(`Limited to first ${problems.length} problems`);
+  }
+
+  // Fetch Lean files for formalized problems
   const formalizedProblems = problems.filter(p => p.formalized?.state === 'yes');
   console.log(`${formalizedProblems.length} problems have Lean formalizations`);
 
-  // Fetch Lean files for formalized problems
   const leanContents = new Map<string, LeanContent>();
   console.log('Fetching Lean files...');
 
-  const BATCH_SIZE = 20;
-  const DELAY_MS = 100;
-
-  for (let i = 0; i < formalizedProblems.length; i += BATCH_SIZE) {
-    const batch = formalizedProblems.slice(i, i + BATCH_SIZE);
-
+  const LEAN_BATCH_SIZE = 20;
+  for (let i = 0; i < formalizedProblems.length; i += LEAN_BATCH_SIZE) {
+    const batch = formalizedProblems.slice(i, i + LEAN_BATCH_SIZE);
     await Promise.all(batch.map(async (p) => {
       const leanFile = await fetchLeanFile(p.number);
       if (leanFile) {
-        const content = extractLeanDocstrings(leanFile);
-        leanContents.set(p.number, content);
+        leanContents.set(p.number, extractLeanDocstrings(leanFile));
       }
     }));
-
-    if (i + BATCH_SIZE < formalizedProblems.length) {
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-    }
-
-    if ((i + BATCH_SIZE) % 100 === 0 || i + BATCH_SIZE >= formalizedProblems.length) {
-      console.log(`  Fetched ${Math.min(i + BATCH_SIZE, formalizedProblems.length)}/${formalizedProblems.length} Lean files...`);
+    if ((i + LEAN_BATCH_SIZE) % 100 === 0 || i + LEAN_BATCH_SIZE >= formalizedProblems.length) {
+      console.log(`  Fetched ${Math.min(i + LEAN_BATCH_SIZE, formalizedProblems.length)}/${formalizedProblems.length} Lean files`);
     }
   }
 
-  console.log(`Successfully fetched ${leanContents.size} Lean files`);
+  // Fetch web content from Wayback Machine
+  console.log('Fetching problem statements from Wayback Machine...');
+  const webContents = new Map<string, WebContent>();
 
-  // Generate markdown files for all problems
+  const WEB_BATCH_SIZE = 10;
+  const WEB_DELAY_MS = 200;
+
+  for (let i = 0; i < problems.length; i += WEB_BATCH_SIZE) {
+    const batch = problems.slice(i, i + WEB_BATCH_SIZE);
+
+    await Promise.all(batch.map(async (p) => {
+      const content = await fetchFromWayback(p.number);
+      if (content && content.statement) {
+        webContents.set(p.number, content);
+      }
+    }));
+
+    if (i + WEB_BATCH_SIZE < problems.length) {
+      await new Promise(resolve => setTimeout(resolve, WEB_DELAY_MS));
+    }
+
+    if ((i + WEB_BATCH_SIZE) % 100 === 0 || i + WEB_BATCH_SIZE >= problems.length) {
+      console.log(`  Fetched ${Math.min(i + WEB_BATCH_SIZE, problems.length)}/${problems.length} web pages (${webContents.size} successful)`);
+    }
+  }
+
+  console.log(`Successfully fetched ${webContents.size} problem statements from web`);
+
+  // Generate markdown files
   console.log('Generating markdown files...');
   let processed = 0;
+  let withContent = 0;
 
   for (const metadata of problems) {
+    const webContent = webContents.get(metadata.number) || null;
     const leanContent = leanContents.get(metadata.number) || null;
-    const markdown = generateMarkdown(metadata, leanContent);
+    const markdown = generateMarkdown(metadata, webContent, leanContent);
+
+    if (webContent?.statement || leanContent?.mainStatement) {
+      withContent++;
+    }
 
     const targetDir = getTargetDirectory(metadata);
     const filename = `${metadata.number}.md`;
@@ -366,7 +507,7 @@ async function main() {
     fs.writeFileSync(filepath, markdown);
     processed++;
 
-    if (processed % 100 === 0) {
+    if (processed % 200 === 0) {
       console.log(`  Generated ${processed}/${problems.length} markdown files...`);
     }
   }
@@ -382,7 +523,9 @@ async function main() {
   console.log(`  Open problems: ${openCount}`);
   console.log(`  Solved (formalized): ${formalizedCount}`);
   console.log(`  Solved (unformalized): ${unformalizedCount}`);
+  console.log(`  Problems with content: ${withContent}`);
   console.log(`  Problems with Lean content: ${leanContents.size}`);
+  console.log(`  Problems with web content: ${webContents.size}`);
 }
 
 main().catch(console.error);
