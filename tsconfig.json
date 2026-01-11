@@ -106,6 +106,7 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
   "exclude": [
-    "eslint.config.ts"
+    "eslint.config.ts",
+    "problems/**/*"
   ]
 }
