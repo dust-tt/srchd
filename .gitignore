@@ -1,6 +1,8 @@
 node_modules
 .*.swp
 db.sqlite
+db.sqlite-wal
+db.sqlite-shm
 attachments/
 x/anas/arc-agi-2/status.json
 
