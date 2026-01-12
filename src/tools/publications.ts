@@ -22,8 +22,9 @@ grade=${review.grade ?? "PENDING"}`;
 
 
 export function getAttachmentPath(experimentId: number, reference: string, filename?: string) {
+  const baseDir = process.env.ATTACHMENTS_PATH ?? "./attachments";
   const pth = [
-    "attachments",
+    baseDir,
     `${experimentId}`,
     `${reference}`,
   ];

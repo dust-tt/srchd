@@ -53,13 +53,13 @@ export const experimentsList = async (c: Input) => {
           : `$${cost.toFixed(2)}`;
 
       const publications = await PublicationResource.listByExperiment(exp);
-      const solutions = await SolutionResource.listByExperiment(exp);
+      const solutionsCount = await SolutionResource.countUniqueByExperiment(exp);
 
       return {
         exp,
         cost: formattedCost,
         publicationsCount: publications.length,
-        solutionsCount: solutions.length,
+        solutionsCount,
       };
     }),
   );
@@ -98,8 +98,8 @@ export const experimentOverview = async (c: Input) => {
   const experimentAgents = await AgentResource.listByExperiment(experiment);
   const experimentPublications =
     await PublicationResource.listByExperiment(experiment);
-  const experimentSolutions =
-    await SolutionResource.listByExperiment(experiment);
+  const experimentSolutionsCount =
+    await SolutionResource.countUniqueByExperiment(experiment);
 
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
@@ -126,7 +126,7 @@ export const experimentOverview = async (c: Input) => {
         Updated: ${sanitizeText(expData.updated.toLocaleString())} |
         Agents: ${experimentAgents.length} |
         Publications: ${experimentPublications.length} |
-        Solutions: ${experimentSolutions.length} |
+        Solutions: ${experimentSolutionsCount} |
         Cost: <strong>${sanitizeText(formattedCost)}</strong>
       </div>
     </div>
@@ -498,8 +498,9 @@ export const publicationDetail = async (c: Input) => {
   const publicationCreated = sanitizeText(pubData.created.toLocaleString());
   const experimentName = sanitizeText(expData.name);
   const publicationStatusClass = safeStatusClass(pubData.status);
-  const attachments = fs.existsSync(path.join("attachments", `${id}`, `${publicationReference}`))
-    ? fs.readdirSync(path.join("attachments", `${id}`, `${publicationReference}`))
+  const attachmentsDir = getAttachmentPath(id, publicationReference);
+  const attachments = fs.existsSync(attachmentsDir)
+    ? fs.readdirSync(attachmentsDir)
     : [];
 
   // Check if content is a patch/diff file

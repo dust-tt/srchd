@@ -182,6 +182,7 @@ export function defineServerEnv(
     { name: "NAMESPACE", value: namespace },
     { name: "DEPLOYMENT_ID", value: namespace },
     { name: "DATABASE_PATH", value: "/data/db.sqlite" },
+    { name: "ATTACHMENTS_PATH", value: "/data/attachments" },
   ];
 
   // Add API keys if provided

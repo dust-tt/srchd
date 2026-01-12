@@ -17,6 +17,7 @@ COPY problems problems
 COPY src src
 
 ENV DATABASE_PATH="/data/db.sqlite"
+ENV ATTACHMENTS_PATH="/data/attachments"
 
 EXPOSE 1337
 
