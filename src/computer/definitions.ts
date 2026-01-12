@@ -16,6 +16,33 @@ export function defineComputerLabels(namespace: string, computerId: string) {
   };
 }
 
+function computerVolumeName(namespace: string, computerId: string) {
+  return `${namespace}-${computerId}-pvc`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+}
+
+export function defineComputerVolume(
+  namespace: string,
+  computerId: string,
+): k8s.V1PersistentVolumeClaim {
+  return {
+    apiVersion: "v1",
+    kind: "PersistentVolumeClaim",
+    metadata: {
+      name: computerVolumeName(namespace, computerId),
+      namespace,
+      labels: defineComputerLabels(namespace, computerId),
+    },
+    spec: {
+      accessModes: ["ReadWriteOnce"],
+      resources: {
+        requests: {
+          storage: "10Gi",
+        },
+      },
+    },
+  };
+}
+
 export function defineComputerPod(
   namespace: string,
   computerId: string,
@@ -35,6 +62,20 @@ export function defineComputerPod(
           env: defineComputerEnv(namespace, env),
           image: imageName ?? COMPUTER_IMAGE,
           command: ["/bin/bash", "-c", "tail -f /dev/null"],
+          volumeMounts: [
+            {
+              name: "work",
+              mountPath: DEFAULT_WORKDIR,
+            },
+          ],
+        },
+      ],
+      volumes: [
+        {
+          name: "work",
+          persistentVolumeClaim: {
+            claimName: computerVolumeName(namespace, computerId),
+          },
         },
       ],
     },
