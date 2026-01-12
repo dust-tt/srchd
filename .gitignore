@@ -2,6 +2,7 @@ node_modules
 .*.swp
 db.sqlite
 attachments/
+volumes/
 x/anas/arc-agi-2/status.json
 
 # Cache files

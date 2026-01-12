@@ -22,7 +22,8 @@ function computerVolumeName(namespace: string, computerId: string) {
 
 // Returns hostPath directory for agent work
 function computerHostPath(namespace: string, computerId: string): string {
-  return `/var/lib/srchd/agents/${namespace}/${computerId}`;
+  // Use project-local volumes directory for single-node setups (minikube/docker desktop)
+  return `${process.cwd()}/volumes/${namespace}/${computerId}`;
 }
 
 export function defineComputerPod(
