@@ -16,10 +16,6 @@ export function defineComputerLabels(namespace: string, computerId: string) {
   };
 }
 
-function computerVolumeName(namespace: string, computerId: string) {
-  return `${namespace}-${computerId}-data`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-}
-
 // Returns hostPath directory for agent work
 function computerHostPath(namespace: string, computerId: string): string {
   // Use project-local volumes directory for single-node setups (minikube/docker desktop)
