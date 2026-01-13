@@ -6,7 +6,6 @@ import {
   index,
 } from "drizzle-orm/sqlite-core";
 import { Message, ThinkingConfig } from "@app/models";
-import { ToolName } from "@app/tools/constants";
 import { provider, Model } from "@app/models/provider";
 
 export const experiments = sqliteTable(
@@ -72,7 +71,6 @@ export const agents = sqliteTable(
     provider: text("provider").$type<provider>().notNull(),
     model: text("model").$type<Model>().notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
-    tools: text("tools", { mode: "json" }).$type<ToolName[]>(),
     profile: text("profile").notNull(), // Profile name (e.g., "arc-agi", "research")
   },
   (t) => [unique().on(t.name, t.experiment)],

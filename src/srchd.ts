@@ -267,7 +267,6 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model;
       const thinking = options.thinking;
-      const tools = profile.tools;
 
       if (
         !(
@@ -301,7 +300,6 @@ agentCmd
           model,
           provider,
           thinking,
-          tools,
         },
         { system: profile.prompt },
         profile,
@@ -312,7 +310,7 @@ agentCmd
       const agent = agentRes.value;
       agents.push(agent);
 
-      if (tools.includes("computer")) {
+      if (profile.tools.includes("computer")) {
         await Computer.create(
           computerId(experiment, agent),
           undefined,
@@ -419,6 +417,9 @@ agentCmd
   .option("-t, --tick", "Run one tick only")
   .option("--max-tokens <tokens>", "Max tokens (in millions) before stopping run")
   .option("--max-cost <cost>", "Max cost (in dollars) before stopping run")
+  .option("--tool <tool>", "Add tool at runtime (repeatable)", (value, previous: string[] = []) => {
+    return [...previous, value];
+  })
   .action(async (name, options) => {
     const res = await experimentAndAgents({
       experiment: options.experiment,
@@ -444,13 +445,19 @@ agentCmd
 
     if (options.path && isArrayOf(options.path, isString)) {
       // Copy paths to all agents with computers
-      for (const agent of agents.filter((a) =>
-        a.toJSON().tools.includes("computer"),
-      )) {
-        for (const path of options.path) {
-          const res = await copyToComputer(computerId(experiment, agent), path);
-          if (res.isErr()) {
-            return exitWithError(res);
+      for (const agent of agents) {
+        const profileRes = await agent.getProfile();
+        if (profileRes.isErr()) {
+          continue; // Skip agents with invalid profiles
+        }
+        const profile = profileRes.value;
+
+        if (profile.tools.includes("computer")) {
+          for (const path of options.path) {
+            const res = await copyToComputer(computerId(experiment, agent), path);
+            if (res.isErr()) {
+              return exitWithError(res);
+            }
           }
         }
       }
@@ -488,6 +495,7 @@ agentCmd
       agents.map((a) =>
         Runner.builder(experiment, a, {
           reviewers,
+          runtimeTools: options.tool,
         }),
       ),
     );

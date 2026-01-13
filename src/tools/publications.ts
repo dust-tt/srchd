@@ -84,6 +84,10 @@ export async function createPublicationsServer(
   agent: AgentResource,
   config: RunConfig,
 ): Promise<McpServer> {
+  // Load profile to check for computer tool
+  const profileRes = await agent.getProfile();
+  const hasComputerTool = profileRes.isOk() && profileRes.value.tools.includes("computer");
+
   const server = new McpServer({
     name: SERVER_NAME,
     title: "Publications: Tools to submit, review and access publications.",
@@ -201,8 +205,6 @@ ${r.content}`;
       };
     },
   );
-
-  const hasComputerTool = agent.toJSON().tools.includes("computer");
 
   server.tool(
     "submit_publication",

@@ -8,6 +8,7 @@ import type { AgentResource } from "@app/resources/agent";
 import type { ExperimentResource } from "@app/resources/experiment";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RunConfig } from "@app/runner/config";
+import { AgentProfile } from "@app/agent_profile";
 
 export async function createServer(
   tool: ToolName,
@@ -15,15 +16,17 @@ export async function createServer(
     experiment,
     agent,
     config,
+    profile,
   }: {
     experiment: ExperimentResource;
     agent: AgentResource;
     config: RunConfig;
+    profile?: AgentProfile;
   },
 ): Promise<McpServer> {
   switch (tool) {
     case "computer":
-      return createComputerServer(experiment, agent);
+      return createComputerServer(experiment, agent, profile);
     case "goal_solution":
       return createGoalSolutionServer(experiment, agent);
     case "publications":

@@ -18,7 +18,6 @@ import { newID4, removeNulls } from "@app/lib/utils";
 import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
 import assert from "assert";
-import { DEFAULT_TOOLS } from "@app/tools/constants";
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
@@ -46,7 +45,6 @@ export class PublicationResource {
       provider: "anthropic" as const,
       model: "claude-sonnet-4-5" as const,
       thinking: "low" as const,
-      tools: DEFAULT_TOOLS,
       profile: "research",
     };
     this.experiment = experiment;

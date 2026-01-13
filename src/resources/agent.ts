@@ -194,8 +194,6 @@ export class AgentResource {
   toJSON() {
     return {
       ...this.data,
-      // Only non-default tools.
-      tools: this.data.tools ?? [],
       system: this.evolutions[0].system,
       evolutions: this.evolutions,
     };
