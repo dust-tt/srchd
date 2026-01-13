@@ -47,7 +47,7 @@ export class PublicationResource {
       model: "claude-sonnet-4-5" as const,
       thinking: "low" as const,
       tools: DEFAULT_TOOLS,
-      profile: null,
+      profile: "default",
     };
     this.experiment = experiment;
   }

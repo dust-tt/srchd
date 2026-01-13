@@ -163,12 +163,6 @@ export class AgentResource {
   }
 
   async getProfile(): Promise<Result<AgentProfile>> {
-    if (!this.data.profile) {
-      return err(
-        "not_found_error",
-        `Agent '${this.data.name}' does not have a profile set`,
-      );
-    }
     return await getAgentProfile(this.data.profile);
   }
 
