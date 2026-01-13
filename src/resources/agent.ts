@@ -4,6 +4,7 @@ import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
+import { getAgentProfile, AgentProfile } from "@app/agent_profile";
 
 export type Agent = InferSelectModel<typeof agents>;
 export type Evolution = InferSelectModel<typeof evolutions>;
@@ -161,11 +162,36 @@ export class AgentResource {
     }
   }
 
+  async getProfile(): Promise<Result<AgentProfile>> {
+    if (!this.data.profile) {
+      return err(
+        "not_found_error",
+        `Agent '${this.data.name}' does not have a profile set`,
+      );
+    }
+    return await getAgentProfile(this.data.profile);
+  }
+
+  async toJSONWithProfile() {
+    const profileRes = await this.getProfile();
+    if (profileRes.isErr()) {
+      return profileRes;
+    }
+    const profile = profileRes.value;
+
+    return ok({
+      ...this.data,
+      tools: profile.tools, // From profile
+      imageName: profile.imageName, // From profile
+      env: profile.env, // From profile
+      system: this.evolutions[0].system, // From DB (allows customization)
+      evolutions: this.evolutions,
+    });
+  }
+
   toJSON() {
     return {
       ...this.data,
-      // Only non-default tools.
-      tools: this.data.tools ?? [],
       system: this.evolutions[0].system,
       evolutions: this.evolutions,
     };

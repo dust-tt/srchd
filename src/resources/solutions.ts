@@ -27,6 +27,7 @@ export class SolutionResource {
       model: "claude-sonnet-4-5" as const,
       thinking: "low" as const,
       tools: DEFAULT_TOOLS,
+      profile: null,
     };
     this.experiment = experiment;
   }
