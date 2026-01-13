@@ -85,8 +85,8 @@ export async function createPublicationsServer(
   config: RunConfig,
 ): Promise<McpServer> {
   // Load profile to check for computer tool
-  const profileRes = await agent.getProfile();
-  const hasComputerTool = profileRes.isOk() && profileRes.value.tools.includes("computer");
+  const profile = agent.getProfile();
+  const hasComputerTool = profile.tools.includes("computer");
 
   const server = new McpServer({
     name: SERVER_NAME,

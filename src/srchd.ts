@@ -446,11 +446,7 @@ agentCmd
     if (options.path && isArrayOf(options.path, isString)) {
       // Copy paths to all agents with computers
       for (const agent of agents) {
-        const profileRes = await agent.getProfile();
-        if (profileRes.isErr()) {
-          continue; // Skip agents with invalid profiles
-        }
-        const profile = profileRes.value;
+        const profile = agent.getProfile();
 
         if (profile.tools.includes("computer")) {
           for (const path of options.path) {

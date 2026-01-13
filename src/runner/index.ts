@@ -61,11 +61,7 @@ export class Runner {
     config: RunConfig,
   ): Promise<Result<Runner>> {
     // Load profile to get tools
-    const profileRes = await agent.getProfile();
-    if (profileRes.isErr()) {
-      return profileRes;
-    }
-    const profile = profileRes.value;
+    const profile = agent.getProfile();
 
     // Merge profile tools with runtime tools and DEFAULT_TOOLS
     const allTools = [
