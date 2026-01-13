@@ -12,15 +12,17 @@ export type Evolution = InferSelectModel<typeof evolutions>;
 export class AgentResource {
   private data: Agent;
   private evolutions: Evolution[];
+  private profile: AgentProfile;
   experiment: ExperimentResource;
 
-  private constructor(data: Agent, experiment: ExperimentResource) {
+  private constructor(data: Agent, experiment: ExperimentResource, profile?: AgentProfile) {
     this.data = data;
     this.evolutions = [];
+    this.profile = profile as AgentProfile; // Will be set in finalize if not provided
     this.experiment = experiment;
   }
 
-  private async finalize(): Promise<AgentResource> {
+  private async finalize(): Promise<Result<AgentResource>> {
     const results = await db
       .select()
       .from(evolutions)
@@ -28,7 +30,17 @@ export class AgentResource {
       .orderBy(desc(evolutions.created));
 
     this.evolutions = results;
-    return this;
+
+    // Load profile if not already set (from create)
+    if (!this.profile) {
+      const profileRes = await getAgentProfile(this.data.profile);
+      if (profileRes.isErr()) {
+        return profileRes;
+      }
+      this.profile = profileRes.value;
+    }
+
+    return ok(this);
   }
 
   static async findByName(
@@ -53,57 +65,70 @@ export class AgentResource {
       );
     }
 
-    return ok(await new AgentResource(result, experiment).finalize());
+    return await new AgentResource(result, experiment).finalize();
   }
 
   static async findById(
     experiment: ExperimentResource,
     id: number,
-  ): Promise<AgentResource | null> {
+  ): Promise<Result<AgentResource | null>> {
     const [result] = await db
       .select()
       .from(agents)
       .where(eq(agents.id, id))
       .limit(1);
 
-    if (!result) return null;
+    if (!result) return ok(null);
 
     return await new AgentResource(result, experiment).finalize();
   }
 
   static async listByExperiment(
     experiment: ExperimentResource,
-  ): Promise<AgentResource[]> {
+  ): Promise<Result<AgentResource[]>> {
     const results = await db
       .select()
       .from(agents)
       .where(eq(agents.experiment, experiment.toJSON().id));
 
     // TODO(spolu): optimize with a join?
-    return await concurrentExecutor(
+    const agentResults = await concurrentExecutor(
       results,
       async (data) => {
         return await new AgentResource(data, experiment).finalize();
       },
       { concurrency: 8 },
     );
+
+    // Check if any failed and unwrap
+    const unwrapped: AgentResource[] = [];
+    for (const result of agentResults) {
+      if (result.isErr()) {
+        return result;
+      }
+      unwrapped.push(result.value);
+    }
+
+    return ok(unwrapped);
   }
 
   static async create(
     experiment: ExperimentResource,
     data: Omit<
       InferInsertModel<typeof agents>,
-      "id" | "created" | "updated" | "experiment"
+      "id" | "created" | "updated" | "experiment" | "profile"
     >,
     evolution: Omit<
       InferInsertModel<typeof evolutions>,
       "id" | "created" | "updated" | "experiment" | "agent"
     >,
-  ): Promise<AgentResource> {
+    profile: AgentProfile,
+  ): Promise<Result<AgentResource>> {
     const [created] = await db
       .insert(agents)
       .values({
         ...data,
+        profile: profile.name,
         experiment: experiment.toJSON().id,
       })
       .returning();
@@ -114,7 +139,7 @@ export class AgentResource {
       agent: created.id,
     });
 
-    return await new AgentResource(created, experiment).finalize();
+    return await new AgentResource(created, experiment, profile).finalize();
   }
 
   async update(
@@ -162,8 +187,8 @@ export class AgentResource {
     }
   }
 
-  async getProfile(): Promise<Result<AgentProfile>> {
-    return await getAgentProfile(this.data.profile);
+  getProfile(): AgentProfile {
+    return this.profile;
   }
 
   toJSON() {

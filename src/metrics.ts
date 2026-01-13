@@ -154,7 +154,13 @@ async function metricsForExperiment<M, D>(
 ): Promise<ExperimentMetrics<M>> {
   const experimentData = await experimentDataRetriever(experiment);
   const experimentMetrics = calculateMetrics(experimentData);
-  const agents = await AgentResource.listByExperiment(experiment);
+  const agentsRes = await AgentResource.listByExperiment(experiment);
+
+  if (agentsRes.isErr()) {
+    throw new Error(`Failed to load agents: ${agentsRes.error.message}`);
+  }
+
+  const agents = agentsRes.value;
 
   const agentsMetrics: {
     [agentName: string]: M;

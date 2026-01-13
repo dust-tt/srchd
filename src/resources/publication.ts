@@ -70,7 +70,7 @@ export class PublicationResource {
       this.data.author,
     );
 
-    const [fromCitationsResults, toCitationsResults, reviewsResults, author] =
+    const [fromCitationsResults, toCitationsResults, reviewsResults, authorRes] =
       await Promise.all([
         fromCitationsQuery,
         toCitationsQuery,
@@ -84,21 +84,27 @@ export class PublicationResource {
     this.reviews = await concurrentExecutor(
       reviewsResults,
       async (review) => {
-        const reviewAgent = await AgentResource.findById(
+        const reviewAgentRes = await AgentResource.findById(
           this.experiment,
           review.author,
         );
-        assert(reviewAgent);
+        if (reviewAgentRes.isErr()) {
+          throw new Error(`Failed to load review agent: ${reviewAgentRes.error.message}`);
+        }
+        assert(reviewAgentRes.value);
         return {
           ...review,
-          author: reviewAgent.toJSON(),
+          author: reviewAgentRes.value.toJSON(),
         };
       },
       { concurrency: 8 },
     );
 
-    if (author) {
-      this.author = author.toJSON();
+    if (authorRes.isErr()) {
+      throw new Error(`Failed to load author: ${authorRes.error.message}`);
+    }
+    if (authorRes.value) {
+      this.author = authorRes.value.toJSON();
     }
     return this;
   }

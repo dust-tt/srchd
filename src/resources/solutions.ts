@@ -33,7 +33,7 @@ export class SolutionResource {
   }
 
   private async finalize(): Promise<SolutionResource> {
-    const [agent, publication] = await Promise.all([
+    const [agentRes, publication] = await Promise.all([
       AgentResource.findById(this.experiment, this.data.agent),
       (async () => {
         if (this.data.publication) {
@@ -46,8 +46,11 @@ export class SolutionResource {
       })(),
     ]);
 
-    if (agent) {
-      this.agent = agent.toJSON();
+    if (agentRes.isErr()) {
+      throw new Error(`Failed to load agent: ${agentRes.error.message}`);
+    }
+    if (agentRes.value) {
+      this.agent = agentRes.value.toJSON();
     }
     if (publication) {
       this.publication = publication;

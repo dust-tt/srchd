@@ -65,9 +65,11 @@ async function experimentAndAgents({
   const agentResources: AgentResource[] = [];
 
   if (agent === "all") {
-    agentResources.push(
-      ...(await AgentResource.listByExperiment(experimentRes.value)),
-    );
+    const agentsRes = await AgentResource.listByExperiment(experimentRes.value);
+    if (agentsRes.isErr()) {
+      return agentsRes;
+    }
+    agentResources.push(...agentsRes.value);
     return ok([experimentRes.value, agentResources]);
   }
 
@@ -292,7 +294,7 @@ agentCmd
         );
       }
 
-      const agent = await AgentResource.create(
+      const agentRes = await AgentResource.create(
         experiment,
         {
           name,
@@ -300,10 +302,14 @@ agentCmd
           provider,
           thinking,
           tools,
-          profile: options.profile,
         },
         { system: profile.prompt },
+        profile,
       );
+      if (agentRes.isErr()) {
+        return exitWithError(agentRes);
+      }
+      const agent = agentRes.value;
       agents.push(agent);
 
       if (tools.includes("computer")) {

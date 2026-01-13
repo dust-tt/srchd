@@ -95,7 +95,11 @@ export const experimentOverview = async (c: Input) => {
   const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
-  const experimentAgents = await AgentResource.listByExperiment(experiment);
+  const experimentAgentsRes = await AgentResource.listByExperiment(experiment);
+  if (experimentAgentsRes.isErr()) {
+    return c.text("Failed to load agents", 500);
+  }
+  const experimentAgents = experimentAgentsRes.value;
   const experimentPublications =
     await PublicationResource.listByExperiment(experiment);
   const experimentSolutions =
@@ -150,7 +154,11 @@ export const experimentAgents = async (c: Input) => {
   const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
-  const experimentAgents = await AgentResource.listByExperiment(experiment);
+  const experimentAgentsRes = await AgentResource.listByExperiment(experiment);
+  if (experimentAgentsRes.isErr()) {
+    return c.text("Failed to load agents", 500);
+  }
+  const experimentAgents = experimentAgentsRes.value;
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
 
@@ -191,7 +199,11 @@ export const agentOverview = async (c: Input) => {
   const experiment = await ExperimentResource.findById(id);
   if (!experiment) return c.notFound();
 
-  const agents = await AgentResource.listByExperiment(experiment);
+  const agentsRes = await AgentResource.listByExperiment(experiment);
+  if (agentsRes.isErr()) {
+    return c.text("Failed to load agents", 500);
+  }
+  const agents = agentsRes.value;
   const agent = agents.find((a) => a.toJSON().id === agentId);
   if (!agent) return c.notFound();
 

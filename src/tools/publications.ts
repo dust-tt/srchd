@@ -240,7 +240,11 @@ ${r.content}`;
         );
       }
 
-      const agents = await AgentResource.listByExperiment(experiment);
+      const agentsRes = await AgentResource.listByExperiment(experiment);
+      if (agentsRes.isErr()) {
+        return errorToCallToolResult(agentsRes);
+      }
+      const agents = agentsRes.value;
       const pool = agents.filter((a) => a.toJSON().id !== agent.toJSON().id);
       if (pool.length < config.reviewers) {
         return errorToCallToolResult(
