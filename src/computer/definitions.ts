@@ -35,48 +35,12 @@ export function defineComputerPod(
     },
     spec: {
       restartPolicy: "Never",
-      initContainers: [
-        {
-          name: "init-home",
-          image: imageName ?? COMPUTER_IMAGE,
-          command: ["/bin/bash", "-c"],
-          args: [
-            // Copy /home/agent skeleton to PVC on first mount
-            // Mount PVC at /mnt/work to avoid shadowing /home/agent
-            `if [ ! -f /mnt/work/.initialized ]; then
-              cp -a /home/agent/. /mnt/work/ 2>/dev/null || true
-              touch /mnt/work/.initialized
-            fi`,
-          ],
-          volumeMounts: [
-            {
-              name: "work",
-              mountPath: "/mnt/work",
-            },
-          ],
-        },
-      ],
       containers: [
         {
           name: "computer",
           env: defineComputerEnv(namespace, env),
           image: imageName ?? COMPUTER_IMAGE,
           command: ["/bin/bash", "-c", "tail -f /dev/null"],
-          volumeMounts: [
-            {
-              name: "work",
-              mountPath: DEFAULT_WORKDIR,
-            },
-          ],
-        },
-      ],
-      volumes: [
-        {
-          name: "work",
-          hostPath: {
-            path: computerHostPath(namespace, computerId),
-            type: "DirectoryOrCreate",
-          },
         },
       ],
     },
