@@ -60,9 +60,28 @@ export class Runner {
     agent: AgentResource,
     config: RunConfig,
   ): Promise<Result<Runner>> {
+    // Load profile (from config override or agent's stored profile)
+    const profileRes = config.profile
+      ? ok(config.profile)
+      : await agent.getProfile();
+    if (profileRes.isErr()) {
+      return profileRes;
+    }
+    const profile = profileRes.value;
+
+    // Merge profile tools with runtime tools and DEFAULT_TOOLS
+    const allTools = [
+      ...(agent.toJSON().tools ?? []),
+      ...profile.tools,
+      ...(config.runtimeTools ?? []),
+      ...DEFAULT_TOOLS,
+    ];
+    // Deduplicate tools
+    const uniqueTools = Array.from(new Set(allTools));
+
     const servers = await Promise.all(
-      [...(agent.toJSON().tools ?? []), ...DEFAULT_TOOLS].map((t) =>
-        createServer(t, { experiment, agent, config }),
+      uniqueTools.map((t) =>
+        createServer(t, { experiment, agent, config, profile }),
       ),
     );
     const clients = await Promise.all(

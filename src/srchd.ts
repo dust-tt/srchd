@@ -413,6 +413,10 @@ agentCmd
   .option("-t, --tick", "Run one tick only")
   .option("--max-tokens <tokens>", "Max tokens (in millions) before stopping run")
   .option("--max-cost <cost>", "Max cost (in dollars) before stopping run")
+  .option("--profile <profile>", "Override agent profile (for image and env)")
+  .option("--tool <tool>", "Add tool at runtime (repeatable)", (value, previous: string[] = []) => {
+    return [...previous, value];
+  })
   .action(async (name, options) => {
     const res = await experimentAndAgents({
       experiment: options.experiment,
@@ -478,10 +482,22 @@ agentCmd
       }
     }
 
+    // Load profile (from --profile option or agent's stored profile)
+    let profile: AgentProfile | undefined;
+    if (options.profile) {
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      profile = profileRes.value;
+    }
+
     const builders = await Promise.all(
       agents.map((a) =>
         Runner.builder(experiment, a, {
           reviewers,
+          profile,
+          runtimeTools: options.tool,
         }),
       ),
     );
