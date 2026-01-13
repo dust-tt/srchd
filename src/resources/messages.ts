@@ -4,6 +4,10 @@ import { eq, InferSelectModel, and, asc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { AgentResource } from "./agent";
 import { Message } from "@app/models";
+import {
+  err,
+  ok,
+  Result } from "@app/lib/error";
 
 export class MessageResource {
   private data: InferSelectModel<typeof messages>;
@@ -21,7 +25,7 @@ export class MessageResource {
     experiment: ExperimentResource,
     agent: AgentResource,
     id: number,
-  ): Promise<MessageResource | null> {
+  ): Promise<Result<MessageResource>> {
     const result = await db
       .select()
       .from(messages)
@@ -34,7 +38,7 @@ export class MessageResource {
       )
       .limit(1);
 
-    return result[0] ? new MessageResource(result[0], experiment) : null;
+    return result[0] ? ok(new MessageResource(result[0], experiment)) : err("not_found_error", `Message not found for id: ${id}`);
   }
 
   static async listMessagesByAgent(

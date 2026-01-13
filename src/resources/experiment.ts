@@ -24,14 +24,14 @@ export class ExperimentResource {
       : err("not_found_error", `Experiment '${name}' not found.`);
   }
 
-  static async findById(id: number): Promise<ExperimentResource | null> {
+  static async findById(id: number): Promise<Result<ExperimentResource>> {
     const result = await db
       .select()
       .from(experiments)
       .where(eq(experiments.id, id))
       .limit(1);
 
-    return result[0] ? new ExperimentResource(result[0]) : null;
+    return result[0] ? ok(new ExperimentResource(result[0])) : err("not_found_error", `Experiment not found for id: ${id}`);
   }
 
   static async create(

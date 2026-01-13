@@ -69,7 +69,7 @@ export class PublicationResource {
       this.data.author,
     );
 
-    const [fromCitationsResults, toCitationsResults, reviewsResults, author] =
+    const [fromCitationsResults, toCitationsResults, reviewsResults, authorRes] =
       await Promise.all([
         fromCitationsQuery,
         toCitationsQuery,
@@ -77,17 +77,21 @@ export class PublicationResource {
         authorQuery,
       ]);
 
+    assert(authorRes.isOk());
+    this.author = authorRes.value.toJSON();
+
     this.citations.from = fromCitationsResults;
     this.citations.to = toCitationsResults;
 
     this.reviews = await concurrentExecutor(
       reviewsResults,
       async (review) => {
-        const reviewAgent = await AgentResource.findById(
+        const reviewAgentRes = await AgentResource.findById(
           this.experiment,
           review.author,
         );
-        assert(reviewAgent);
+        assert(reviewAgentRes.isOk());
+        const reviewAgent = reviewAgentRes.value;
         return {
           ...review,
           author: reviewAgent.toJSON(),
@@ -96,25 +100,22 @@ export class PublicationResource {
       { concurrency: 8 },
     );
 
-    if (author) {
-      this.author = author.toJSON();
-    }
     return this;
   }
 
   static async findById(
     experiment: ExperimentResource,
     id: number,
-  ): Promise<PublicationResource | null> {
+  ): Promise<Result<PublicationResource>> {
     const [result] = await db
       .select()
       .from(publications)
       .where(eq(publications.id, id))
       .limit(1);
 
-    if (!result) return null;
+    if (!result) return err("not_found_error", `Publication not found for id: ${id}`);
 
-    return await new PublicationResource(result, experiment).finalize();
+    return ok(await new PublicationResource(result, experiment).finalize());
   }
 
   static async listPublishedByExperiment(
@@ -251,12 +252,12 @@ export class PublicationResource {
   static async findByReference(
     experiment: ExperimentResource,
     reference: string,
-  ): Promise<PublicationResource | null> {
+  ): Promise<Result<PublicationResource>> {
     const [r] = await PublicationResource.findByReferences(experiment, [
       reference,
     ]);
 
-    return r ?? null;
+    return r ? ok(r) : err("not_found_error", `Publication not found for reference: ${reference}`);
   }
 
   static async findByReferences(
@@ -358,7 +359,7 @@ export class PublicationResource {
     return this.data.status;
   }
 
-  async publish() {
+  async publish(): Promise<Result<PublicationResource>> {
     const references = PublicationResource.extractReferences(this.data.content);
     const found = await PublicationResource.findByReferences(
       this.experiment,
@@ -400,7 +401,7 @@ export class PublicationResource {
     }
   }
 
-  async reject() {
+  async reject(): Promise<Result<PublicationResource>> {
     try {
       const [updated] = await db
         .update(publications)

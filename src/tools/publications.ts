@@ -164,15 +164,16 @@ Defaults to \`latest\`.`,
       reference: z.string().describe("Reference of the publication."),
     },
     async ({ reference }) => {
-      const publication = await PublicationResource.findByReference(
+      const publicationRes = await PublicationResource.findByReference(
         experiment,
         reference,
       );
-      if (!publication) {
+      if (publicationRes.isErr()) {
         return errorToCallToolResult(
-          err("not_found_error", "Publication not found"),
+          publicationRes,
         );
       }
+      const publication = publicationRes.value;
 
       return {
         isError: false,
@@ -315,15 +316,16 @@ ${r.content}`;
         reference: z.string().describe("Reference of the publication."),
       },
       async ({ reference }) => {
-        const publication = await PublicationResource.findByReference(
+        const publicationRes = await PublicationResource.findByReference(
           experiment,
           reference,
         );
-        if (!publication) {
+        if (publicationRes.isErr()) {
           return errorToCallToolResult(
-            err("not_found_error", "Publication not found"),
+            publicationRes,
           );
         }
+        const publication = publicationRes.value;
 
         const attachmentsDir = getAttachmentPath(publication.experiment.toJSON().id, reference);
         if (!fs.existsSync(attachmentsDir)) {
@@ -418,15 +420,16 @@ ${r.content}`;
       content: z.string().describe("Content of the review."),
     },
     async ({ publication: reference, grade, content }) => {
-      const publication = await PublicationResource.findByReference(
+      const publicationRes = await PublicationResource.findByReference(
         experiment,
         reference,
       );
-      if (!publication) {
+      if (publicationRes.isErr()) {
         return errorToCallToolResult(
-          err("not_found_error", "Publication not found"),
+          publicationRes,
         );
       }
+      const publication = publicationRes.value;
 
       const review = await publication.submitReview(agent, {
         grade,
