@@ -4,6 +4,7 @@ import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
+import { getAgentProfile, AgentProfile } from "@app/agent_profile";
 
 export type Agent = InferSelectModel<typeof agents>;
 export type Evolution = InferSelectModel<typeof evolutions>;
@@ -159,6 +160,10 @@ export class AgentResource {
         error,
       );
     }
+  }
+
+  async getProfile(): Promise<Result<AgentProfile>> {
+    return await getAgentProfile(this.data.profile);
   }
 
   toJSON() {

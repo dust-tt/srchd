@@ -300,6 +300,7 @@ agentCmd
           provider,
           thinking,
           tools,
+          profile: options.profile,
         },
         { system: profile.prompt },
       );
