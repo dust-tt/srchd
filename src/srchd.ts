@@ -440,8 +440,15 @@ agentCmd
       for (const agent of agents.filter((a) =>
         a.toJSON().tools.includes("computer"),
       )) {
+        // Ensure computer exists before copying files
+        const cid = computerId(experiment, agent);
+        const computerRes = await Computer.ensure(cid);
+        if (computerRes.isErr()) {
+          return exitWithError(computerRes);
+        }
+
         for (const path of options.path) {
-          const res = await copyToComputer(computerId(experiment, agent), path);
+          const res = await copyToComputer(cid, path);
           if (res.isErr()) {
             return exitWithError(res);
           }
