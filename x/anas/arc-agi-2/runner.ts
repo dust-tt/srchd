@@ -159,6 +159,100 @@ function countAgents(experimentName: string): number {
   return agentList.length;
 }
 
+// Check and fix pod health
+function checkAndFixPodHealth(experimentName: string): void {
+  console.log('\n🏥 Checking pod health...');
+
+  try {
+    // Get all pods for this experiment
+    const podPattern = `srchd-default-${experimentName}-`;
+    const listResult = execSync('kubectl get pods -o json', {
+      encoding: 'utf-8',
+      cwd: path.join(__dirname, '../../..')
+    });
+
+    const podList = JSON.parse(listResult);
+    const matchingPods = podList.items.filter((pod: any) =>
+      pod.metadata.name.includes(podPattern)
+    );
+
+    if (matchingPods.length === 0) {
+      console.log('   No pods found yet (will be created on first use)');
+      return;
+    }
+
+    console.log(`   Found ${matchingPods.length} pod(s) for this experiment`);
+
+    const errorPods: string[] = [];
+
+    for (const pod of matchingPods) {
+      const podName = pod.metadata.name;
+      const phase = pod.status?.phase || 'Unknown';
+      const containerStatuses = pod.status?.containerStatuses || [];
+
+      // Check if pod is in error state
+      const errorPhases = ['Failed', 'Unknown'];
+      const errorReasons = [
+        'CrashLoopBackOff',
+        'ImagePullBackOff',
+        'ErrImagePull',
+        'CreateContainerError',
+        'InvalidImageName',
+        'Error',
+        'ContainerCannotRun',
+        'StartError'
+      ];
+
+      let isError = errorPhases.includes(phase);
+      let reason = phase;
+
+      // Check container statuses
+      for (const containerStatus of containerStatuses) {
+        const waiting = containerStatus.state?.waiting;
+        const terminated = containerStatus.state?.terminated;
+
+        if (waiting && errorReasons.includes(waiting.reason)) {
+          isError = true;
+          reason = waiting.reason;
+        }
+        if (terminated && errorReasons.includes(terminated.reason)) {
+          isError = true;
+          reason = terminated.reason;
+        }
+      }
+
+      if (isError) {
+        console.log(`   ⚠️  Pod ${podName} is in error state: ${reason}`);
+        errorPods.push(podName);
+      } else {
+        console.log(`   ✓ Pod ${podName} is healthy (${phase})`);
+      }
+    }
+
+    // Delete error pods
+    if (errorPods.length > 0) {
+      console.log(`\n   🔧 Deleting ${errorPods.length} unhealthy pod(s)...`);
+      for (const podName of errorPods) {
+        try {
+          execSync(`kubectl delete pod ${podName} --grace-period=0 --force`, {
+            encoding: 'utf-8',
+            cwd: path.join(__dirname, '../../..')
+          });
+          console.log(`   ✓ Deleted ${podName}`);
+        } catch (error) {
+          console.log(`   ⚠️  Failed to delete ${podName}, it may already be gone`);
+        }
+      }
+      console.log('   ✓ Unhealthy pods deleted, new ones will be created on demand\n');
+    } else {
+      console.log('   ✓ All pods are healthy\n');
+    }
+  } catch (error) {
+    console.error('   ⚠️  Failed to check pod health:', error instanceof Error ? error.message : String(error));
+    console.log('   Continuing anyway...\n');
+  }
+}
+
 // List all experiments
 function listExperiments(): void {
   const status = loadStatus();
@@ -333,6 +427,9 @@ async function runExperiment(
     } else {
       console.log(`   ✓ All ${numAgents} agents already exist`);
     }
+
+    // Step 2.5: Check and fix pod health before running
+    checkAndFixPodHealth(experimentName);
 
     // Step 3: Run all agents
     console.log(`\n▶️  Step 3: Running all agents with budget $${budget}...`);

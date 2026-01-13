@@ -65,6 +65,87 @@ function askConfirmation(question: string): Promise<boolean> {
   });
 }
 
+// Check and fix pod health for multiple experiments
+function checkAndFixBatchPodHealth(experimentNames: string[]): void {
+  console.log('\n🏥 Pre-flight pod health check...');
+
+  try {
+    const listResult = execSync('kubectl get pods -o json', {
+      encoding: 'utf-8',
+      cwd: path.join(__dirname, '../../..')
+    });
+
+    const podList = JSON.parse(listResult);
+    const errorPods: string[] = [];
+
+    for (const experimentName of experimentNames) {
+      const podPattern = `srchd-default-${experimentName}-`;
+      const matchingPods = podList.items.filter((pod: any) =>
+        pod.metadata.name.includes(podPattern)
+      );
+
+      for (const pod of matchingPods) {
+        const podName = pod.metadata.name;
+        const phase = pod.status?.phase || 'Unknown';
+        const containerStatuses = pod.status?.containerStatuses || [];
+
+        // Check if pod is in error state
+        const errorPhases = ['Failed', 'Unknown'];
+        const errorReasons = [
+          'CrashLoopBackOff',
+          'ImagePullBackOff',
+          'ErrImagePull',
+          'CreateContainerError',
+          'InvalidImageName',
+          'Error',
+          'ContainerCannotRun',
+          'StartError'
+        ];
+
+        let isError = errorPhases.includes(phase);
+
+        for (const containerStatus of containerStatuses) {
+          const waiting = containerStatus.state?.waiting;
+          const terminated = containerStatus.state?.terminated;
+
+          if (waiting && errorReasons.includes(waiting.reason)) {
+            isError = true;
+          }
+          if (terminated && errorReasons.includes(terminated.reason)) {
+            isError = true;
+          }
+        }
+
+        if (isError) {
+          errorPods.push(podName);
+        }
+      }
+    }
+
+    if (errorPods.length > 0) {
+      console.log(`   Found ${errorPods.length} unhealthy pod(s) from previous runs`);
+      console.log(`   🔧 Deleting unhealthy pods...`);
+      for (const podName of errorPods) {
+        try {
+          execSync(`kubectl delete pod ${podName} --grace-period=0 --force`, {
+            encoding: 'utf-8',
+            cwd: path.join(__dirname, '../../..'),
+            stdio: 'ignore'
+          });
+        } catch (error) {
+          // Ignore deletion errors
+        }
+      }
+      console.log('   ✓ Cleanup complete\n');
+    } else {
+      console.log('   ✓ No unhealthy pods found\n');
+    }
+  } catch (error) {
+    console.error('   ⚠️  Failed to check pod health:', error instanceof Error ? error.message : String(error));
+    console.log('   Continuing anyway...\n');
+  }
+}
+
 // Run a single runner.ts command
 function runCommand(
   command: string,
@@ -183,8 +264,24 @@ async function main() {
       try {
         const indexes = parseRangeExpression(indexesExpr);
         const agentCounts = parseRangeExpression(options.agents);
+        const problems = loadProblems();
 
         console.log(`\n📦 Batch mode: ${indexes.length} problem(s) × ${agentCounts.length} agent config(s) = ${indexes.length * agentCounts.length} total run(s)`);
+
+        // Build experiment names for health check
+        const experimentNames: string[] = [];
+        for (const index of indexes) {
+          const problemId = problems[index - 1];
+          for (const agents of agentCounts) {
+            const baseExperimentName = `arc-agi-${problemId}-${agents}agents`;
+            const experimentName = options.variant ? `${baseExperimentName}-${options.variant}` : baseExperimentName;
+            experimentNames.push(experimentName);
+          }
+        }
+
+        // Pre-flight health check
+        checkAndFixBatchPodHealth(experimentNames);
+
         console.log(`🚀 Running experiments concurrently${options.concurrency ? ` (max ${options.concurrency} at a time)` : ''}...\n`);
 
         // Create all combinations
