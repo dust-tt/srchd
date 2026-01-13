@@ -438,7 +438,7 @@ agentCmd
     if (options.path && isArrayOf(options.path, isString)) {
       // Copy paths to all agents with computers
       for (const agent of agents.filter((a) =>
-        a.toJSON().tools.includes("computer"),
+        a.toJSON().tools?.includes("computer") ?? false,
       )) {
         for (const path of options.path) {
           const res = await copyToComputer(computerId(experiment, agent), path);
