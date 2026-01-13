@@ -438,117 +438,115 @@ async function verifyExperiment(
   // Get most voted solution (most recent by any agent)
   const solutionsList = allSolutions;
 
-  if (solutionsList.length === 0) {
-    console.error(`❌ Error: No solutions found for experiment '${experimentName}'`);
-    process.exit(1);
-  }
+  let verifyResult: { success: boolean; error?: string; percentage: number; passed: number; total: number } | null = null;
 
-  // Count votes for each publication
-  const voteCounts = new Map<number, number>();
-  for (const sol of solutionsList) {
-    if (sol.publication) {
-      voteCounts.set(sol.publication, (voteCounts.get(sol.publication) || 0) + 1);
+  if (solutionsList.length === 0) {
+    console.log(`⚠️  No solutions found for experiment '${experimentName}'\n`);
+  } else {
+    // Count votes for each publication
+    const voteCounts = new Map<number, number>();
+    for (const sol of solutionsList) {
+      if (sol.publication) {
+        voteCounts.set(sol.publication, (voteCounts.get(sol.publication) || 0) + 1);
+      }
+    }
+
+    if (voteCounts.size === 0) {
+      console.log(`⚠️  No publications referenced in solutions\n`);
+    } else {
+      // Find most voted publication
+      const mostVotedPubId = Array.from(voteCounts.entries())
+        .sort((a, b) => b[1] - a[1])[0][0];
+
+      console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
+
+      // Get the publication
+      const publication = db
+        .select()
+        .from(publications)
+        .where(eq(publications.id, mostVotedPubId))
+        .get();
+
+      if (!publication) {
+        console.log(`⚠️  Publication not found\n`);
+      } else {
+        const reference = publication.reference;
+        console.log(`📄 Publication reference: ${reference}`);
+
+        // Check for attachments
+        const attachmentsDir = path.join(
+          __dirname,
+          '../../..',
+          'attachments',
+          `${experiment.id}`,
+          reference
+        );
+
+        if (!fs.existsSync(attachmentsDir)) {
+          console.log(`⚠️  No attachments found for publication '${reference}'`);
+          console.log(`   Expected path: ${attachmentsDir}\n`);
+        } else {
+          const files = fs.readdirSync(attachmentsDir);
+          const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+          if (jsonFiles.length === 0) {
+            console.log(`⚠️  No JSON files found in attachments`);
+            console.log(`   Available files: ${files.join(', ')}\n`);
+          } else {
+            // Priority: outputs.json, else ask user
+            let selectedFile: string;
+            if (jsonFiles.includes('outputs.json')) {
+              selectedFile = 'outputs.json';
+              console.log(`✓ Using outputs.json\n`);
+            } else if (jsonFiles.length === 1) {
+              selectedFile = jsonFiles[0];
+              console.log(`✓ Using ${selectedFile}\n`);
+            } else {
+              console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
+              const selection = await askSelection('Multiple JSON files found. Select one:', jsonFiles);
+              selectedFile = jsonFiles[selection];
+              console.log(`✓ Selected ${selectedFile}\n`);
+            }
+
+            const outputsPath = path.join(attachmentsDir, selectedFile);
+
+            console.log(`🧪 Running verification...\n`);
+
+            // Use verify library
+            verifyResult = await verifyOutputs(
+              problemId,
+              outputsPath,
+              path.join(__dirname, '../../../problems/ARC-AGI-2')
+            );
+          }
+        }
+      }
     }
   }
 
-  if (voteCounts.size === 0) {
-    console.error(`❌ Error: No publications referenced in solutions`);
-    process.exit(1);
-  }
-
-  // Find most voted publication
-  const mostVotedPubId = Array.from(voteCounts.entries())
-    .sort((a, b) => b[1] - a[1])[0][0];
-
-  console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
-
-  // Get the publication
-  const publication = db
-    .select()
-    .from(publications)
-    .where(eq(publications.id, mostVotedPubId))
-    .get();
-
-  if (!publication) {
-    console.error(`❌ Error: Publication not found`);
-    process.exit(1);
-  }
-
-  const reference = publication.reference;
-  console.log(`📄 Publication reference: ${reference}`);
-
-  // Check for attachments
-  const attachmentsDir = path.join(
-    __dirname,
-    '../../..',
-    'attachments',
-    `${experiment.id}`,
-    reference
-  );
-
-  if (!fs.existsSync(attachmentsDir)) {
-    console.error(`❌ Error: No attachments found for publication '${reference}'`);
-    console.error(`   Expected path: ${attachmentsDir}`);
-    process.exit(1);
-  }
-
-  const files = fs.readdirSync(attachmentsDir);
-  const jsonFiles = files.filter(f => f.endsWith('.json'));
-
-  if (jsonFiles.length === 0) {
-    console.error(`❌ Error: No JSON files found in attachments`);
-    console.error(`   Available files: ${files.join(', ')}`);
-    process.exit(1);
-  }
-
-  // Priority: outputs.json, else ask user
-  let selectedFile: string;
-  if (jsonFiles.includes('outputs.json')) {
-    selectedFile = 'outputs.json';
-    console.log(`✓ Using outputs.json\n`);
-  } else if (jsonFiles.length === 1) {
-    selectedFile = jsonFiles[0];
-    console.log(`✓ Using ${selectedFile}\n`);
-  } else {
-    console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
-    const selection = await askSelection('Multiple JSON files found. Select one:', jsonFiles);
-    selectedFile = jsonFiles[selection];
-    console.log(`✓ Selected ${selectedFile}\n`);
-  }
-
-  const outputsPath = path.join(attachmentsDir, selectedFile);
-
-  console.log(`🧪 Running verification...\n`);
-
-  // Use verify library
-  const verifyResult = await verifyOutputs(
-    problemId,
-    outputsPath,
-    path.join(__dirname, '../../../problems/ARC-AGI-2')
-  );
-
   // Display metrics table with verification results
   const metricsData = [{
-    'Publications': allPublications.length,
-    'Published': publishedCount,
+    'Performance': verifyResult ? (verifyResult.error ? 'ERROR' : `${verifyResult.percentage}%`) : 'N/A',
     'Unique Solutions': uniqueSolutions,
-    'MTok Consumed': mtokens,
-    'Perf': verifyResult.error ? 'ERROR' : `${verifyResult.percentage}%`,
-    'Cases': verifyResult.error ? '-' : `${verifyResult.passed}/${verifyResult.total}`,
+    'Total Publications': allPublications.length,
   }];
 
   console.table(metricsData);
   console.log('');
 
-  if (verifyResult.error) {
-    console.error(`❌ Verification error: ${verifyResult.error}`);
-    process.exit(1);
-  }
+  if (verifyResult) {
+    if (verifyResult.error) {
+      console.error(`❌ Verification error: ${verifyResult.error}`);
+      process.exit(1);
+    }
 
-  if (verifyResult.success) {
-    console.log(`✅ All ${verifyResult.total} test case(s) passed!`);
+    if (verifyResult.success) {
+      console.log(`✅ All ${verifyResult.total} test case(s) passed!`);
+    } else {
+      console.log(`⚠️  Passed ${verifyResult.passed}/${verifyResult.total} test case(s) (${verifyResult.percentage}%)`);
+    }
   } else {
-    console.log(`⚠️  Passed ${verifyResult.passed}/${verifyResult.total} test case(s) (${verifyResult.percentage}%)`);
+    console.log(`ℹ️  No verification performed (no valid solution found)`);
   }
 }
 
