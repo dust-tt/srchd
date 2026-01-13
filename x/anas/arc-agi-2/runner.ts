@@ -159,100 +159,6 @@ function countAgents(experimentName: string): number {
   return agentList.length;
 }
 
-// Check and fix pod health
-function checkAndFixPodHealth(experimentName: string): void {
-  console.log('\n🏥 Checking pod health...');
-
-  try {
-    // Get all pods for this experiment
-    const podPattern = `srchd-default-${experimentName}-`;
-    const listResult = execSync('kubectl get pods -o json', {
-      encoding: 'utf-8',
-      cwd: path.join(__dirname, '../../..')
-    });
-
-    const podList = JSON.parse(listResult);
-    const matchingPods = podList.items.filter((pod: any) =>
-      pod.metadata.name.includes(podPattern)
-    );
-
-    if (matchingPods.length === 0) {
-      console.log('   No pods found yet (will be created on first use)');
-      return;
-    }
-
-    console.log(`   Found ${matchingPods.length} pod(s) for this experiment`);
-
-    const errorPods: string[] = [];
-
-    for (const pod of matchingPods) {
-      const podName = pod.metadata.name;
-      const phase = pod.status?.phase || 'Unknown';
-      const containerStatuses = pod.status?.containerStatuses || [];
-
-      // Check if pod is in error state
-      const errorPhases = ['Failed', 'Unknown'];
-      const errorReasons = [
-        'CrashLoopBackOff',
-        'ImagePullBackOff',
-        'ErrImagePull',
-        'CreateContainerError',
-        'InvalidImageName',
-        'Error',
-        'ContainerCannotRun',
-        'StartError'
-      ];
-
-      let isError = errorPhases.includes(phase);
-      let reason = phase;
-
-      // Check container statuses
-      for (const containerStatus of containerStatuses) {
-        const waiting = containerStatus.state?.waiting;
-        const terminated = containerStatus.state?.terminated;
-
-        if (waiting && errorReasons.includes(waiting.reason)) {
-          isError = true;
-          reason = waiting.reason;
-        }
-        if (terminated && errorReasons.includes(terminated.reason)) {
-          isError = true;
-          reason = terminated.reason;
-        }
-      }
-
-      if (isError) {
-        console.log(`   ⚠️  Pod ${podName} is in error state: ${reason}`);
-        errorPods.push(podName);
-      } else {
-        console.log(`   ✓ Pod ${podName} is healthy (${phase})`);
-      }
-    }
-
-    // Delete error pods
-    if (errorPods.length > 0) {
-      console.log(`\n   🔧 Deleting ${errorPods.length} unhealthy pod(s)...`);
-      for (const podName of errorPods) {
-        try {
-          execSync(`kubectl delete pod ${podName} --grace-period=0 --force`, {
-            encoding: 'utf-8',
-            cwd: path.join(__dirname, '../../..')
-          });
-          console.log(`   ✓ Deleted ${podName}`);
-        } catch (error) {
-          console.log(`   ⚠️  Failed to delete ${podName}, it may already be gone`);
-        }
-      }
-      console.log('   ✓ Unhealthy pods deleted, new ones will be created on demand\n');
-    } else {
-      console.log('   ✓ All pods are healthy\n');
-    }
-  } catch (error) {
-    console.error('   ⚠️  Failed to check pod health:', error instanceof Error ? error.message : String(error));
-    console.log('   Continuing anyway...\n');
-  }
-}
-
 // List all experiments
 function listExperiments(): void {
   const status = loadStatus();
@@ -428,9 +334,6 @@ async function runExperiment(
       console.log(`   ✓ All ${numAgents} agents already exist`);
     }
 
-    // Step 2.5: Check and fix pod health before running
-    checkAndFixPodHealth(experimentName);
-
     // Step 3: Run all agents
     console.log(`\n▶️  Step 3: Running all agents with budget $${budget}...`);
     const reviewers = numAgents < 5 ? numAgents - 1 : 4;
@@ -535,115 +438,117 @@ async function verifyExperiment(
   // Get most voted solution (most recent by any agent)
   const solutionsList = allSolutions;
 
-  let verifyResult: { success: boolean; error?: string; percentage: number; passed: number; total: number } | null = null;
-
   if (solutionsList.length === 0) {
-    console.log(`⚠️  No solutions found for experiment '${experimentName}'\n`);
-  } else {
-    // Count votes for each publication
-    const voteCounts = new Map<number, number>();
-    for (const sol of solutionsList) {
-      if (sol.publication) {
-        voteCounts.set(sol.publication, (voteCounts.get(sol.publication) || 0) + 1);
-      }
-    }
+    console.error(`❌ Error: No solutions found for experiment '${experimentName}'`);
+    process.exit(1);
+  }
 
-    if (voteCounts.size === 0) {
-      console.log(`⚠️  No publications referenced in solutions\n`);
-    } else {
-      // Find most voted publication
-      const mostVotedPubId = Array.from(voteCounts.entries())
-        .sort((a, b) => b[1] - a[1])[0][0];
-
-      console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
-
-      // Get the publication
-      const publication = db
-        .select()
-        .from(publications)
-        .where(eq(publications.id, mostVotedPubId))
-        .get();
-
-      if (!publication) {
-        console.log(`⚠️  Publication not found\n`);
-      } else {
-        const reference = publication.reference;
-        console.log(`📄 Publication reference: ${reference}`);
-
-        // Check for attachments
-        const attachmentsDir = path.join(
-          __dirname,
-          '../../..',
-          'attachments',
-          `${experiment.id}`,
-          reference
-        );
-
-        if (!fs.existsSync(attachmentsDir)) {
-          console.log(`⚠️  No attachments found for publication '${reference}'`);
-          console.log(`   Expected path: ${attachmentsDir}\n`);
-        } else {
-          const files = fs.readdirSync(attachmentsDir);
-          const jsonFiles = files.filter(f => f.endsWith('.json'));
-
-          if (jsonFiles.length === 0) {
-            console.log(`⚠️  No JSON files found in attachments`);
-            console.log(`   Available files: ${files.join(', ')}\n`);
-          } else {
-            // Priority: outputs.json, else ask user
-            let selectedFile: string;
-            if (jsonFiles.includes('outputs.json')) {
-              selectedFile = 'outputs.json';
-              console.log(`✓ Using outputs.json\n`);
-            } else if (jsonFiles.length === 1) {
-              selectedFile = jsonFiles[0];
-              console.log(`✓ Using ${selectedFile}\n`);
-            } else {
-              console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
-              const selection = await askSelection('Multiple JSON files found. Select one:', jsonFiles);
-              selectedFile = jsonFiles[selection];
-              console.log(`✓ Selected ${selectedFile}\n`);
-            }
-
-            const outputsPath = path.join(attachmentsDir, selectedFile);
-
-            console.log(`🧪 Running verification...\n`);
-
-            // Use verify library
-            verifyResult = await verifyOutputs(
-              problemId,
-              outputsPath,
-              path.join(__dirname, '../../../problems/ARC-AGI-2')
-            );
-          }
-        }
-      }
+  // Count votes for each publication
+  const voteCounts = new Map<number, number>();
+  for (const sol of solutionsList) {
+    if (sol.publication) {
+      voteCounts.set(sol.publication, (voteCounts.get(sol.publication) || 0) + 1);
     }
   }
 
+  if (voteCounts.size === 0) {
+    console.error(`❌ Error: No publications referenced in solutions`);
+    process.exit(1);
+  }
+
+  // Find most voted publication
+  const mostVotedPubId = Array.from(voteCounts.entries())
+    .sort((a, b) => b[1] - a[1])[0][0];
+
+  console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
+
+  // Get the publication
+  const publication = db
+    .select()
+    .from(publications)
+    .where(eq(publications.id, mostVotedPubId))
+    .get();
+
+  if (!publication) {
+    console.error(`❌ Error: Publication not found`);
+    process.exit(1);
+  }
+
+  const reference = publication.reference;
+  console.log(`📄 Publication reference: ${reference}`);
+
+  // Check for attachments
+  const attachmentsDir = path.join(
+    __dirname,
+    '../../..',
+    'attachments',
+    `${experiment.id}`,
+    reference
+  );
+
+  if (!fs.existsSync(attachmentsDir)) {
+    console.error(`❌ Error: No attachments found for publication '${reference}'`);
+    console.error(`   Expected path: ${attachmentsDir}`);
+    process.exit(1);
+  }
+
+  const files = fs.readdirSync(attachmentsDir);
+  const jsonFiles = files.filter(f => f.endsWith('.json'));
+
+  if (jsonFiles.length === 0) {
+    console.error(`❌ Error: No JSON files found in attachments`);
+    console.error(`   Available files: ${files.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Priority: outputs.json, else ask user
+  let selectedFile: string;
+  if (jsonFiles.includes('outputs.json')) {
+    selectedFile = 'outputs.json';
+    console.log(`✓ Using outputs.json\n`);
+  } else if (jsonFiles.length === 1) {
+    selectedFile = jsonFiles[0];
+    console.log(`✓ Using ${selectedFile}\n`);
+  } else {
+    console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
+    const selection = await askSelection('Multiple JSON files found. Select one:', jsonFiles);
+    selectedFile = jsonFiles[selection];
+    console.log(`✓ Selected ${selectedFile}\n`);
+  }
+
+  const outputsPath = path.join(attachmentsDir, selectedFile);
+
+  console.log(`🧪 Running verification...\n`);
+
+  // Use verify library
+  const verifyResult = await verifyOutputs(
+    problemId,
+    outputsPath,
+    path.join(__dirname, '../../../problems/ARC-AGI-2')
+  );
+
   // Display metrics table with verification results
   const metricsData = [{
-    'Performance': verifyResult ? (verifyResult.error ? 'ERROR' : `${verifyResult.percentage}%`) : 'N/A',
+    'Publications': allPublications.length,
+    'Published': publishedCount,
     'Unique Solutions': uniqueSolutions,
-    'Total Publications': allPublications.length,
+    'MTok Consumed': mtokens,
+    'Perf': verifyResult.error ? 'ERROR' : `${verifyResult.percentage}%`,
+    'Cases': verifyResult.error ? '-' : `${verifyResult.passed}/${verifyResult.total}`,
   }];
 
   console.table(metricsData);
   console.log('');
 
-  if (verifyResult) {
-    if (verifyResult.error) {
-      console.error(`❌ Verification error: ${verifyResult.error}`);
-      process.exit(1);
-    }
+  if (verifyResult.error) {
+    console.error(`❌ Verification error: ${verifyResult.error}`);
+    process.exit(1);
+  }
 
-    if (verifyResult.success) {
-      console.log(`✅ All ${verifyResult.total} test case(s) passed!`);
-    } else {
-      console.log(`⚠️  Passed ${verifyResult.passed}/${verifyResult.total} test case(s) (${verifyResult.percentage}%)`);
-    }
+  if (verifyResult.success) {
+    console.log(`✅ All ${verifyResult.total} test case(s) passed!`);
   } else {
-    console.log(`ℹ️  No verification performed (no valid solution found)`);
+    console.log(`⚠️  Passed ${verifyResult.passed}/${verifyResult.total} test case(s) (${verifyResult.percentage}%)`);
   }
 }
 
