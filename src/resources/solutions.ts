@@ -6,6 +6,7 @@ import { Agent, AgentResource } from "./agent";
 import { concurrentExecutor } from "@app/lib/async";
 import { PublicationResource } from "./publication";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
+import assert from "assert";
 
 type Solution = InferSelectModel<typeof solutions>;
 
@@ -45,11 +46,10 @@ export class SolutionResource {
       })(),
     ]);
 
-    if (agent) {
-      this.agent = agent.toJSON();
-    }
-    if (publication) {
-      this.publication = publication;
+    assert(agent.isOk());
+    this.agent = agent.value.toJSON();
+    if (publication?.isOk()) {
+      this.publication = publication.value;
     }
     return this;
   }

@@ -42,14 +42,14 @@ export async function createGoalSolutionServer(
       rationale: z.string().describe("Short rationale"),
     },
     async ({ publication: reference, reason, rationale }) => {
-      const publication = reference
-        ? await PublicationResource.findByReference(experiment, reference)
-        : null;
+      let publication: PublicationResource | null = null;
 
-      if (reference && !publication) {
-        return errorToCallToolResult(
-          err("not_found_error", "Publication not found"),
-        );
+      if (reference) {
+        const publicationRes = await PublicationResource.findByReference(experiment, reference);
+        if (publicationRes.isErr()) {
+          return errorToCallToolResult(publicationRes);
+        }
+        publication = publicationRes.value;
       }
       if (publication && publication.toJSON().status !== "PUBLISHED") {
         return errorToCallToolResult(

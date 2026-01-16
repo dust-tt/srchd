@@ -92,8 +92,9 @@ export const experimentsList = async (c: Input) => {
 export const experimentOverview = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
   const experimentPublications =
@@ -147,8 +148,9 @@ export const experimentOverview = async (c: Input) => {
 export const experimentAgents = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const experimentAgents = await AgentResource.listByExperiment(experiment);
   const expData = experiment.toJSON();
@@ -188,8 +190,9 @@ export const agentOverview = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
   const agentId = parseInt(c.req.param("agentId"));
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const agents = await AgentResource.listByExperiment(experiment);
   const agent = agents.find((a) => a.toJSON().id === agentId);
@@ -410,8 +413,9 @@ export const publicationList = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
   const statusFilter = c.req.query("status") ?? "all";
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const experimentPublications =
     await PublicationResource.listByExperiment(experiment);
@@ -481,8 +485,9 @@ export const publicationDetail = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
   const pubId = parseInt(c.req.param("pubId"));
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const publications = await PublicationResource.listByExperiment(experiment);
   const publication = publications.find((p) => p.toJSON().id === pubId);
@@ -612,11 +617,13 @@ export const publicationDownload = async (c: Input) => {
   const pubId = parseInt(c.req.param("pubId"));
   const reviews = c.req.param("reviews") === "true";
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
-  const publication = await PublicationResource.findById(experiment, pubId);
-  if (!publication) return c.notFound();
+  const publicationRes = await PublicationResource.findById(experiment, pubId);
+  if (publicationRes.isErr()) return c.notFound();
+  const publication = publicationRes.value;
 
   const pubData = publication.toJSON();
 
@@ -673,11 +680,13 @@ export const publicationAttachmentDownload = async (c: Input) => {
   const pubId = parseInt(c.req.param("pubId"));
   const attachment = c.req.param("attachment");
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
-  const publication = await PublicationResource.findById(experiment, pubId);
-  if (!publication) return c.notFound();
+  const publicationRes = await PublicationResource.findById(experiment, pubId);
+  if (publicationRes.isErr()) return c.notFound();
+  const publication = publicationRes.value;
 
   const pubData = publication.toJSON();
   const localPath = getAttachmentPath(pubData.experiment, pubData.reference, attachment);
@@ -699,8 +708,9 @@ export const publicationAttachmentDownload = async (c: Input) => {
 export const solutionList = async (c: Input) => {
   const id = parseInt(c.req.param("id"));
 
-  const experiment = await ExperimentResource.findById(id);
-  if (!experiment) return c.notFound();
+  const experimentRes = await ExperimentResource.findById(id);
+  if (experimentRes.isErr()) return c.notFound();
+  const experiment = experimentRes.value;
 
   const experimentSolutions =
     await SolutionResource.listByExperiment(experiment);

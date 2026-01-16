@@ -557,16 +557,21 @@ ${this.agent.toJSON().system}`;
    * @param messageId ID of the agent message to replay.
    */
   async replayAgentMessage(messageId: number): Promise<Result<void>> {
-    const agentMessage = await MessageResource.findById(
+    const agentMessageRes = await MessageResource.findById(
       this.experiment,
       this.agent,
       messageId,
     );
 
-    if (!agentMessage || agentMessage.toJSON().role !== "agent") {
+    if (agentMessageRes.isErr()) {
+      return agentMessageRes;
+    }
+    const agentMessage = agentMessageRes.value;
+
+    if (agentMessage.toJSON().role !== "agent") {
       return err(
         "not_found_error",
-        `Agent message not found for id ${messageId}`,
+        `Message is not an agent message for id ${messageId}`,
       );
     }
 
