@@ -5,7 +5,7 @@ import { err, ok, Result } from "./lib/error";
 import { isNonDefaultToolName, NonDefaultToolName } from "./tools/constants";
 import { isArrayOf, isString } from "./lib/utils";
 
-const AGENT_PROFILES_DIR = path.join(__dirname, "../agents");
+const AGENT_PROFILES_DIR = path.join(__dirname, "../profiles");
 
 // Either the name of a local ENV var to capture, or a name and value pair.
 export type Env = string | [string, string];
@@ -15,6 +15,14 @@ export function isEnv(e: any): e is Env {
     isString(e) || (Array.isArray(e) && e.length === 2 && e.every(isString))
   );
 }
+
+export const PLACEHOLDER_AGENT_PROFILE: AgentProfile = {
+  name: "",
+  prompt: "",
+  description: "",
+  tools: [],
+  env: [],
+};
 
 type Settings = {
   description: string;

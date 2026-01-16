@@ -4,19 +4,25 @@ import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
+import { AgentProfile, getAgentProfile, PLACEHOLDER_AGENT_PROFILE } from "@app/agent_profile";
+import assert from "assert";
 
-export type Agent = InferSelectModel<typeof agents>;
+export type Agent = Omit<InferSelectModel<typeof agents>, "profile"> & {
+  profile: AgentProfile;
+};
 export type Evolution = InferSelectModel<typeof evolutions>;
 
 export class AgentResource {
-  private data: Agent;
+  private data: InferSelectModel<typeof agents>;
   private evolutions: Evolution[];
+  private profile: AgentProfile;
   experiment: ExperimentResource;
 
-  private constructor(data: Agent, experiment: ExperimentResource) {
+  private constructor(data: InferSelectModel<typeof agents>, experiment: ExperimentResource) {
     this.data = data;
     this.evolutions = [];
     this.experiment = experiment;
+    this.profile = PLACEHOLDER_AGENT_PROFILE;
   }
 
   private async finalize(): Promise<AgentResource> {
@@ -25,6 +31,10 @@ export class AgentResource {
       .from(evolutions)
       .where(eq(evolutions.agent, this.data.id))
       .orderBy(desc(evolutions.created));
+
+    const profileRes = await getAgentProfile(this.data.profile);
+    assert(profileRes.isOk());
+    this.profile = profileRes.value;
 
     this.evolutions = results;
     return this;
@@ -168,6 +178,7 @@ export class AgentResource {
       tools: this.data.tools ?? [],
       system: this.evolutions[0].system,
       evolutions: this.evolutions,
+      profile: this.profile,
     };
   }
 }

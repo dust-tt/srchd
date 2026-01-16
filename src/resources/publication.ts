@@ -19,6 +19,7 @@ import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
 import assert from "assert";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
+import { PLACEHOLDER_AGENT_PROFILE } from "@app/agent_profile";
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
@@ -47,6 +48,7 @@ export class PublicationResource {
       model: "claude-sonnet-4-5" as const,
       thinking: "low" as const,
       tools: DEFAULT_TOOLS,
+      profile: PLACEHOLDER_AGENT_PROFILE,
     };
     this.experiment = experiment;
   }
