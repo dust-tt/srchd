@@ -289,6 +289,43 @@ export const experimentNav = (experimentId: number, current: string) => `
   </div>
 `;
 
+// Helper to render a publication card with optional votes
+export const renderPublicationCard = (
+  experimentId: number,
+  pubData: any,
+  votes?: number,
+) => {
+  const statusClass = safeStatusClass(pubData.status);
+
+  return `
+    <div class="card">
+      <h3><a href="/experiments/${experimentId}/publications/${pubData.id}">${sanitizeText(
+    pubData.title,
+  )}</a></h3>
+      <div class="abstract">${sanitizeText(pubData.abstract)}</div>
+      <div class="meta">
+        Reference: ${sanitizeText(pubData.reference)} |
+        <span class="status ${statusClass}">${sanitizeText(
+    pubData.status,
+  )}</span> |
+        Author: ${sanitizeText(pubData.author.name)} |
+        Created: ${sanitizeText(pubData.created.toLocaleString())} |
+        Citations: ${pubData.citations.to.length}${votes !== undefined ? ` |
+        <span class="status" style="background: #4CAF50; color: white;">${votes} ${votes === 1 ? 'vote' : 'votes'}</span>` : ''} |
+        Reviews: ${(() => {
+          const reviewsHtml = pubData.reviews
+            .filter((r: any) => r.grade)
+            .map((r: any) =>
+              `<span class="grade ${safeGradeClass(r.grade)}">${sanitizeText(r.grade ?? "")}</span>`,
+            )
+            .join("");
+          return reviewsHtml !== "" ? reviewsHtml : "No reviews yet";
+        })()}
+      </div>
+    </div>
+  `;
+};
+
 // Helper to get solution color for charts
 export const getSolutionColor = (index: number) => {
   const colors = [

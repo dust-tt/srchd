@@ -16,6 +16,7 @@ import {
   renderAgentMessageMetrics,
   renderAgentTokenMetrics,
   renderMessage,
+  renderPublicationCard,
   safeGradeClass,
   safeReasonClass,
   safeScriptJSON,
@@ -127,17 +128,10 @@ export const experimentOverview = async (c: Input) => {
       .filter(ref => ref !== null && ref !== undefined),
   ).size;
 
-  // Check if problem is long (more than 10 lines)
-  const problemLines = expData.problem.split('\n').length;
-  const isProblemLong = problemLines > 10;
-  const problemPreview = isProblemLong
-    ? expData.problem.split('\n').slice(0, 10).join('\n')
-    : expData.problem;
-
   // Prepare chart data and get current vote counts
   const chartData = prepareChartData(experimentSolutions);
 
-  // Get publications with vote counts
+  // Get publications with vote counts (for proposed solutions section)
   const publicationsWithVotes = chartData.publicationLines.map(line => {
     const pub = experimentPublications.find(p => p.toJSON().reference === line.reference);
     return {
@@ -146,6 +140,13 @@ export const experimentOverview = async (c: Input) => {
       votes: line.currentSupport,
     };
   }).sort((a, b) => b.votes - a.votes);
+
+  // Check if problem is long (calculate character height)
+  const problemText = expData.problem;
+  const estimatedLines = problemText.split('\n').length;
+  const estimatedChars = problemText.length;
+  // Consider it "long" if more than 500 characters or 10 lines
+  const isProblemLong = estimatedChars > 500 || estimatedLines > 10;
 
   const content = `
     ${experimentNav(id, "overview")}
@@ -183,82 +184,220 @@ export const experimentOverview = async (c: Input) => {
       </div>
     </div>
     <div class="card">
-      <h3 style="cursor: pointer; user-select: none;" onclick="toggleProblem()">
-        Problem Statement
-        ${isProblemLong ? '<span id="problem-arrow" style="font-size: 0.8em;">▼</span>' : ''}
-      </h3>
-      <div id="problem-content" class="markdown-content">${sanitizeMarkdown(isProblemLong ? problemPreview : expData.problem)}</div>
-      ${isProblemLong ? `<div id="problem-full" class="markdown-content" style="display: none;">${sanitizeMarkdown(expData.problem)}</div>` : ''}
+      <h3>Problem Statement</h3>
+      <div id="problem-preview" class="markdown-content" style="${isProblemLong ? 'max-height: 300px; overflow: hidden; position: relative;' : ''}">${sanitizeMarkdown(expData.problem)}${isProblemLong ? '<div style="position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: linear-gradient(to bottom, transparent, #fafafa);"></div>' : ''}</div>
+      ${isProblemLong ? `
+      <div style="text-align: right; margin-top: 10px;">
+        <button onclick="toggleProblem()" id="problem-toggle-btn" style="background: #0066cc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 0.9em;">
+          Expand ▼
+        </button>
+      </div>
+      ` : ''}
     </div>
 
-    <div class="card">
-      <h3>Proposed Solutions <span class="count">(${publicationsWithVotes.length})</span></h3>
-      ${publicationsWithVotes.length > 0
-        ? publicationsWithVotes.map(({ publication, reference, votes }) => {
-            if (!publication) {
-              return `
-                <div class="card" style="margin: 10px 0; background: #f8f9fa;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <strong>${sanitizeText(reference)}</strong>
-                      <div style="color: #999; font-size: 0.9em;">Publication not found</div>
-                    </div>
-                    <div style="background: #e0e0e0; padding: 5px 12px; border-radius: 12px; font-weight: bold;">
-                      ${votes} ${votes === 1 ? 'vote' : 'votes'}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }
-            const pubData = publication.toJSON();
-            const statusClass = safeStatusClass(pubData.status);
+    <h2>Proposed Solutions <span class="count">(${publicationsWithVotes.length})</span></h2>
+    ${publicationsWithVotes.length > 0
+      ? publicationsWithVotes.map(({ publication, reference, votes }) => {
+          if (!publication) {
             return `
-              <div class="card" style="margin: 10px 0; background: #f8f9fa;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="flex: 1;">
-                    <h4 style="margin: 0 0 5px 0;">
-                      <a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(pubData.title)}</a>
-                    </h4>
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
-                      ${sanitizeText(pubData.abstract)}
-                    </div>
-                    <div style="font-size: 0.85em;">
-                      <span class="status ${statusClass}">${sanitizeText(pubData.status)}</span>
-                      <span style="color: #666;"> | Reference: ${sanitizeText(pubData.reference)}</span>
-                      <span style="color: #666;"> | Author: ${sanitizeText(pubData.author.name)}</span>
-                    </div>
-                  </div>
-                  <div style="background: #4CAF50; color: white; padding: 8px 16px; border-radius: 16px; font-weight: bold; margin-left: 15px; white-space: nowrap;">
-                    ${votes} ${votes === 1 ? 'vote' : 'votes'}
-                  </div>
+              <div class="card">
+                <h3>${sanitizeText(reference)}</h3>
+                <div class="meta">
+                  <span style="color: #999;">Publication not found</span> |
+                  <span class="status" style="background: #4CAF50; color: white;">${votes} ${votes === 1 ? 'vote' : 'votes'}</span>
                 </div>
               </div>
             `;
-          }).join('')
-        : '<p style="color: #666;">No solutions proposed yet.</p>'
-      }
+          }
+          return renderPublicationCard(id, publication.toJSON(), votes);
+        }).join('')
+      : '<div class="card"><p style="color: #666;">No solutions proposed yet.</p></div>'
+    }
+
+    <h2>All Solutions <span class="count">(${experimentSolutions.length})</span></h2>
+    ${chartData.publicationLines.length > 0
+      ? `
+    <div class="card">
+      <h3>Solution Evolution Timeline</h3>
+      <div class="solution-chart">
+        <svg id="solutionChart" width="100%" height="300" viewBox="0 0 800 300">
+          <!-- Chart will be rendered here by JavaScript -->
+        </svg>
+        <div class="chart-legend">
+          ${chartData.publicationLines
+        .map(
+          (line, _index) => `
+            <div class="legend-item">
+              <div class="legend-color" style="background-color: ${line.color};"></div>
+              <span>${sanitizeText(
+            line.reference,
+          )} (current: ${line.currentSupport})</span>
+            </div>
+          `,
+        )
+        .join("")}
+        </div>
+      </div>
     </div>
+
+    <script>
+      const chartData = ${safeScriptJSON(chartData)};
+      const escapeHtml = (value) =>
+        String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
+      function renderSolutionChart(data) {
+        const svg = document.getElementById('solutionChart');
+        const width = 800;
+        const height = 300;
+        const margin = { top: 20, right: 20, bottom: 60, left: 60 };
+        const chartWidth = width - margin.left - margin.right;
+        const chartHeight = height - margin.top - margin.bottom;
+
+        svg.innerHTML = '';
+
+        if (!data.publicationLines || data.publicationLines.length === 0) {
+          svg.innerHTML = '<text x="400" y="150" text-anchor="middle" class="chart-text">No publication data available</text>';
+          return;
+        }
+
+        const allTimes = data.publicationLines.flatMap(line => line.points.map(p => new Date(p.time)));
+        const allSupport = data.publicationLines.flatMap(line => line.points.map(p => p.support));
+        const minTime = Math.min(...allTimes.map(t => t.getTime()));
+        const maxTime = Math.max(...allTimes.map(t => t.getTime()));
+        const maxSupport = Math.max(...allSupport, 1);
+
+        const xScale = (time) => margin.left + (new Date(time).getTime() - minTime) / (maxTime - minTime) * chartWidth;
+        const yScale = (support) => height - margin.bottom - (support / maxSupport) * chartHeight;
+
+        const numGridLines = 5;
+        for (let i = 0; i <= numGridLines; i++) {
+          const x = margin.left + (i / numGridLines) * chartWidth;
+          svg.innerHTML += \`<line x1="\${x}" y1="\${margin.top}" x2="\${x}" y2="\${height - margin.bottom}" class="chart-grid" />\`;
+        }
+
+        for (let i = 0; i <= maxSupport; i++) {
+          const y = yScale(i);
+          svg.innerHTML += \`<line x1="\${margin.left}" y1="\${y}" x2="\${width - margin.right}" y2="\${y}" class="chart-grid" />\`;
+        }
+
+        svg.innerHTML += \`<line x1="\${margin.left}" y1="\${margin.top}" x2="\${margin.left}" y2="\${height - margin.bottom}" class="chart-axis" />\`;
+        svg.innerHTML += \`<line x1="\${margin.left}" y1="\${height - margin.bottom}" x2="\${width - margin.right}" y2="\${height - margin.bottom}" class="chart-axis" />\`;
+
+        for (let i = 0; i <= 4; i++) {
+          const timeRatio = i / 4;
+          const time = new Date(minTime + timeRatio * (maxTime - minTime));
+          const x = margin.left + timeRatio * chartWidth;
+          svg.innerHTML += \`<text x="\${x}" y="\${height - margin.bottom + 15}" text-anchor="middle" class="chart-text">\${time.toLocaleDateString()}</text>\`;
+        }
+
+        for (let i = 0; i <= maxSupport; i++) {
+          const y = yScale(i);
+          svg.innerHTML += \`<text x="\${margin.left - 10}" y="\${y + 3}" text-anchor="end" class="chart-text">\${i}</text>\`;
+        }
+
+        data.publicationLines.forEach((line) => {
+          if (line.points.length === 0) return;
+
+          let pathData = '';
+          let prevX = null;
+          let prevY = null;
+
+          line.points.forEach((point, pointIndex) => {
+            const x = xScale(point.time);
+            const y = yScale(point.support);
+
+            if (pointIndex === 0) {
+              const startY = yScale(0);
+              pathData += \`M \${x} \${startY} L \${x} \${y}\`;
+              prevX = x;
+              prevY = y;
+            } else {
+              pathData += \` L \${x} \${prevY} L \${x} \${y}\`;
+              prevX = x;
+              prevY = y;
+            }
+          });
+
+          if (line.points.length > 0) {
+            const lastPoint = line.points[line.points.length - 1];
+            const currentX = Math.min(width - margin.right, xScale(new Date()));
+            pathData += \` L \${currentX} \${yScale(lastPoint.support)}\`;
+          }
+
+          svg.innerHTML += \`<path d="\${pathData}" stroke="\${line.color}" stroke-width="2" fill="none" />\`;
+
+          if (line.points.length > 0) {
+            const lastPoint = line.points[line.points.length - 1];
+            const labelX = Math.min(width - margin.right - 5, xScale(new Date()));
+            const labelY = yScale(lastPoint.support);
+            svg.innerHTML += \`<text x="\${labelX}" y="\${labelY - 5}" text-anchor="end" class="chart-text" fill="\${line.color}">\${escapeHtml(line.reference)}</text>\`;
+          }
+        });
+
+        svg.innerHTML += \`<text x="\${margin.left - 45}" y="\${height / 2}" text-anchor="middle" class="chart-text" transform="rotate(-90, \${margin.left - 45}, \${height / 2})">Support Count</text>\`;
+        svg.innerHTML += \`<text x="\${width / 2}" y="\${height - 10}" text-anchor="middle" class="chart-text">Time</text>\`;
+      }
+
+      renderSolutionChart(chartData);
+    </script>
+    `
+      : ""
+    }
+
+    ${experimentSolutions
+      .map((sol) => {
+        const solData = sol.toJSON();
+        const reasonClass = safeReasonClass(solData.reason);
+        return `
+        <div class="card">
+          <h3>Solution by ${sanitizeText(solData.agent.name)}</h3>
+          <div><span class="reason-badge ${reasonClass
+          }">${sanitizeText(solData.reason.replace("_", " "))}</span>
+          ${solData.publication
+            ? `
+            <a href="/experiments/${id}/publications/${solData.publication.id}">${sanitizeText(
+              solData.publication.reference,
+            )}</a>`
+            : ""
+          }
+          </div>
+          <p>${sanitizeText(solData.rationale)}</p>
+          <div class="meta">Created: ${sanitizeText(
+            solData.created.toLocaleString(),
+          )}</div>
+        </div>
+      `;
+      })
+      .join("")}
 
     ${isProblemLong ? `
     <script>
       let problemExpanded = false;
       function toggleProblem() {
-        const arrow = document.getElementById('problem-arrow');
-        const content = document.getElementById('problem-content');
-        const full = document.getElementById('problem-full');
+        const preview = document.getElementById('problem-preview');
+        const btn = document.getElementById('problem-toggle-btn');
 
-        if (!arrow || !content || !full) return;
+        if (!preview || !btn) return;
 
         problemExpanded = !problemExpanded;
 
         if (problemExpanded) {
-          content.style.display = 'none';
-          full.style.display = 'block';
-          arrow.textContent = '▲';
+          preview.style.maxHeight = 'none';
+          preview.querySelector('div[style*="gradient"]')?.remove();
+          btn.innerHTML = 'Collapse ▲';
         } else {
-          content.style.display = 'block';
-          full.style.display = 'none';
-          arrow.textContent = '▼';
+          preview.style.maxHeight = '300px';
+          preview.style.overflow = 'hidden';
+          preview.style.position = 'relative';
+          const gradient = document.createElement('div');
+          gradient.style.cssText = 'position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: linear-gradient(to bottom, transparent, #fafafa);';
+          preview.appendChild(gradient);
+          btn.innerHTML = 'Expand ▼';
         }
       }
     </script>
@@ -588,37 +727,7 @@ export const publicationList = async (c: Input) => {
       <a href="/experiments/${id}/publications?status=rejected" class="btn ${statusFilter === "rejected" ? "active" : ""}">Rejected (${rejectedCount})</a>
     </div>
     ${filteredPublications
-      .map((pub) => {
-        const pubData = pub.toJSON();
-        const statusClass = safeStatusClass(pubData.status);
-        return `
-        <div class="card">
-          <h3><a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(
-          pubData.title,
-        )}</a></h3>
-          <div class="abstract">${sanitizeText(pubData.abstract)}</div>
-          <div class="meta">
-            Reference: ${sanitizeText(pubData.reference)} |
-            <span class="status ${statusClass}">${sanitizeText(
-          pubData.status,
-        )}</span> |
-            Author: ${sanitizeText(pubData.author.name)} |
-            Created: ${sanitizeText(pubData.created.toLocaleString())} |
-            Citations: ${pubData.citations.to.length} |
-            Reviews: ${pubData.reviews
-            .filter((r) => r.grade)
-            .map(
-              (r) =>
-                `<span class="grade ${safeGradeClass(
-                  r.grade,
-                )}">${sanitizeText(r.grade ?? "")}</span>`,
-            )
-            .join("") || "No reviews yet"
-          }
-          </div>
-        </div>
-      `;
-      })
+      .map((pub) => renderPublicationCard(id, pub.toJSON()))
       .join("")}
   `;
 
