@@ -9,8 +9,10 @@ import { ExperimentResource } from "@app/resources/experiment";
 import { AgentResource } from "@app/resources/agent";
 import { podName } from "@app/lib/k8s";
 import { computerExec, ensureComputerPod } from "./k8s";
-import { DEFAULT_WORKDIR } from "./definitions";
+import { computerHostPath,
+  DEFAULT_WORKDIR } from "./definitions";
 import { Env } from "@app/agent_profile";
+import { rm } from "fs/promises";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -35,20 +37,23 @@ export class Computer {
     namespace: string = K8S_NAMESPACE,
     imageName?: string,
     env: Env[] = [],
+    skipPodCreation: boolean = false,
   ): Promise<Result<Computer>> {
-    let res = await ensureNamespace(namespace);
-    if (res.isErr()) {
-      return res;
-    }
+    if (!skipPodCreation) {
+      let res = await ensureNamespace(namespace);
+      if (res.isErr()) {
+        return res;
+      }
 
-    res = await ensureComputerPod(namespace, computerId, imageName, env);
-    if (res.isErr()) {
-      return res;
-    }
+      res = await ensureComputerPod(namespace, computerId, imageName, env);
+      if (res.isErr()) {
+        return res;
+      }
 
-    res = await ensurePodRunning(namespace, computerId);
-    if (res.isErr()) {
-      return res;
+      res = await ensurePodRunning(namespace, computerId);
+      if (res.isErr()) {
+        return res;
+      }
     }
 
     return ok(new Computer(namespace, computerId));
@@ -115,7 +120,8 @@ export class Computer {
     }
   }
 
-  async terminate(): Promise<Result<boolean>> {
+  async terminate(deleteVolumes: boolean = false): Promise<Result<boolean>> {
+    let podDoesNotExist = false;
     try {
       // Delete pod
       try {
@@ -126,6 +132,8 @@ export class Computer {
         });
       } catch (_err) {
         // ignore if pod doesn't exist
+        console.log(`  Pod not found (may already be deleted)`);
+        podDoesNotExist = true;
       }
 
       const waitForDeletion = withRetries(async (): Promise<Result<void>> => {
@@ -142,15 +150,29 @@ export class Computer {
         return err("pod_deletion_error", "Pod not yet deleted...");
       });
 
-      const deleted = await waitForDeletion(undefined);
+      const deleted = podDoesNotExist
+        ? ok(undefined)
+        : await waitForDeletion(undefined);
       if (deleted.isErr()) {
         return deleted;
       }
 
-      return ok(true);
     } catch (e) {
       return err("computer_run_error", "Failed to terminate computer", e);
     }
+
+    if (deleteVolumes) {
+      const path = computerHostPath(this.namespace, this.computerId);
+      try {
+        console.log(`  Deleting volume: ${path}`);
+        await rm(path, { recursive: true, force: true });
+        console.log(`  Volume deleted successfully`);
+      } catch (e: any) {
+        return err("computer_run_error", "Failed to delete volume", e);
+      }
+    }
+
+    return ok(true);
   }
 
   async execute(

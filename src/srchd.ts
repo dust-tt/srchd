@@ -36,6 +36,24 @@ import {
 } from "./agent_profile";
 import { isDeepseekModel } from "./models/deepseek";
 import { TokenUsageResource } from "./resources/token_usage";
+import * as readline from "readline";
+import { K8S_NAMESPACE } from "./lib/k8s";
+import { concurrentExecutor } from "./lib/async";
+import assert from "assert";
+
+async function confirmAction(message: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${message} (y/n): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
+    });
+  });
+}
 
 const exitWithError = (err: Err<SrchdError>) => {
   console.error(
@@ -609,6 +627,66 @@ agentCmd
     if (replay.isErr()) {
       return exitWithError(replay);
     }
+  });
+
+// Clean command
+program
+  .command("clean")
+  .description("Clean up Kubernetes pods and/or volumes for an experiment")
+  .argument("<experiment>", "Experiment name")
+  .option("-a, --agent <agent>", "Agent name (or 'all' for all agents)", "all")
+  .option("--pods-only", "Only kill pods, keep volumes intact")
+  .option("-y, --yes", "Skip confirmation prompt")
+  .action(async (experimentName, options) => {
+    const res = await experimentAndAgents({
+      experiment: experimentName,
+      agent: options.agent,
+    });
+    if (res.isErr()) {
+      return exitWithError(res);
+    }
+    const [experiment, agents] = res.value;
+
+    const deleteVolumes = !options.podsOnly;
+
+    if (deleteVolumes) console.log(`  WARNING: deleting volumes`);
+    if (agents.length === 0) {
+      console.log(`  No agents found in experiment '${experimentName}'`);
+      return;
+    }
+
+    console.log("");
+    console.log(`Agents:`);
+    for (const agent of agents) {
+      console.log(`  - ${agent.toJSON().name}`);
+    }
+
+    // Ask for confirmation unless -y flag is provided
+    if (!options.yes) {
+      const confirmed = await confirmAction(
+        "\nAre you sure you want to proceed?",
+      );
+      if (!confirmed) {
+        console.log("Cleanup cancelled.");
+        return;
+      }
+    }
+    console.log("");
+
+    await concurrentExecutor(agents, async (agent, _) => {
+      const computerRes = await Computer.create(K8S_NAMESPACE, computerId(experiment, agent), undefined, undefined, true);
+      // Object is sure to exist as we're not creating the pods
+      assert(computerRes.isOk());
+      const computer = computerRes.value;
+      const terminateRes = await computer.terminate(deleteVolumes);
+      if (terminateRes.isErr()) {
+        console.error(
+          `  Failed to terminate pod: ${terminateRes.error.message}`,
+        );
+      } else {
+        if (deleteVolumes) console.log(`  Volume deleted successfully`);
+      }
+    }, { concurrency: 10 });
   });
 
 // Computer command
