@@ -286,8 +286,6 @@ export const experimentNav = (experimentId: number, current: string) => `
   }>Agents</a>
     <a href="/experiments/${experimentId}/publications"${current === "publications" ? ' style="font-weight: bold;"' : ""
   }>Publications</a>
-    <a href="/experiments/${experimentId}/solutions"${current === "solutions" ? ' style="font-weight: bold;"' : ""
-  }>Solutions</a>
   </div>
 `;
 

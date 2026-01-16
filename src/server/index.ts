@@ -11,7 +11,6 @@ import {
   publicationDownload,
   publicationAttachmentDownload,
   publicationList,
-  solutionList,
 } from "./experiments";
 
 export type BasicAuthConfig = {
@@ -50,7 +49,6 @@ export const createApp = (auth?: BasicAuthConfig) => {
   app.get("/experiments/:id/publications/:pubId", publicationDetail);
   app.get("/experiments/:id/publications/:pubId/download", publicationDownload);
   app.get("/experiments/:id/publications/:pubId/attachments/:attachment", publicationAttachmentDownload);
-  app.get("/experiments/:id/solutions", solutionList);
 
   return app;
 };

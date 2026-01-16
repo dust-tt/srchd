@@ -127,6 +127,26 @@ export const experimentOverview = async (c: Input) => {
       .filter(ref => ref !== null && ref !== undefined),
   ).size;
 
+  // Check if problem is long (more than 10 lines)
+  const problemLines = expData.problem.split('\n').length;
+  const isProblemLong = problemLines > 10;
+  const problemPreview = isProblemLong
+    ? expData.problem.split('\n').slice(0, 10).join('\n')
+    : expData.problem;
+
+  // Prepare chart data and get current vote counts
+  const chartData = prepareChartData(experimentSolutions);
+
+  // Get publications with vote counts
+  const publicationsWithVotes = chartData.publicationLines.map(line => {
+    const pub = experimentPublications.find(p => p.toJSON().reference === line.reference);
+    return {
+      publication: pub,
+      reference: line.reference,
+      votes: line.currentSupport,
+    };
+  }).sort((a, b) => b.votes - a.votes);
+
   const content = `
     ${experimentNav(id, "overview")}
     <div class="card">
@@ -163,8 +183,86 @@ export const experimentOverview = async (c: Input) => {
       </div>
     </div>
     <div class="card">
-      <div class="markdown-content">${sanitizeMarkdown(expData.problem)}</div>
+      <h3 style="cursor: pointer; user-select: none;" onclick="toggleProblem()">
+        Problem Statement
+        ${isProblemLong ? '<span id="problem-arrow" style="font-size: 0.8em;">▼</span>' : ''}
+      </h3>
+      <div id="problem-content" class="markdown-content">${sanitizeMarkdown(isProblemLong ? problemPreview : expData.problem)}</div>
+      ${isProblemLong ? `<div id="problem-full" class="markdown-content" style="display: none;">${sanitizeMarkdown(expData.problem)}</div>` : ''}
     </div>
+
+    <div class="card">
+      <h3>Proposed Solutions <span class="count">(${publicationsWithVotes.length})</span></h3>
+      ${publicationsWithVotes.length > 0
+        ? publicationsWithVotes.map(({ publication, reference, votes }) => {
+            if (!publication) {
+              return `
+                <div class="card" style="margin: 10px 0; background: #f8f9fa;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong>${sanitizeText(reference)}</strong>
+                      <div style="color: #999; font-size: 0.9em;">Publication not found</div>
+                    </div>
+                    <div style="background: #e0e0e0; padding: 5px 12px; border-radius: 12px; font-weight: bold;">
+                      ${votes} ${votes === 1 ? 'vote' : 'votes'}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+            const pubData = publication.toJSON();
+            const statusClass = safeStatusClass(pubData.status);
+            return `
+              <div class="card" style="margin: 10px 0; background: #f8f9fa;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="flex: 1;">
+                    <h4 style="margin: 0 0 5px 0;">
+                      <a href="/experiments/${id}/publications/${pubData.id}">${sanitizeText(pubData.title)}</a>
+                    </h4>
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
+                      ${sanitizeText(pubData.abstract)}
+                    </div>
+                    <div style="font-size: 0.85em;">
+                      <span class="status ${statusClass}">${sanitizeText(pubData.status)}</span>
+                      <span style="color: #666;"> | Reference: ${sanitizeText(pubData.reference)}</span>
+                      <span style="color: #666;"> | Author: ${sanitizeText(pubData.author.name)}</span>
+                    </div>
+                  </div>
+                  <div style="background: #4CAF50; color: white; padding: 8px 16px; border-radius: 16px; font-weight: bold; margin-left: 15px; white-space: nowrap;">
+                    ${votes} ${votes === 1 ? 'vote' : 'votes'}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')
+        : '<p style="color: #666;">No solutions proposed yet.</p>'
+      }
+    </div>
+
+    ${isProblemLong ? `
+    <script>
+      let problemExpanded = false;
+      function toggleProblem() {
+        const arrow = document.getElementById('problem-arrow');
+        const content = document.getElementById('problem-content');
+        const full = document.getElementById('problem-full');
+
+        if (!arrow || !content || !full) return;
+
+        problemExpanded = !problemExpanded;
+
+        if (problemExpanded) {
+          content.style.display = 'none';
+          full.style.display = 'block';
+          arrow.textContent = '▲';
+        } else {
+          content.style.display = 'block';
+          full.style.display = 'none';
+          arrow.textContent = '▼';
+        }
+      }
+    </script>
+    ` : ''}
   `;
 
   const breadcrumb = `<a href="/">Experiments</a> > ${experimentName}`;
