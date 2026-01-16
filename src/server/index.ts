@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { basicAuth } from "hono/basic-auth";
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   agentOverview,
   experimentAgents,
@@ -32,6 +34,13 @@ export const createApp = (auth?: BasicAuthConfig) => {
 
   // Home page - List all experiments
   app.get("/", (c) => c.redirect("/experiments"));
+
+  // Serve CSS file
+  app.get("/styles.css", (c) => {
+    const css = readFileSync(join(__dirname, "styles.css"), "utf-8");
+    c.header("Content-Type", "text/css");
+    return c.body(css);
+  });
 
   app.get("/experiments", experimentsList);
   app.get("/experiments/:id", experimentOverview);

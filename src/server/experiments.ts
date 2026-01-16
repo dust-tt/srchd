@@ -9,13 +9,13 @@ import path from "path";
 import {
   baseTemplate,
   experimentNav,
+  formatNumber,
+  formatRuntime,
   isPatchContent,
   prepareChartData,
+  renderAgentMessageMetrics,
+  renderAgentTokenMetrics,
   renderMessage,
-  renderMessageMetrics,
-  renderPublicationMetrics,
-  renderRuntimeMetrics,
-  renderTokenUsageMetrics,
   safeGradeClass,
   safeReasonClass,
   safeScriptJSON,
@@ -27,8 +27,7 @@ import {
 import { BlankEnv, BlankInput } from "hono/types";
 import { Context } from "hono";
 import {
-  messageMetricsByExperiment,
-  publicationMetricsByExperiment,
+  calculateMessageMetrics,
   runtimeMetricsByExperiment,
   tokenUsageMetricsByExperiment,
 } from "@app/metrics";
@@ -104,10 +103,9 @@ export const experimentOverview = async (c: Input) => {
 
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
+
   // Fetch metrics
-  const messageMetrics = await messageMetricsByExperiment(experiment);
   const tokenMetrics = await tokenUsageMetricsByExperiment(experiment);
-  const publicationMetrics = await publicationMetricsByExperiment(experiment);
   const runtimeMetrics = await runtimeMetricsByExperiment(experiment);
 
   // Calculate cost
@@ -118,26 +116,55 @@ export const experimentOverview = async (c: Input) => {
       ? `$${cost.toFixed(4)}`
       : `$${cost.toFixed(2)}`;
 
+  // Format metrics
+  const formattedRuntime = formatRuntime(runtimeMetrics.totalRuntimeMs);
+  const formattedTokens = formatNumber(tokenMetrics.experiment.total);
+
+  // Count unique solutions (by publication reference)
+  const uniqueSolutions = new Set(
+    experimentSolutions
+      .map(s => s.toJSON().publication?.reference)
+      .filter(ref => ref !== null && ref !== undefined),
+  ).size;
+
   const content = `
     ${experimentNav(id, "overview")}
     <div class="card">
       <h3>${experimentName}</h3>
-      <div class="meta">
+      <div class="meta" style="margin-top: 10px; margin-bottom: 5px;">
         Created: ${sanitizeText(expData.created.toLocaleString())} |
-        Updated: ${sanitizeText(expData.updated.toLocaleString())} |
-        Agents: ${experimentAgents.length} |
-        Publications: ${experimentPublications.length} |
-        Solutions: ${experimentSolutions.length} |
-        Cost: <strong>${sanitizeText(formattedCost)}</strong>
+        Updated: ${sanitizeText(expData.updated.toLocaleString())}
+      </div>
+      <div class="metrics-grid" style="margin-top: 15px;">
+        <div class="metric-item">
+          <div class="metric-label">Runtime</div>
+          <div class="metric-value">${sanitizeText(formattedRuntime)}</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Cost</div>
+          <div class="metric-value">${sanitizeText(formattedCost)}</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Total Tokens</div>
+          <div class="metric-value">${sanitizeText(formattedTokens)}</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Publications</div>
+          <div class="metric-value">${experimentPublications.length}</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Unique Solutions</div>
+          <div class="metric-value">${uniqueSolutions}</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Agents</div>
+          <div class="metric-value">${experimentAgents.length}</div>
+        </div>
       </div>
     </div>
     <div class="card">
       <div class="markdown-content">${sanitizeMarkdown(expData.problem)}</div>
     </div>
-    ${renderRuntimeMetrics(runtimeMetrics)}
-    ${renderMessageMetrics(messageMetrics)}
-    ${renderTokenUsageMetrics(tokenMetrics, formattedCost)}
-    ${renderPublicationMetrics(publicationMetrics)}
   `;
 
   const breadcrumb = `<a href="/">Experiments</a> > ${experimentName}`;
@@ -203,9 +230,16 @@ export const agentOverview = async (c: Input) => {
     agent,
   );
   const agentSolutions = await SolutionResource.listByAgent(experiment, agent);
-  const agentMessages = (
-    await MessageResource.listMessagesByAgent(experiment, agent)
-  ).reverse();
+  const agentMessagesRaw = await MessageResource.listMessagesByAgent(experiment, agent);
+
+  // Calculate message metrics for this agent
+  const messageMetric = calculateMessageMetrics(agentMessagesRaw);
+
+  // Get token usage for this agent
+  const agentTokenUsage = await TokenUsageResource.agentTokenUsage(experiment, agent);
+
+  // Reverse for display (newest first)
+  const agentMessages = agentMessagesRaw.reverse();
 
   const agentData = agent.toJSON();
   const expData = experiment.toJSON();
@@ -375,6 +409,11 @@ export const agentOverview = async (c: Input) => {
       })
       .join("")}
 
+    <h2>Metrics</h2>
+    ${renderAgentTokenMetrics(agentTokenUsage)}
+
+    ${renderAgentMessageMetrics(messageMetric)}
+
     <h2>Activity Feed <span class="count">(${agentMessages.length})</span></h2>
     <p class="subtitle">Showing ${agentMessages.length} messages (newest first). Click any card to expand details.</p>
 
@@ -422,6 +461,15 @@ export const publicationList = async (c: Input) => {
   const expData = experiment.toJSON();
   const experimentName = sanitizeText(expData.name);
 
+  // Count publications by status
+  const totalCount = experimentPublications.length;
+  const publishedCount = experimentPublications.filter(
+    (pub) => pub.toJSON().status === "PUBLISHED",
+  ).length;
+  const rejectedCount = experimentPublications.filter(
+    (pub) => pub.toJSON().status === "REJECTED",
+  ).length;
+
   // Filter publications based on status
   const filteredPublications = experimentPublications.filter((pub) => {
     switch (statusFilter) {
@@ -437,9 +485,9 @@ export const publicationList = async (c: Input) => {
   const content = `
     ${experimentNav(id, "publications")}
     <div class="filter-buttons">
-      <a href="/experiments/${id}/publications?status=all" class="btn ${statusFilter === "all" ? "active" : ""}">All</a>
-      <a href="/experiments/${id}/publications?status=published" class="btn ${statusFilter === "published" ? "active" : ""}">Published</a>
-      <a href="/experiments/${id}/publications?status=rejected" class="btn ${statusFilter === "rejected" ? "active" : ""}">Rejected</a>
+      <a href="/experiments/${id}/publications?status=all" class="btn ${statusFilter === "all" ? "active" : ""}">All (${totalCount})</a>
+      <a href="/experiments/${id}/publications?status=published" class="btn ${statusFilter === "published" ? "active" : ""}">Published (${publishedCount})</a>
+      <a href="/experiments/${id}/publications?status=rejected" class="btn ${statusFilter === "rejected" ? "active" : ""}">Rejected (${rejectedCount})</a>
     </div>
     ${filteredPublications
       .map((pub) => {

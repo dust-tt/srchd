@@ -26,7 +26,7 @@ export type RuntimeMetric = {
   totalRuntimeMs: number;
 };
 
-function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
+export function calculateMessageMetrics(messages: MessageResource[]): MessageMetric {
   const totalMessages = messages.length;
   const fullMessages = messages.map((msg) => msg.toJSON());
   const agentMessages = fullMessages.filter(
