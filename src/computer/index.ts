@@ -70,6 +70,8 @@ export class Computer {
   static async ensure(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
+    imageName?: string,
+    env: Env[] = [],
   ): Promise<Result<Computer>> {
     const c = await Computer.findById(computerId, namespace);
     if (c) {
@@ -77,11 +79,11 @@ export class Computer {
       if (status !== "Running") {
         // Pod is not running, recreate it
         await c.terminate();
-        return Computer.create(computerId, namespace);
+        return Computer.create(computerId, namespace, imageName, env);
       }
       return ok(c);
     }
-    return Computer.create(computerId, namespace);
+    return Computer.create(computerId, namespace, imageName, env);
   }
 
   static async listComputerIds(

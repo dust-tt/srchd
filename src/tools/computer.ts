@@ -9,9 +9,12 @@ import { err } from "@app/lib/error";
 
 const SERVER_VERSION = "0.1.0";
 
+import { AgentProfile } from "@app/agent_profile";
+
 export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
+  profile?: AgentProfile,
 ): Promise<McpServer> {
   const server = new McpServer({
     name: SERVER_NAME,
@@ -48,7 +51,12 @@ For long running commands (running a server) make sure to run them in the backgr
         ),
     },
     async ({ cmd, cwd, env, timeout_ms: timeoutMs }) => {
-      const c = await Computer.ensure(computerId(experiment, agent));
+      const c = await Computer.ensure(
+        computerId(experiment, agent),
+        undefined,
+        profile?.imageName,
+        profile?.env,
+      );
       if (c.isErr()) {
         return errorToCallToolResult(
           err("computer_run_error", "Failed to access running computer"),

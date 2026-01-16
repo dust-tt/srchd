@@ -412,6 +412,7 @@ agentCmd
   .option("-t, --tick", "Run one tick only")
   .option("--max-tokens <tokens>", "Max tokens (in millions) before stopping run")
   .option("--max-cost <cost>", "Max cost (in dollars) before stopping run")
+  .option("--profile <profile>", "Agent profile (for image and env)")
   .action(async (name, options) => {
     const res = await experimentAndAgents({
       experiment: options.experiment,
@@ -421,6 +422,16 @@ agentCmd
       return exitWithError(res);
     }
     const [experiment, agents] = res.value;
+
+    // Load profile if provided
+    let profile: AgentProfile | undefined;
+    if (options.profile) {
+      const profileRes = await getAgentProfile(options.profile);
+      if (profileRes.isErr()) {
+        return exitWithError(profileRes);
+      }
+      profile = profileRes.value;
+    }
 
     let reviewers = DEFAULT_REVIEWERS_COUNT;
     if (options.reviewers) {
@@ -442,7 +453,12 @@ agentCmd
       )) {
         // Ensure computer exists before copying files
         const cid = computerId(experiment, agent);
-        const computerRes = await Computer.ensure(cid);
+        const computerRes = await Computer.ensure(
+          cid,
+          undefined,
+          profile?.imageName,
+          profile?.env,
+        );
         if (computerRes.isErr()) {
           return exitWithError(computerRes);
         }
@@ -488,6 +504,7 @@ agentCmd
       agents.map((a) =>
         Runner.builder(experiment, a, {
           reviewers,
+          profile,
         }),
       ),
     );

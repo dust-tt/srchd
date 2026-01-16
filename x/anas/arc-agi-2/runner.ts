@@ -338,7 +338,7 @@ async function runExperiment(
     console.log(`\n▶️  Step 3: Running all agents with budget $${budget}...`);
     const reviewers = numAgents < 5 ? numAgents - 1 : 4;
     executeCommand(
-      `npx tsx src/srchd.ts agent run all -e ${experimentName} -p ${problemJsonPath} --max-cost ${budget} -r ${reviewers}`
+      `npx tsx src/srchd.ts agent run all -e ${experimentName} -p ${problemJsonPath} --max-cost ${budget} -r ${reviewers} --profile arc-agi`
     );
 
     // Success!
