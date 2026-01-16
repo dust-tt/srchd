@@ -1,0 +1,1 @@
+ALTER TABLE `agents` ADD `profile` text DEFAULT 'research' NOT NULL;

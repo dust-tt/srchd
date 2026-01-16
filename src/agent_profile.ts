@@ -16,6 +16,14 @@ export function isEnv(e: any): e is Env {
   );
 }
 
+export const PLACEHOLDER_AGENT_PROFILE: AgentProfile = {
+  name: "",
+  prompt: "",
+  description: "",
+  tools: [],
+  env: [],
+};
+
 type Settings = {
   description: string;
   tools: NonDefaultToolName[];

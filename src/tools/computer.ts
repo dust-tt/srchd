@@ -48,7 +48,7 @@ For long running commands (running a server) make sure to run them in the backgr
         ),
     },
     async ({ cmd, cwd, env, timeout_ms: timeoutMs }) => {
-      const c = await Computer.ensure(computerId(experiment, agent));
+      const c = await Computer.ensure(computerId(experiment, agent), undefined, agent.toJSON().profile);
       if (c.isErr()) {
         return errorToCallToolResult(
           err("computer_run_error", "Failed to access running computer"),
