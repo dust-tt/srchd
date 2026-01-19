@@ -6,7 +6,6 @@ import {
   index,
 } from "drizzle-orm/sqlite-core";
 import { Message, ThinkingConfig } from "@app/models";
-import { ToolName } from "@app/tools/constants";
 import { provider, Model } from "@app/models/provider";
 
 export const experiments = sqliteTable(
