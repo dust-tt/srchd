@@ -61,7 +61,7 @@ export class Runner {
     config: RunConfig,
   ): Promise<Result<Runner>> {
     const servers = await Promise.all(
-      [...agent.toJSON().tools, ...DEFAULT_TOOLS].map((t) =>
+      [...agent.toJSON().profile.tools, ...DEFAULT_TOOLS].map((t) =>
         createServer(t, { experiment, agent, config }),
       ),
     );

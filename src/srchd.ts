@@ -283,6 +283,7 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model;
       const thinking = options.thinking;
+      const tools = profile.tools;
 
       if (
         !(
@@ -322,7 +323,7 @@ agentCmd
       );
       agents.push(agent);
 
-      if (profile.tools.includes("computer")) {
+      if (tools.includes("computer")) {
         await Computer.create(
           computerId(experiment, agent),
           undefined,
@@ -455,7 +456,7 @@ agentCmd
     if (options.path && isArrayOf(options.path, isString)) {
       // Copy paths to all agents with computers
       for (const agent of agents.filter((a) =>
-        a.toJSON().tools.includes("computer"),
+        a.toJSON().profile.tools.includes("computer"),
       )) {
         // Ensure computer exists before copying files
         const cid = computerId(experiment, agent);
