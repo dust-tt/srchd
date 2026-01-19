@@ -172,7 +172,7 @@ export const experimentAgents = async (c: Input) => {
         )} |
             Thikning: ${sanitizeText(agentData.thinking)} | Evolutions: ${agentData.evolutions.length
           } |
-            Tools: ${sanitizeText(agentData.tools.join(", "))} |
+            Profile: ${sanitizeText(agentData.profile.name)} |
             Created: ${sanitizeText(agentData.created.toLocaleString())}
           </div>
         </div>
@@ -325,7 +325,7 @@ export const agentOverview = async (c: Input) => {
     <div class="card">
       <p><strong>Provider:</strong> ${sanitizeText(agentData.provider)}</p>
       <p><strong>Model:</strong> ${sanitizeText(agentData.model)}</p>
-      <p><strong>Tools:</strong> ${sanitizeText(agentData.tools.join(", "))}</p>
+      <p><strong>Profile:</strong> ${sanitizeText(agentData.profile.name)}</p>
       <div class="meta">Created: ${sanitizeText(
     agentData.created.toLocaleString(),
   )}</div>
