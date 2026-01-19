@@ -73,7 +73,6 @@ export const agents = sqliteTable(
     model: text("model").$type<Model>().notNull(),
     thinking: text("thinking").$type<ThinkingConfig>().notNull(),
     profile: text("profile").notNull().default("research"),
-    tools: text("tools", { mode: "json" }).$type<ToolName[]>(),
   },
   (t) => [unique().on(t.name, t.experiment)],
 );

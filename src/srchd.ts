@@ -283,7 +283,6 @@ agentCmd
       const profile = profileRes.value;
       const model = options.model;
       const thinking = options.thinking;
-      const tools = profile.tools;
 
       if (
         !(
@@ -317,14 +316,13 @@ agentCmd
           model,
           provider,
           thinking,
-          tools,
           profile: profile.name,
         },
         { system: profile.prompt },
       );
       agents.push(agent);
 
-      if (tools.includes("computer")) {
+      if (profile.tools.includes("computer")) {
         await Computer.create(
           computerId(experiment, agent),
           undefined,

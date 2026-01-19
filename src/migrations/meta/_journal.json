@@ -85,6 +85,13 @@
       "when": 1768558252999,
       "tag": "0011_brainy_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1768835974716,
+      "tag": "0012_whole_blazing_skull",
+      "breakpoints": true
     }
   ]
 }
