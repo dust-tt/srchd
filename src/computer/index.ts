@@ -11,7 +11,8 @@ import { podName } from "@app/lib/k8s";
 import { computerExec, ensureComputerPod } from "./k8s";
 import { computerHostPath,
   DEFAULT_WORKDIR } from "./definitions";
-import { Env } from "@app/agent_profile";
+import { AgentProfile,
+  Env } from "@app/agent_profile";
 import { rm } from "fs/promises";
 
 export function computerId(
@@ -75,6 +76,7 @@ export class Computer {
   static async ensure(
     computerId: string,
     namespace: string = K8S_NAMESPACE,
+    profile: AgentProfile,
   ): Promise<Result<Computer>> {
     const c = await Computer.findById(computerId, namespace);
     if (c) {
@@ -82,11 +84,11 @@ export class Computer {
       if (status !== "Running") {
         // Pod is not running, recreate it
         await c.terminate();
-        return Computer.create(computerId, namespace);
+        return Computer.create(computerId, namespace, profile.imageName, profile.env);
       }
       return ok(c);
     }
-    return Computer.create(computerId, namespace);
+    return Computer.create(computerId, namespace, profile.imageName, profile.env);
   }
 
   static async listComputerIds(

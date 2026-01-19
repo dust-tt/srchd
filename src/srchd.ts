@@ -318,6 +318,7 @@ agentCmd
           provider,
           thinking,
           tools,
+          profile: profile.name,
         },
         { system: profile.prompt },
       );
@@ -460,7 +461,7 @@ agentCmd
       )) {
         // Ensure computer exists before copying files
         const cid = computerId(experiment, agent);
-        const computerRes = await Computer.ensure(cid);
+        const computerRes = await Computer.ensure(cid, undefined, agent.toJSON().profile);
         if (computerRes.isErr()) {
           return exitWithError(computerRes);
         }
