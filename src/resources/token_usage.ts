@@ -6,6 +6,7 @@ import { db, Tx } from "@app/db";
 import { TokenUsage } from "@app/models/index";
 import { ExperimentResource } from "./experiment";
 import { createLLM } from "@app/models/provider";
+import { concurrentExecutor } from "@app/lib/async";
 
 export class TokenUsageResource {
   static async experimentTokenUsage(
@@ -66,10 +67,11 @@ export class TokenUsageResource {
   static async experimentCost(
     experiment: ExperimentResource,
   ): Promise<number> {
-    // Get all token usages grouped by agent
+    // Get all token usages grouped by agent with model data in a single query
     const agentUsages = await db
       .select({
         agentId: token_usages.agent,
+        model: agents.model,
         total: sum(token_usages.total),
         input: sum(token_usages.input),
         output: sum(token_usages.output),
@@ -77,36 +79,31 @@ export class TokenUsageResource {
         thinking: sum(token_usages.thinking),
       })
       .from(token_usages)
+      .innerJoin(agents, eq(token_usages.agent, agents.id))
       .where(eq(token_usages.experiment, experiment.toJSON().id))
-      .groupBy(token_usages.agent);
+      .groupBy(token_usages.agent, agents.model);
 
-    let totalCost = 0;
-
-    // Calculate cost for each agent using their specific model
-    for (const agentUsage of agentUsages) {
-      const agentData = await db
-        .select()
-        .from(agents)
-        .where(eq(agents.id, agentUsage.agentId))
-        .limit(1);
-
-      if (agentData.length > 0) {
+    // Calculate cost for each agent in parallel
+    const costs = await concurrentExecutor(
+      agentUsages,
+      async (agentUsage) => {
         const tokenUsage: TokenUsage = {
-          total: Number(agentUsage.total),
-          input: Number(agentUsage.input),
-          output: Number(agentUsage.output),
-          cached: Number(agentUsage.cached),
-          thinking: Number(agentUsage.thinking),
+          total: Number(agentUsage.total ?? 0),
+          input: Number(agentUsage.input ?? 0),
+          output: Number(agentUsage.output ?? 0),
+          cached: Number(agentUsage.cached ?? 0),
+          thinking: Number(agentUsage.thinking ?? 0),
         };
 
         // Calculate cost using the model's cost method
-        const llm = createLLM(agentData[0].model);
-        const cost = llm.cost([tokenUsage]);
-        totalCost += cost;
-      }
-    }
+        const llm = createLLM(agentUsage.model);
+        return llm.cost([tokenUsage]);
+      },
+      { concurrency: 8 },
+    );
 
-    return totalCost;
+    // Sum all costs
+    return costs.reduce((total, cost) => total + cost, 0);
   }
 
   static async logUsage(
