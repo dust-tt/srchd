@@ -203,7 +203,7 @@ ${r.content}`;
     },
   );
 
-  const hasComputerTool = agent.toJSON().tools.includes("computer");
+  const hasComputerTool = agent.toJSON().profile.tools.includes("computer");
 
   server.tool(
     "submit_publication",

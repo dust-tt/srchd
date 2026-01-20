@@ -317,7 +317,6 @@ agentCmd
           model,
           provider,
           thinking,
-          tools,
           profile: profile.name,
         },
         { system: profile.prompt },
@@ -457,7 +456,7 @@ agentCmd
     if (options.path && isArrayOf(options.path, isString)) {
       // Copy paths to all agents with computers
       for (const agent of agents.filter((a) =>
-        a.toJSON().tools.includes("computer"),
+        a.toJSON().profile.tools.includes("computer"),
       )) {
         // Ensure computer exists before copying files
         const cid = computerId(experiment, agent);
