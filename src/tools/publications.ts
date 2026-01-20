@@ -186,17 +186,15 @@ ${publicationHeader(publication, { withAbstract: true })}
 
 ${publication.toJSON().content}` +
               "\n\n" +
-              (publication.toJSON().status === "PUBLISHED"
-                ? `\
+              `\
 ${publication
-                  .toJSON()
-                  .reviews.map((r) => {
-                    return `\
+                .toJSON()
+                .reviews.map((r) => {
+                  return `\
 ${reviewHeader(r)}
 ${r.content}`;
-                  })
-                  .join("\n\n")}`
-                : "(reviews are hidden until publication/rejection)"),
+                })
+                .join("\n\n")}`,
           },
         ],
       };
