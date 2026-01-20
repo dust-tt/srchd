@@ -42,42 +42,17 @@ export const experimentsList = async (c: Input) => {
     (a, b) => b.toJSON().created.getTime() - a.toJSON().created.getTime(),
   );
 
-  // Calculate costs, publications, and solutions for all experiments
-  const experimentsWithMetadata = await Promise.all(
-    experiments.map(async (exp) => {
-      const cost = await TokenUsageResource.experimentCost(exp);
-      const formattedCost = cost < 0.01
-        ? `$${cost.toFixed(6)}`
-        : cost < 1
-          ? `$${cost.toFixed(4)}`
-          : `$${cost.toFixed(2)}`;
-
-      const publications = await PublicationResource.listByExperiment(exp);
-      const solutions = await SolutionResource.listByExperiment(exp);
-
-      return {
-        exp,
-        cost: formattedCost,
-        publicationsCount: publications.length,
-        solutionsCount: solutions.length,
-      };
-    }),
-  );
-
   const content = `
     <h1>Experiments</h1>
-    ${experimentsWithMetadata
-      .map(({ exp, cost, publicationsCount, solutionsCount }) => {
+    ${experiments
+      .map((exp) => {
         const data = exp.toJSON();
         return `
         <div class="card">
           <h3><a href="/experiments/${data.id}">${sanitizeText(data.name)}</a></h3>
           <div class="meta">
             Created: ${sanitizeText(data.created.toLocaleString())} |
-            Updated: ${sanitizeText(data.updated.toLocaleString())} |
-            Cost: <strong>${sanitizeText(cost)}</strong> |
-            Publications: <strong>${publicationsCount}</strong> |
-            Solutions: <strong>${solutionsCount}</strong>
+            Updated: ${sanitizeText(data.updated.toLocaleString())}
           </div>
         </div>
       `;
