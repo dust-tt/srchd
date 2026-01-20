@@ -1,26 +1,26 @@
-export interface ReviewRequestedValue {
+export interface ReviewRequested {
   type: "review_requested";
   reference: string;
 }
 
-export interface ReviewRecievedValue {
+export interface ReviewRecieved {
   type: "review_recieved";
   reference: string;
   grade: "STRONG_ACCEPT" | "ACCEPT" | "REJECT" | "STRONG_REJECT";
   author: string;
 }
 
-export interface PublicationStatusValue {
+export interface PublicationStatusUpdated {
   type: "publication_status_update";
   reference: string;
   status: "PUBLISHED" | "REJECTED"
 }
 
-export type Status = ReviewRequestedValue | ReviewRecievedValue | PublicationStatusValue;
+export type AdvisoryMessage = ReviewRequested | ReviewRecieved | PublicationStatusUpdated;
 
 export class Advisory {
   private static instance: Advisory;
-  private data: Record<string, Status[]> = {};
+  private messages: Record<string, AdvisoryMessage[]> = {};
 
   private constructor() { }
 
@@ -29,31 +29,31 @@ export class Advisory {
       Advisory.instance = new Advisory();
       if (agents) {
         for (const agent of agents) {
-          Advisory.instance.data[agent] = [];
+          Advisory.instance.messages[agent] = [];
         }
       }
     }
   }
 
-  static push(agent: string, status: Status) {
-    Advisory.instance.data[agent].push(status);
+  static push(agent: string, msg: AdvisoryMessage) {
+    Advisory.instance.messages[agent].push(msg);
   }
 
-  static pop(agent: string): Status[] {
-    const statuses = Advisory.instance.data[agent];
-    Advisory.instance.data[agent] = [];
-    return statuses;
+  static pop(agent: string): AdvisoryMessage[] {
+    const messages = Advisory.instance.messages[agent];
+    Advisory.instance.messages[agent] = [];
+    return messages;
   }
 
-  static toMessage(status: Status): string {
-    switch (status.type) {
+  static toString(msg: AdvisoryMessage): string {
+    switch (msg.type) {
       case "review_recieved":
-        return `Your reference ${status.reference} has recieved a review by ${status.author},
-          and been graded ${status.grade}.`
+        return `Your reference ${msg.reference} has recieved a review by ${msg.author},
+          and been graded ${msg.grade}.`
       case "review_requested":
-        return `You are requested to review publication: ${status.reference}`
+        return `You are requested to review publication: ${msg.reference}`
       case "publication_status_update":
-        return `Your publication: ${status.reference} has just recieved the status: ${status.status}`
+        return `Your publication: ${msg.reference} has just recieved the status: ${msg.status}`
     }
   }
 

@@ -533,9 +533,9 @@ ${this.agent.toJSON().system}`;
 
     if (toolResults.length > 0) {
       const content: (TextContent | ToolResult)[] = toolResults;
-      const advisoryStatuses = Advisory.pop(this.agent.toJSON().name);
-      if (advisoryStatuses.length > 0) {
-        content.push({ type: "text", text: advisoryStatuses.map((s) => Advisory.toMessage(s)).join("\n\n"), provider: null });
+      const advisoryMessages = Advisory.pop(this.agent.toJSON().name);
+      if (advisoryMessages.length > 0) {
+        content.push({ type: "text", text: advisoryMessages.map((s) => Advisory.toString(s)).join("\n\n"), provider: null });
       }
       const toolResultsMessage = await MessageResource.create(
         this.experiment,
@@ -561,9 +561,9 @@ ${this.agent.toJSON().system}`;
   }
 
   /**
-   * Replay a specific agent message tool uses
-   *
-   * @param messageId ID of the agent message to replay.
+    Replay a specific agent message tool uses
+
+    @param messageId ID of the agent message to replay.
    */
   async replayAgentMessage(messageId: number): Promise<Result<void>> {
     const agentMessageRes = await MessageResource.findById(
