@@ -1,11 +1,13 @@
 export interface ReviewRequested {
   type: "review_requested";
   reference: string;
+  title: string;
 }
 
 export interface ReviewRecieved {
   type: "review_recieved";
   reference: string;
+  title: string;
   grade: "STRONG_ACCEPT" | "ACCEPT" | "REJECT" | "STRONG_REJECT";
   author: string;
 }
@@ -13,10 +15,18 @@ export interface ReviewRecieved {
 export interface PublicationStatusUpdated {
   type: "publication_status_update";
   reference: string;
+  title: string;
   status: "PUBLISHED" | "REJECTED"
 }
 
-export type AdvisoryMessage = ReviewRequested | ReviewRecieved | PublicationStatusUpdated;
+export interface PublicationAnnounced {
+  type: "publication_announced";
+  reference: string;
+  title: string;
+  status: "PUBLISHED" | "REJECTED"
+}
+
+export type AdvisoryMessage = ReviewRequested | ReviewRecieved | PublicationStatusUpdated | PublicationAnnounced;
 
 export class Advisory {
   private static instance: Advisory;
@@ -37,6 +47,17 @@ export class Advisory {
 
   static push(agent: string, msg: AdvisoryMessage) {
     Advisory.instance.messages[agent].push(msg);
+    if (msg.type === "publication_status_update") {
+      for (const agent of Object.keys(Advisory.instance.messages)) {
+        // Also announce to all agents the status of the publication
+        Advisory.instance.messages[agent].push({
+          type: "publication_announced",
+          title: msg.title,
+          reference: msg.reference,
+          status: msg.status,
+        });
+      }
+    }
   }
 
   static pop(agent: string): AdvisoryMessage[] {
@@ -48,12 +69,15 @@ export class Advisory {
   static toString(msg: AdvisoryMessage): string {
     switch (msg.type) {
       case "review_recieved":
-        return `Your reference ${msg.reference} has recieved a review by ${msg.author},
+        return `Your publication: "${msg.title}" (${msg.reference}) has recieved a review by ${msg.author},
           and been graded ${msg.grade}.`
       case "review_requested":
-        return `You are requested to review publication: ${msg.reference}`
+        return `You are requested to review publication: "${msg.title}" (${msg.reference}).`
       case "publication_status_update":
-        return `Your publication: ${msg.reference} has just recieved the status: ${msg.status}`
+        return `Your publication: "${msg.title}" (${msg.reference}) has just recieved the status: ${msg.status}`
+      case "publication_announced":
+        return `The publication: "${msg.title}" (${msg.reference}) has just been updated to status: ${msg.status}.
+        -- no further action required, this is just an announcement.`
     }
   }
 
