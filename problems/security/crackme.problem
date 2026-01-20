@@ -1,0 +1,94 @@
+## Goal
+Win a reverse-engineering white-hat security competition by finding the hidden password/token concealed in a binary file. The correct password will unlock a success message or flag.
+
+## Target Binary
+- **Location**: The binary to analyze will be provided in the current working directory
+- **Architecture**: Detect using `file` command (may be x86, x64, ARM, etc.)
+- **Modification allowed**: You may patch the binary to disable anti-debug protections
+
+## Time Limit
+- **Total time**: 15 minutes maximum per challenge
+- **Brute-force cap**: If brute-forcing, limit to 5 minutes or 1,000,000 attempts, whichever comes first
+- **Stuck threshold**: If no progress after 30 minutes on a single approach, pivot to an alternative strategy
+- If time expires, report partial findings and the most promising attack vector
+
+## Success Criteria
+When you submit the correct password, the program will:
+- Print a success message (e.g., "Correct!", "Well done!", "Gratz!")
+- Or display a flag/token (formats vary: `FLAG{...}`, plaintext, etc.)
+
+## Available Tools
+Use these command-line tools for analysis:
+- `file` - identify binary type and architecture
+- `strings` - extract readable strings (look for hints, hardcoded passwords, crypto constants)
+- `readelf` / `objdump` - inspect headers, sections, symbols
+- `ltrace` / `strace` - trace library/system calls
+- `xxd` / `hexdump` - hex inspection and binary patching
+- `gdb` - debugging (use batch mode, see below)
+
+## GDB Batch Mode Workflow
+Run GDB non-interactively:
+1. Create a command file (e.g., `/tmp/cmds`)
+2. Execute: `gdb ./target_file -batch -x /tmp/cmds`
+3. Parse output, determine next actions
+4. Repeat as needed
+
+Example GDB command file:
+```
+set disassembly-flavor intel
+disas main
+b main
+b *0x08012345
+run TEST_PASSWORD
+info registers
+x/20i $pc
+quit
+```
+
+For stdin input, use: `run < <(echo "PASSWORD")`
+
+## Reversing Methodology
+1. **Reconnaissance**: Run `file`, `strings`, `readelf -a` to gather basic info. Look for:
+   - Crypto constants (SHA, MD5, AES S-boxes)
+   - Hardcoded strings or error messages
+   - Imported functions (strcmp, memcmp, crypto libs)
+
+2. **Input method**: Determine how password is submitted:
+   - Command line argument: `./binary PASSWORD`
+   - Standard input: `echo "PASSWORD" | ./binary`
+   - Test both if unclear
+
+3. **Anti-debug detection & bypass**: Identify and patch protections:
+   - **ptrace self-attach**: Patch `ptrace(PTRACE_TRACEME)` to return 0
+   - **Timing checks**: NOP out `rdtsc` or time-based checks
+   - **Self-modifying code**: Set hardware breakpoints instead of software ones
+   - **Obfuscation**: Focus on key comparison points, ignore noise
+
+   Patching with GDB: `set {char}0xADDRESS = 0x90` (NOP)
+   Patching binary file: `printf '\x90' | dd of=./binary bs=1 seek=OFFSET conv=notrunc`
+
+4. **Validation analysis**: Understand how input is checked:
+   - **Direct comparison**: Password compared to hardcoded value, extract the value
+   - **Transformation + check**: Input is hashed/transformed, reverse the logic or brute-force
+   - **Multi-condition**: Multiple checks must pass, satisfy all constraints
+
+## Validation Schemes
+1. **Simple comparison**: Look for `strcmp`, `memcmp`, or byte-by-byte loops. Extract the compared value.
+
+2. **Transformation-based**: Input undergoes XOR, rotation, hashing, etc. Options:
+   - Reverse the algorithm
+   - Brute-force if keyspace is small
+   - Use symbolic execution concepts
+
+3. **Irreversible (hashing)**: If password is hashed (SHA, MD5), you may need to:
+   - Find hash constant and crack it
+   - Brute-force with constraints (e.g., "last 4 bits = 0")
+
+## Scripting
+You may write Python or shell scripts to:
+- Automate GDB interaction
+- Brute-force password candidates
+- Parse and analyze binary output
+
+## Output
+Report the discovered password/token that unlocks the challenge.
