@@ -39,6 +39,7 @@ import { TokenUsageResource } from "./resources/token_usage";
 import * as readline from "readline";
 import { K8S_NAMESPACE } from "./lib/k8s";
 import { concurrentExecutor } from "./lib/async";
+import { Advisory } from "./runner/advisory"
 import assert from "assert";
 
 async function confirmAction(message: string): Promise<boolean> {
@@ -439,6 +440,7 @@ agentCmd
       return exitWithError(res);
     }
     const [experiment, agents] = res.value;
+    Advisory.init(agents.map(a => a.toJSON().name));
 
     let reviewers = DEFAULT_REVIEWERS_COUNT;
     if (options.reviewers) {
