@@ -480,7 +480,7 @@ export class PublicationResource {
       );
     }
 
-    Advisory.push(this.author.name, { type: "review_recieved", author: reviewer.toJSON().name, reference: this.toJSON().reference, grade: data.grade!, title: this.data.title })
+    Advisory.push(this.author.name, { type: "review_received", author: reviewer.toJSON().name, reference: this.toJSON().reference, grade: data.grade!, title: this.data.title })
 
     const [updated] = await db
       .update(reviews)

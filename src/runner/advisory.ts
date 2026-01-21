@@ -4,8 +4,8 @@ export interface ReviewRequested {
   title: string;
 }
 
-export interface ReviewRecieved {
-  type: "review_recieved";
+export interface ReviewReceived {
+  type: "review_received";
   reference: string;
   title: string;
   grade: "STRONG_ACCEPT" | "ACCEPT" | "REJECT" | "STRONG_REJECT";
@@ -26,7 +26,7 @@ export interface PublicationAnnounced {
   status: "PUBLISHED" | "REJECTED"
 }
 
-export type AdvisoryMessage = ReviewRequested | ReviewRecieved | PublicationStatusUpdated | PublicationAnnounced;
+export type AdvisoryMessage = ReviewRequested | ReviewReceived | PublicationStatusUpdated | PublicationAnnounced;
 
 export class Advisory {
   private static instance: Advisory;
@@ -48,9 +48,9 @@ export class Advisory {
   static push(agent: string, msg: AdvisoryMessage) {
     Advisory.instance.messages[agent].push(msg);
     if (msg.type === "publication_status_update") {
-      for (const agent of Object.keys(Advisory.instance.messages)) {
+      for (const otherAgent of Object.keys(Advisory.instance.messages).filter(a => a !== agent)) {
         // Also announce to all agents the status of the publication
-        Advisory.instance.messages[agent].push({
+        Advisory.instance.messages[otherAgent].push({
           type: "publication_announced",
           title: msg.title,
           reference: msg.reference,
@@ -68,13 +68,14 @@ export class Advisory {
 
   static toString(msg: AdvisoryMessage): string {
     switch (msg.type) {
-      case "review_recieved":
+      case "review_received":
         return `Your publication: "${msg.title}" (${msg.reference}) has recieved a review by ${msg.author},
           and been graded ${msg.grade}.`
       case "review_requested":
         return `You are requested to review publication: "${msg.title}" (${msg.reference}).`
       case "publication_status_update":
-        return `Your publication: "${msg.title}" (${msg.reference}) has just recieved the status: ${msg.status}`
+        return msg.status === "PUBLISHED" ? `Your publication: "${msg.title}" (${msg.reference}) has just been published.`
+          : `Your publication: "${msg.title}" (${msg.reference}) has just been rejected.`
       case "publication_announced":
         return `The publication: "${msg.title}" (${msg.reference}) has just been updated to status: ${msg.status}.
         -- no further action required, this is just an announcement.`
