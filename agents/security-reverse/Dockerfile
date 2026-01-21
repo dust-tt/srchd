@@ -49,9 +49,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcapstone-dev
 
 # Install radare2 from source (latest version)
-RUN git clone --depth 1 https://github.com/radareorg/radare2 /tmp/radare2 && \
-    cd /tmp/radare2 && sys/install.sh && \
-    rm -rf /tmp/radare2
+# Note: sys/install.sh creates symlinks to the source directory, so we keep it
+RUN git clone --depth 1 https://github.com/radareorg/radare2 /opt/radare2 && \
+    cd /opt/radare2 && sys/install.sh
 
 # Install Ghidra (headless)
 RUN mkdir -p /opt/ghidra && \
@@ -104,8 +104,11 @@ RUN python3 -m venv /home/agent/.venv && \
     # Utilities
     ropper
 
-# Configure shell environment
-RUN echo 'export PATH="/home/agent/.venv/bin:/opt/ghidra/latest/support:$PATH"' >> /home/agent/.bashrc && \
+# Configure shell environment (use .profile for login shells, .bashrc for interactive)
+RUN echo 'export PATH="/home/agent/.venv/bin:/opt/ghidra/latest/support:/usr/local/bin:$PATH"' >> /home/agent/.profile && \
+    echo 'export PYTHONPATH="/home/agent:$PYTHONPATH"' >> /home/agent/.profile && \
+    echo 'export GHIDRA_INSTALL_DIR="/opt/ghidra/latest"' >> /home/agent/.profile && \
+    echo 'export PATH="/home/agent/.venv/bin:/opt/ghidra/latest/support:/usr/local/bin:$PATH"' >> /home/agent/.bashrc && \
     echo 'export PYTHONPATH="/home/agent:$PYTHONPATH"' >> /home/agent/.bashrc && \
     echo 'export GHIDRA_INSTALL_DIR="/opt/ghidra/latest"' >> /home/agent/.bashrc && \
     echo 'alias ll="ls -la"' >> /home/agent/.bashrc && \
