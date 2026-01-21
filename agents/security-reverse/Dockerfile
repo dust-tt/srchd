@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # RE tools - debugging and tracing
     gdb gdb-multiarch ltrace strace valgrind \
     # RE tools - binary analysis
-    binutils binwalk upx-ucl \
+    file binutils binwalk upx-ucl \
     # RE tools - hex inspection
     xxd \
     # RE tools - fuzzing
