@@ -1,0 +1,393 @@
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { AgentResource } from "@app/resources/agent";
+import { errorToCallToolResult } from "@app/lib/mcp";
+import { COMPUTER_REGISTRY } from "@app/computer";
+import { PROCESS_SERVER_NAME as SERVER_NAME } from "@app/tools/constants";
+import { err } from "@app/lib/error";
+import { DEFAULT_WORKDIR } from "@app/computer/definitions";
+
+const SERVER_VERSION = "0.1.0";
+const DEFAULT_TIMEOUT_MS = 10000;
+const MAX_TIMEOUT_MS = 60000;
+
+
+export async function createProcessServer(
+  agent: AgentResource,
+): Promise<McpServer> {
+  const server = new McpServer({
+    name: SERVER_NAME,
+    title: `Process Management: Tools to spawn and manage long-running processes in a computer environment.`,
+    version: SERVER_VERSION,
+  });
+
+  // Register computer instance
+
+  // Helper to get computer instance
+  const getComputer = () => {
+    return COMPUTER_REGISTRY[agent.toJSON().name];
+  };
+
+  // spawn - Execute a command and return its output or background it
+  server.tool(
+    "spawn",
+    `Executes a command and returns its output. Processes exceeding the timeout (default 10s) are automatically moved to background execution. You can also specify to immediately background it.
+
+**Use cases:**
+- Run quick commands with immediate output
+- Start long-running processes (servers, builds) in background
+- Execute commands that need stdin interaction
+
+**Returns:** Process status (running, terminated), exit code, stdout, stderr, and process ID
+
+**Examples:**
+- Quick command: spawn({ command: "ls -la" })
+- Background server: spawn({ command: "python -m http.server 8000", background: true })
+- Long build: spawn({ command: "npm install", timeout: 60, background: true })`,
+    {
+      command: z.string().describe("Command to execute"),
+      cwd: z
+        .string()
+        .optional()
+        .default(DEFAULT_WORKDIR)
+        .describe(`Working directory for the process (default: ${DEFAULT_WORKDIR})`),
+      env: z
+        .record(z.string())
+        .optional()
+        .describe("Environment variables"),
+      timeoutMs: z
+        .number()
+        .int()
+        .max(MAX_TIMEOUT_MS)
+        .optional()
+        .describe(
+          `Timeout in milliseconds (max ${MAX_TIMEOUT_MS}, default ${DEFAULT_TIMEOUT_MS}).
+          Processes exceeding timeout move to background.`,
+        ),
+      background: z
+        .boolean()
+        .default(false)
+        .describe("Whether to immediately run command in background"),
+      tty: z
+        .boolean()
+        .default(false)
+        .describe("Whether to run command in (TTY) interactive mode"),
+    },
+    async ({ command, cwd, env, timeoutMs, background, tty }) => {
+      const computer = getComputer();
+      if (!computer) {
+        return errorToCallToolResult(
+          err("computer_run_error", "Failed to access running computer"),
+        );
+      }
+
+      console.log(`\x1b[90m[spawn] ${command}\x1b[0m`);
+
+      timeoutMs = background
+        ? undefined
+        : timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+      const r = await computer.spawn(command, {
+        cwd: cwd ?? DEFAULT_WORKDIR,
+        env,
+        timeoutMs,
+        tty,
+      });
+
+      if (r.isErr()) {
+        return errorToCallToolResult(r);
+      }
+
+      const result = r.value;
+      const backgrounded = result.status === "running" || background;
+
+      // Truncate output for display
+      const stdout =
+        result.stdout.slice(0, 8196) +
+        (result.stdout.length > 8196 ? "\n...[truncated]" : "");
+      const stderr =
+        result.stderr.slice(0, 8196) +
+        (result.stderr.length > 8196 ? "\n...[truncated]" : "");
+
+      let text = `id: ${result.pid}\n`;
+      text += `status: ${result.status}\n`;
+      text += `backgrounded: ${backgrounded}\n`;
+      if (result.exitCode !== undefined) {
+        text += `exit_code: ${result.exitCode}\n`;
+      }
+      text += `stdout:\n\`\`\`\n${stdout}\n\`\`\`\n`;
+      text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
+
+      return {
+        isError: false,
+        content: [{ type: "text", text }],
+      };
+    },
+  );
+
+  // ps - List all processes
+  server.tool(
+    "ps",
+    `Lists all processes in order of creation, showing their current status (running / terminated). Recently ended processes are temporarily displayed.
+
+**Returns:** List of processes with ID, status, command, creation time, and exit code (if terminated)
+
+**Example output:**
+- [123] running: "npm run dev" (created: 2024-01-01T10:00:00Z)
+- [124] terminated (exit: 0): "ls -la" (created: 2024-01-01T10:00:05Z)`,
+    {},
+    async () => {
+      const computer = getComputer();
+      if (!computer) {
+        return errorToCallToolResult(
+          err("computer_run_error", "Failed to access running computer"),
+        );
+      }
+
+      const r = computer.ps();
+      if (r.isErr()) {
+        return errorToCallToolResult(r);
+      }
+
+      const processes = r.value;
+
+      if (processes.length === 0) {
+        return {
+          isError: false,
+          content: [
+            {
+              type: "text",
+              text: "No processes found.",
+            },
+          ],
+        };
+      }
+
+      const processLines = processes.map((p) => {
+        let line = `[${p.pid}] ${p.status}`;
+        if (p.exitCode !== undefined) {
+          line += ` (exit: ${p.exitCode})`;
+        }
+        line += `: "${p.command}"`;
+        line += ` (created: ${p.createdAt.toISOString()})`;
+        line += ` (cwd: ${p.cwd})`;
+        line += ` (env: ${Object.keys(p.env).join(", ")})`;
+        line += ` (tty: ${p.tty})`;
+        return line;
+      });
+
+      return {
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: `Processes:\n${processLines.join("\n")}`,
+          },
+        ],
+      };
+    },
+  );
+
+  // stdin - Send input to a process
+  server.tool(
+    "stdin",
+    `Sends input to a running process's stdin stream, enabling interaction with interactive applications.
+
+**Use cases:**
+- Interact with prompts (e.g., python input(), confirmation dialogs)
+- Send commands to REPLs or shells
+- Provide input to interactive programs
+
+**Returns:** Success status, last 100 lines of stdout after sending input, stderr, and exit code if available
+
+**Example:**
+stdin({ id: "123", input: "yes\\n" }) - Confirm a prompt
+stdin({ id: "124", input: "print('hello')\\n" }) - Send to Python REPL`,
+    {
+      id: z.string().describe("Process ID"),
+      input: z.string().describe("Input to send to the process stdin"),
+    },
+    async ({ id, input }) => {
+      const computer = getComputer();
+      if (!computer) {
+        return errorToCallToolResult(
+          err("computer_run_error", "Failed to access running computer"),
+        );
+      }
+
+      console.log(`\x1b[90m[stdin ${id}] ${input.replace(/\n/g, "\\n")}\x1b[0m`);
+
+      const pid = parseInt(id, 10);
+      if (isNaN(pid)) {
+        return errorToCallToolResult(
+          err("invalid_parameters_error", `Invalid process ID: ${id}`),
+        );
+      }
+
+      const r = computer.stdin(pid, input);
+      if (r.isErr()) {
+        return errorToCallToolResult(r);
+      }
+
+      const process = r.value;
+
+      // Get last 100 lines of stdout
+      const stdoutLines = process.stdout
+        .split("\n")
+        .slice(-100)
+        .join("\n");
+      const stderr = process.stderr;
+
+      let text = `success: true\n`;
+      text += `status: ${process.status}\n`;
+      if (process.exitCode !== undefined) {
+        text += `exit_code: ${process.exitCode}\n`;
+      }
+      text += `stdout (last 100 lines):\n\`\`\`\n${stdoutLines}\n\`\`\`\n`;
+      if (stderr) {
+        text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
+      }
+
+      return {
+        isError: false,
+        content: [{ type: "text", text }],
+      };
+    },
+  );
+
+  // stdout - View process output
+  server.tool(
+    "stdout",
+    `Displays the tail of a process's stdout (for long outputs), stderr, current status, and exit code if available.
+
+**Use cases:**
+- Check progress of long-running processes
+- View recent output without re-running
+- Monitor background processes
+- Debug failed processes
+
+**Returns:** Process status, stdout tail, stderr, exit code, and whether it's interactive
+
+**Example:**
+stdout({ id: "123", lines: 50 }) - View last 50 lines of output`,
+    {
+      id: z.string().describe("Process ID"),
+      lines: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .default(100)
+        .describe("Number of lines to show from stdout tail (default: 100)"),
+    },
+    async ({ id, lines }) => {
+      const computer = getComputer();
+      if (!computer) {
+        return errorToCallToolResult(
+          err("computer_run_error", "Failed to access running computer"),
+        );
+      }
+
+      const pid = parseInt(id, 10);
+      if (isNaN(pid)) {
+        return errorToCallToolResult(
+          err("invalid_parameters_error", `Invalid process ID: ${id}`),
+        );
+      }
+
+      const r = computer.stdout(pid);
+      if (r.isErr()) {
+        return errorToCallToolResult(r);
+      }
+
+      const process = r.value;
+
+      // Get last N lines of stdout
+      const stdoutLines = process.stdout
+        .split("\n")
+        .slice(-(lines ?? 100))
+        .join("\n");
+      const stderr = process.stderr;
+
+      let text = `id: ${process.pid}\n`;
+      text += `status: ${process.status}\n`;
+      text += `tty: ${process.tty}\n`;
+      if (process.exitCode !== undefined) {
+        text += `exit_code: ${process.exitCode}\n`;
+      }
+      text += `stdout (last ${lines ?? 100} lines):\n\`\`\`\n${stdoutLines}\n\`\`\`\n`;
+      if (stderr) {
+        text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
+      }
+
+      return {
+        isError: false,
+        content: [{ type: "text", text }],
+      };
+    },
+  );
+
+  // signal - Terminate a process
+  server.tool(
+    "kill",
+    `Sends a signal to a running process, causing it to terminate.
+
+**Use cases:**
+- Stop long-running background processes
+- Cancel stuck processes
+- Clean up completed servers
+
+**Signals:**
+- SIGTERM (default): Graceful termination
+- SIGKILL: Forceful termination
+- SIGINT: Interrupt (Ctrl+C equivalent)
+
+**Returns:** Success status and optional error message
+
+**Example:**
+kill({ id: "123" }) - Gracefully terminate process 123
+kill({ id: "124", signal: "SIGKILL" }) - Force kill process 124`,
+    {
+      id: z.string().describe("Process ID to kill"),
+      signal: z
+        .string()
+        .optional()
+        .default("SIGTERM")
+        .describe("Signal to send (default: SIGTERM)"),
+    },
+    async ({ id, signal }) => {
+      const computer = getComputer();
+      if (!computer) {
+        return errorToCallToolResult(
+          err("computer_run_error", "Failed to access running computer"),
+        );
+      }
+
+      console.log(`\x1b[90m[signal ${signal ?? "SIGTERM"}] ${id}\x1b[0m`);
+
+      const pid = parseInt(id, 10);
+      if (isNaN(pid)) {
+        return errorToCallToolResult(
+          err("invalid_parameters_error", `Invalid process ID: ${id}`),
+        );
+      }
+
+      const r = await computer.kill(pid, signal ?? "SIGTERM");
+      if (r.isErr()) {
+        return errorToCallToolResult(r);
+      }
+
+      return {
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: `success: true\nProcess ${id} sent ${signal ?? "SIGTERM"} signal.`,
+          },
+        ],
+      };
+    },
+  );
+
+  return server;
+}

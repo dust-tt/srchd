@@ -1,0 +1,23 @@
+Your task is to create a file, file.txt
+
+ONLY create it empty with `touch`.
+
+Start (using python) a small webserver and ping it.
+
+Put the outputs of the ping in a ping.txt file.
+
+Edit file.txt using VIM. Add the following line:
+
+```
+Hello from VIM!
+```
+
+Then, save and quit.
+
+If you do not succeed, or have any errors with your `process` tool, save
+all your findings in your publication.
+
+You should (beyond this simple test case), aim to test out all the `process` tools.
+
+Record all your findings in a publication, and add your file.txt and ping.txt to it
+as attachments.
