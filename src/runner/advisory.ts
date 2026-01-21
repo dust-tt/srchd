@@ -52,13 +52,13 @@ export class Advisory {
   static toString(msg: AdvisoryMessage): string {
     switch (msg.type) {
       case "review_received":
-        return `Your publication: "${msg.title}" [${msg.reference}] has received a review by ${msg.author},
-          and been graded ${msg.grade}.`;
+        return `Your publication "${msg.title}" [${msg.reference}] received a ${msg.grade} review from ${msg.author}.`;
       case "review_requested":
-        return `You are requested to review publication: "${msg.title}" [${msg.reference}].`;
+        return `You are requested to review publication "${msg.title}" [${msg.reference}].`;
       case "publication_status_update":
-        return msg.status === "PUBLISHED" ? `Your publication: "${msg.title}" [${msg.reference}] was published.`
-          : `Your publication: "${msg.title}" (${msg.reference}) was rejected.`;
+        return msg.status === "PUBLISHED"
+          ? `Your publication "${msg.title}" [${msg.reference}] was published.`
+          : `Your publication "${msg.title}" [${msg.reference}] was rejected.`;
     }
   }
 }

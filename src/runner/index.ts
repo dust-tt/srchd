@@ -536,6 +536,14 @@ ${this.agent.toJSON().system}`;
       const advisoryMessages = Advisory.pop(this.agent.toJSON().name);
       if (advisoryMessages.length > 0) {
         content.push({ type: "text", text: advisoryMessages.map((s) => Advisory.toString(s)).join("\n\n"), provider: null });
+        // Log advisory messages
+        advisoryMessages.forEach((msg) => {
+          let out = `\x1b[1m\x1b[37m${this.agent.toJSON().name}\x1b[0m`; // name: bold white
+          out += ` \x1b[90m>\x1b[0m `; // separator: grey
+          out += `\x1b[1m\x1b[36mAdvisory:\x1b[0m `; // label: bold cyan
+          out += `\x1b[90m${Advisory.toString(msg).replace(/\n/g, " ")}\x1b[0m`; // content: grey
+          console.log(out);
+        });
       }
       const toolResultsMessage = await MessageResource.create(
         this.experiment,
