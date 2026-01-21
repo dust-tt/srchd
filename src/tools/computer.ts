@@ -48,14 +48,14 @@ For long running commands (running a server) make sure to run them in the backgr
         ),
     },
     async ({ cmd, cwd, env, timeout_ms: timeoutMs }) => {
+      console.log(`\x1b[90m${cmd}\x1b[0m`);
+
       const c = await Computer.ensure(computerId(experiment, agent), undefined, agent.toJSON().profile);
       if (c.isErr()) {
         return errorToCallToolResult(
           err("computer_run_error", "Failed to access running computer"),
         );
       }
-
-      console.log(`\x1b[90m${cmd}\x1b[0m`);
 
       const r = await c.value.execute(cmd, {
         cwd,
