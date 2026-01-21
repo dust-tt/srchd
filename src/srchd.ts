@@ -440,7 +440,7 @@ agentCmd
       return exitWithError(res);
     }
     const [experiment, agents] = res.value;
-    Advisory.init(agents.map(a => a.toJSON().name));
+    Advisory.register(agents.map(a => a.toJSON().name));
 
     let reviewers = DEFAULT_REVIEWERS_COUNT;
     if (options.reviewers) {

@@ -28,7 +28,7 @@ export class Advisory {
 
   private constructor() { }
 
-  static init(agents?: string[]) {
+  static register(agents?: string[]) {
     if (!Advisory.instance) {
       Advisory.instance = new Advisory();
       if (agents) {
@@ -52,7 +52,7 @@ export class Advisory {
   static toString(msg: AdvisoryMessage): string {
     switch (msg.type) {
       case "review_received":
-        return `Your publication: "${msg.title}" [${msg.reference}] has recieved a review by ${msg.author},
+        return `Your publication: "${msg.title}" [${msg.reference}] has received a review by ${msg.author},
           and been graded ${msg.grade}.`;
       case "review_requested":
         return `You are requested to review publication: "${msg.title}" [${msg.reference}].`;
