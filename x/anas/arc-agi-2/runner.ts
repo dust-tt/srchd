@@ -9,6 +9,8 @@ import { db } from '@app/db/index';
 import { experiments, agents, solutions, publications, messages, evolutions, reviews, citations, token_usages } from '@app/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { verifyOutputs } from '../../../problems/ARC-AGI-2/verify';
+import { ExperimentResource } from '@app/resources/experiment';
+import { TokenUsageResource } from '@app/resources/token_usage';
 
 // Types
 interface ExperimentRecord {
@@ -370,7 +372,8 @@ async function verifyExperiment(
   index: number,
   numAgents: number,
   budget: number,
-  variant: string | null
+  variant: string | null,
+  verbose: boolean = false
 ): Promise<void> {
   const problems = loadProblems();
 
@@ -384,9 +387,11 @@ async function verifyExperiment(
   const baseExperimentName = `arc-agi-${problemId}-${numAgents}agents`;
   const experimentName = variant ? `${baseExperimentName}-${variant}` : baseExperimentName;
 
-  console.log(`\n🔍 Verifying experiment solution:`);
-  console.log(`   Problem: #${index} (${problemId})`);
-  console.log(`   Experiment: ${experimentName}\n`);
+  if (verbose) {
+    console.log(`\n🔍 Verifying experiment solution:`);
+    console.log(`   Problem: #${index} (${problemId})`);
+    console.log(`   Experiment: ${experimentName}\n`);
+  }
 
   // Check if experiment exists
   const experiment = db
@@ -402,8 +407,21 @@ async function verifyExperiment(
 
   const expId = experiment.id;
 
-  // Gather metrics
-  console.log('📊 Gathering experiment metrics...\n');
+  if (verbose) {
+    console.log('📊 Gathering experiment metrics...\n');
+  }
+
+  // Load test case count from test.json
+  const testJsonPath = path.join(__dirname, '../../../problems/ARC-AGI-2/generated', problemId, 'test.json');
+  let testCases = 0;
+  try {
+    const testData = JSON.parse(fs.readFileSync(testJsonPath, 'utf-8'));
+    testCases = testData.test?.length || 0;
+  } catch (error) {
+    if (verbose) {
+      console.log(`⚠️  Could not load test.json: ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+  }
 
   // Count publications
   const allPublications = db
@@ -411,8 +429,6 @@ async function verifyExperiment(
     .from(publications)
     .where(eq(publications.experiment, expId))
     .all();
-
-  const publishedCount = allPublications.filter(p => p.status === 'PUBLISHED').length;
 
   // Count unique solutions
   const allSolutions = db
@@ -423,25 +439,22 @@ async function verifyExperiment(
 
   const uniqueSolutions = new Set(allSolutions.map(s => s.publication).filter(p => p !== null)).size;
 
-  // Calculate total tokens (in millions)
-  const tokenStats = db
-    .select()
-    .from(token_usages)
-    .where(eq(token_usages.experiment, expId))
-    .all();
-
-  const totalTokens = tokenStats.reduce((sum, t) => sum + t.total, 0);
-  const mtokens = (totalTokens / 1_000_000).toFixed(2);
-
-
+  // Calculate total cost using TokenUsageResource
+  const experimentResourceResult = await ExperimentResource.findById(expId);
+  if (experimentResourceResult.isErr()) {
+    console.error(`❌ Error: Failed to load experiment resource`);
+    process.exit(1);
+  }
+  const totalCost = await TokenUsageResource.experimentCost(experimentResourceResult.value);
 
   // Get most voted solution (most recent by any agent)
   const solutionsList = allSolutions;
-
   let verifyResult: { success: boolean; error?: string; percentage: number; passed: number; total: number } | null = null;
 
   if (solutionsList.length === 0) {
-    console.log(`⚠️  No solutions found for experiment '${experimentName}'\n`);
+    if (verbose) {
+      console.log(`⚠️  No solutions found for experiment '${experimentName}'\n`);
+    }
   } else {
     // Count votes for each publication
     const voteCounts = new Map<number, number>();
@@ -452,13 +465,17 @@ async function verifyExperiment(
     }
 
     if (voteCounts.size === 0) {
-      console.log(`⚠️  No publications referenced in solutions\n`);
+      if (verbose) {
+        console.log(`⚠️  No publications referenced in solutions\n`);
+      }
     } else {
       // Find most voted publication
       const mostVotedPubId = Array.from(voteCounts.entries())
         .sort((a, b) => b[1] - a[1])[0][0];
 
-      console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
+      if (verbose) {
+        console.log(`📊 Most voted solution has ${voteCounts.get(mostVotedPubId)} vote(s)\n`);
+      }
 
       // Get the publication
       const publication = db
@@ -468,10 +485,14 @@ async function verifyExperiment(
         .get();
 
       if (!publication) {
-        console.log(`⚠️  Publication not found\n`);
+        if (verbose) {
+          console.log(`⚠️  Publication not found\n`);
+        }
       } else {
         const reference = publication.reference;
-        console.log(`📄 Publication reference: ${reference}`);
+        if (verbose) {
+          console.log(`📄 Publication reference: ${reference}`);
+        }
 
         // Check for attachments
         const attachmentsDir = path.join(
@@ -483,34 +504,48 @@ async function verifyExperiment(
         );
 
         if (!fs.existsSync(attachmentsDir)) {
-          console.log(`⚠️  No attachments found for publication '${reference}'`);
-          console.log(`   Expected path: ${attachmentsDir}\n`);
+          if (verbose) {
+            console.log(`⚠️  No attachments found for publication '${reference}'`);
+            console.log(`   Expected path: ${attachmentsDir}\n`);
+          }
         } else {
           const files = fs.readdirSync(attachmentsDir);
           const jsonFiles = files.filter(f => f.endsWith('.json'));
 
           if (jsonFiles.length === 0) {
-            console.log(`⚠️  No JSON files found in attachments`);
-            console.log(`   Available files: ${files.join(', ')}\n`);
+            if (verbose) {
+              console.log(`⚠️  No JSON files found in attachments`);
+              console.log(`   Available files: ${files.join(', ')}\n`);
+            }
           } else {
             // Priority: outputs.json, else ask user
             let selectedFile: string;
             if (jsonFiles.includes('outputs.json')) {
               selectedFile = 'outputs.json';
-              console.log(`✓ Using outputs.json\n`);
+              if (verbose) {
+                console.log(`✓ Using outputs.json\n`);
+              }
             } else if (jsonFiles.length === 1) {
               selectedFile = jsonFiles[0];
-              console.log(`✓ Using ${selectedFile}\n`);
+              if (verbose) {
+                console.log(`✓ Using ${selectedFile}\n`);
+              }
             } else {
-              console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
+              if (verbose) {
+                console.log(`📎 Found ${jsonFiles.length} JSON file(s): ${jsonFiles.join(', ')}\n`);
+              }
               const selection = await askSelection('Multiple JSON files found. Select one:', jsonFiles);
               selectedFile = jsonFiles[selection];
-              console.log(`✓ Selected ${selectedFile}\n`);
+              if (verbose) {
+                console.log(`✓ Selected ${selectedFile}\n`);
+              }
             }
 
             const outputsPath = path.join(attachmentsDir, selectedFile);
 
-            console.log(`🧪 Running verification...\n`);
+            if (verbose) {
+              console.log(`🧪 Running verification...\n`);
+            }
 
             // Use verify library
             verifyResult = await verifyOutputs(
@@ -524,29 +559,21 @@ async function verifyExperiment(
     }
   }
 
-  // Display metrics table with verification results
+  // Display simplified metrics table
   const metricsData = [{
-    'Performance': verifyResult ? (verifyResult.error ? 'ERROR' : `${verifyResult.percentage}%`) : 'N/A',
-    'Unique Solutions': uniqueSolutions,
-    'Total Publications': allPublications.length,
+    'Tests': testCases,
+    'Perf': verifyResult && !verifyResult.error ? `${verifyResult.percentage}%` : '0%',
+    'Sol': uniqueSolutions,
+    'Pub': allPublications.length,
+    'Cost': `$${totalCost.toFixed(2)}`,
   }];
 
   console.table(metricsData);
-  console.log('');
 
-  if (verifyResult) {
-    if (verifyResult.error) {
-      console.error(`❌ Verification error: ${verifyResult.error}`);
-      process.exit(1);
-    }
-
-    if (verifyResult.success) {
-      console.log(`✅ All ${verifyResult.total} test case(s) passed!`);
-    } else {
-      console.log(`⚠️  Passed ${verifyResult.passed}/${verifyResult.total} test case(s) (${verifyResult.percentage}%)`);
-    }
-  } else {
-    console.log(`ℹ️  No verification performed (no valid solution found)`);
+  // Only show errors for actual errors
+  if (verifyResult && verifyResult.error) {
+    console.error(`❌ Verification error: ${verifyResult.error}`);
+    process.exit(1);
   }
 }
 
@@ -756,10 +783,11 @@ async function main() {
       return num;
     })
     .option('-v, --variant <variant>', 'Experiment variant name')
+    .option('--verbose', 'Show detailed output')
     .action(async (index, options) => {
       if (!options.agents || !options.budget) {
         console.error('\n❌ Error: Both --agents and --budget options are required');
-        console.error('Usage: npx tsx runner.ts verify <index> -a <agents> -b <budget> [-v <variant>]');
+        console.error('Usage: npx tsx runner.ts verify <index> -a <agents> -b <budget> [-v <variant>] [--verbose]');
         console.error('Example: npx tsx runner.ts verify 1 -a 5 -b 50 -v test1\n');
         process.exit(1);
       }
@@ -768,7 +796,8 @@ async function main() {
         index,
         options.agents,
         options.budget,
-        options.variant || null
+        options.variant || null,
+        options.verbose || false
       );
     });
 
