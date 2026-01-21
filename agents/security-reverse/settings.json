@@ -1,0 +1,6 @@
+{
+  "description": "Research agent focused on reverse engineering of binaries",
+  "tools": ["web", "computer"],
+  "env": [],
+  "imageName": "agent-computer:security-reverse"
+}
