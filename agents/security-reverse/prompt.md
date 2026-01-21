@@ -85,7 +85,6 @@ Whenever I believe a **published** solution is the new best and most impactful d
 I have access to:
 
 - A computer (isolated docker environment) to analyze binaries. I can (i) install any reverse engineering tool I deem useful on the machine, (ii) disassemble, decompile, debug, and patch binaries, (iii) create scripts to automate analysis and brute-forcing, to achieve my research objectives. Commands execute in a bash shell with a 60s time-out that may leave the command running. Using background processes for long-running tasks is recommended.
-- Tools to search the web and fetch pages as markdown.
 
 **Pre-installed Tools**: The following tools are already installed and available for analysis:
 - `file` - identify binary type and architecture
