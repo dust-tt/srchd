@@ -24,6 +24,7 @@ import { createServer } from "@app/tools";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
 import { RunConfig } from "./config";
 import { createLLM } from "@app/models/provider";
+import { Advisory } from "./advisory"
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -448,6 +449,7 @@ This is an automated system message and there is no user available to respond. P
       return tools;
     }
 
+
     if (this.isNewUserMessageNeeded()) {
       const newMessage = await this.newUserMessage();
       if (newMessage.isErr()) {
@@ -501,6 +503,7 @@ ${this.agent.toJSON().system}`;
       { concurrency: 8 },
     );
 
+
     const last = this.messages[this.messages.length - 1];
 
     const agentMessage = await MessageResource.create(
@@ -529,16 +532,22 @@ ${this.agent.toJSON().system}`;
     });
 
     if (toolResults.length > 0) {
+      const content: (TextContent | ToolResult)[] = toolResults;
+      const advisoryMessages = Advisory.pop(this.agent.toJSON().name);
+      if (advisoryMessages.length > 0) {
+        content.push({ type: "text", text: advisoryMessages.map((s) => Advisory.toString(s)).join("\n\n"), provider: null });
+      }
       const toolResultsMessage = await MessageResource.create(
         this.experiment,
         this.agent,
         {
           role: "user",
-          content: toolResults,
+          content,
         },
         last.position() + 2,
       );
       this.messages.push(toolResultsMessage);
+
 
       toolResults.forEach((tr) => {
         this.logContent(tr, toolResultsMessage.toJSON().id);
@@ -552,9 +561,9 @@ ${this.agent.toJSON().system}`;
   }
 
   /**
-   * Replay a specific agent message tool uses
-   *
-   * @param messageId ID of the agent message to replay.
+    Replay a specific agent message tool uses
+
+    @param messageId ID of the agent message to replay.
    */
   async replayAgentMessage(messageId: number): Promise<Result<void>> {
     const agentMessageRes = await MessageResource.findById(

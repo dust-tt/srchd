@@ -19,6 +19,7 @@ import { concurrentExecutor } from "@app/lib/async";
 import { assertNever } from "@app/lib/assert";
 import assert from "assert";
 import { PLACEHOLDER_AGENT_PROFILE } from "@app/agent_profile";
+import { Advisory } from "@app/runner/advisory";
 
 export type Publication = InferSelectModel<typeof publications>;
 export type Review = Omit<InferInsertModel<typeof reviews>, "author"> & {
@@ -391,6 +392,7 @@ export class PublicationResource {
       }
 
       this.data = updated;
+      Advisory.push(this.author.name, { type: "publication_status_update", reference: this.toJSON().reference, status: "PUBLISHED", title: this.data.title })
       return ok(this);
     } catch (error) {
       return err(
@@ -416,6 +418,7 @@ export class PublicationResource {
         return err("not_found_error", "Publication not found");
       }
 
+      Advisory.push(this.author.name, { type: "publication_status_update", reference: this.toJSON().reference, status: "REJECTED", title: this.data.title })
       this.data = updated;
       return ok(this);
     } catch (error) {
@@ -435,6 +438,10 @@ export class PublicationResource {
         "resource_creation_error",
         "Reviews already exist for this publication",
       );
+    }
+
+    for (const reviewer of reviewers) {
+      Advisory.push(reviewer.toJSON().name, { type: "review_requested", reference: this.toJSON().reference, title: this.data.title });
     }
 
     const created = await db
@@ -472,6 +479,8 @@ export class PublicationResource {
         "Review submitted does not match any review request.",
       );
     }
+
+    Advisory.push(this.author.name, { type: "review_received", author: reviewer.toJSON().name, reference: this.toJSON().reference, grade: data.grade!, title: this.data.title })
 
     const [updated] = await db
       .update(reviews)
