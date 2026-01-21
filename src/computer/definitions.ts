@@ -39,6 +39,9 @@ export function defineComputerPod(
         {
           name: "init-home",
           image: imageName ?? COMPUTER_IMAGE,
+          securityContext: {
+            runAsUser: 0,
+          },
           command: ["/bin/bash", "-c"],
           args: [
             // Copy /home/agent skeleton to PVC on first mount
