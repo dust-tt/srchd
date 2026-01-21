@@ -36,6 +36,8 @@ export async function ensureComputerPod(
   );
 }
 
+const MAX_OUTPUT_SIZE = 32 * 1024; // 32KB max output buffer (tool truncates to 8KB anyway)
+
 export async function computerExec(
   cmd: string[],
   namespace: string,
@@ -47,19 +49,39 @@ export async function computerExec(
   const k8sExec = new k8s.Exec(kc);
   let stdout = "";
   let stderr = "";
+  let stdoutTruncated = false;
+  let stderrTruncated = false;
   let exitCode = 0;
   let failReason: "commandRunFailed" | "executionFailed" | undefined;
   const execPromise = new Promise<void>((resolve, reject) => {
     stdoutStream = stdoutStream ?? new Writable({
       write(chunk, _enc, callback) {
-        stdout += chunk.toString();
+        if (!stdoutTruncated) {
+          const str = chunk.toString();
+          if (stdout.length + str.length > MAX_OUTPUT_SIZE) {
+            stdout += str.slice(0, MAX_OUTPUT_SIZE - stdout.length);
+            stdout += "\n... [output truncated]";
+            stdoutTruncated = true;
+          } else {
+            stdout += str;
+          }
+        }
         callback();
       },
     });
 
     const stderrStream = new Writable({
       write(chunk, _encoding, callback) {
-        stderr += chunk.toString();
+        if (!stderrTruncated) {
+          const str = chunk.toString();
+          if (stderr.length + str.length > MAX_OUTPUT_SIZE) {
+            stderr += str.slice(0, MAX_OUTPUT_SIZE - stderr.length);
+            stderr += "\n... [output truncated]";
+            stderrTruncated = true;
+          } else {
+            stderr += str;
+          }
+        }
         callback();
       },
     });
