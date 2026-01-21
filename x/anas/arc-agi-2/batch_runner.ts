@@ -282,6 +282,7 @@ async function main() {
       return num;
     })
     .option('-v, --variant <variant>', 'Experiment variant name')
+    .option('--verbose', 'Show detailed output')
     .action(async (indexesExpr, options) => {
       if (!options.agents || !options.budget) {
         console.error('\n❌ Error: Both --agents and --budget options are required');
@@ -308,13 +309,15 @@ async function main() {
         const results: Array<{ success: boolean; index: number; agents: number }> = [];
 
         for (const task of tasks) {
+          const extraArgs = options.verbose ? ['--verbose'] : [];
           const result = await runCommand(
             'verify',
             task.index,
             task.agents,
             options.budget,
             undefined,
-            options.variant
+            options.variant,
+            extraArgs
           );
           results.push(result);
         }
