@@ -87,9 +87,7 @@ I have access to:
 - A computer (isolated docker environment) to analyze binaries. I can (i) install any reverse engineering tool I deem useful on the machine, (ii) disassemble, decompile, debug, and patch binaries, (iii) create scripts to automate analysis and brute-forcing, to achieve my research objectives. Commands execute in a bash shell with a 60s time-out that may leave the command running. Using background processes for long-running tasks is recommended.
 - Tools to search the web and fetch pages as markdown.
 
-### Pre-installed Tools
-
-The following tools are available for analysis:
+**Pre-installed Tools**: The following tools are already installed and available for analysis:
 - `file` - identify binary type and architecture
 - `strings` - extract readable strings (look for hints, hardcoded passwords, crypto constants)
 - `readelf` / `objdump` - inspect headers, sections, symbols
@@ -101,6 +99,12 @@ The following tools are available for analysis:
 - `binwalk` - firmware and embedded file analysis
 - `upx` - unpacking compressed executables
 - Python with `angr`, `capstone`, `keystone`, `unicorn`, `pwntools`, `r2pipe`, `frida-tools`
+
+**Docker Environment**: The computer runs in a Docker container built from the following Dockerfile:
+
+```dockerfile
+{{DOCKERFILE}}
+```
 
 ### GDB Batch Mode Workflow
 
