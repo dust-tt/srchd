@@ -1,8 +1,11 @@
-# srchd
+# srchd - Research Agents Harness
 
 `srchd` orchestrates agents (up to 100s) through a publication/review system to solve reasoning and
-search intensive problems. It has been successfully applied to vulnerability search in complex
-codebases and ARC-AGI-2 challenges.
+search intensive problems. Each agent is provided with a computer it can use to perform research,
+and an access to the shared publication system.
+
+`srchd` was successfully applied to various problems going from mathematical problems to
+vulnerability search in complex codebases.
 
 The main idea behind `srchd` is to reproduce the system used by humans to collaborate on our biggest
 problems: scientific conferences and journals, prompting agents to optimize for references as a
@@ -10,18 +13,6 @@ signal for recognition. Agents are also capable of self-editing their system pro
 knowledge and improve as they perform their research on long time horizons.
 
 📺 Talk on `srchd` [The Outer-Loop Era - Stanislas Polu (DotAI 2025/11)](https://youtube.com/watch?v=9OjcAYsncpw&list=PLMW8Xq7bXrG5IWMNP9xWe4K-AzOL5jDlQ&index=4)
-
-## Vulnerability Search
-
-### Applying `srchd` to search vulnerabilities in your code
-
-- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h, $50 for Kimi K2).
-- File an issue on the repository if your code is open source (we will do our best to help you for free).
-- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
-
-### Vulnerabilities found by `srchd`
-
-(list upcoming, vulnerabilities are under responsible disclosure)
 
 ## System
 
@@ -109,44 +100,46 @@ Agents are configured using profiles located in the `agents/` directory. Each pr
 - **`settings.json`**: Configuration for tools, environment variables, and Docker image
 - **`Dockerfile`** (optional): Custom Docker environment for computer-use agents
 
-### Available Profiles
+## Computer Use
 
-- **`research`**: Generic research agent for general reasoning problems
-  - No additional tools (uses core publications/self-edit/solutions)
-  - Suitable for mathematical, logical, and analytical tasks
+Computer use allows agents to run code and interact with a sandboxed environment in a Kubernetes pod.
 
-- **`security`**: Security research agent with computer and web access
-  - Tools: `computer`, `web`
-  - Custom Docker environment with security analysis tools
-  - Focused on vulnerability discovery and exploitation
+Make sure you have Kubernetes installed and configured. If you have Docker Desktop,
+you simply need to go to `Settings > Kubernetes > Enable Kubernetes`.
 
-- **`arc-agi`**: ARC-AGI challenge optimized agent
-  - Tools: `computer`
-  - Custom Python environment for pattern recognition tasks
-  - Specialized for abstract reasoning challenges
+```bash
+# Build the base computer image before using computer tools
+npx tsx src/srchd.ts computer image-build
 
-- **`code`**: General coding agent with web research capabilities
-  - Tools: `computer`, `web`
-  - Docker environment for software development
-
-### Creating Custom Profiles
-
-To create a new agent profile:
-
-1. Create a directory under `agents/` with your profile name
-2. Add `prompt.md` with your agent's system prompt
-3. Add `settings.json` with configuration:
-```json
-{
-  "description": "Your agent description",
-  "tools": ["computer", "web"],
-  "env": ["OPENAI_API_KEY"],
-  "imageName": "agent-computer:your-profile"
-}
+# Build a custom profile image (e.g., security profile)
+npx tsx src/srchd.ts computer image-build -p security
 ```
-4. If using `computer` tools, add a `Dockerfile` for the custom environment
 
-The system will automatically discover and validate new profiles.
+Each agent profile with `computer` tools gets its own isolated pod with a custom Docker environment
+defined by the profile's `Dockerfile`. The environment persists across agent interactions within an
+experiment, allowing for stateful development and testing.
+
+## Architecture
+
+See [AGENTS.md](./AGENTS.md) for detailed architecture documentation.
+
+## License
+
+MIT
+
+# Applications
+
+## Vulnerability Search
+
+### Applying `srchd` to search vulnerabilities in your code
+
+- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h, $50 for Kimi K2).
+- File an issue on the repository if your code is open source (we will do our best to help you for free).
+- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
+
+### Vulnerabilities found by `srchd`
+
+(list upcoming, vulnerabilities are under responsible disclosure)
 
 ## ARC-AGI Experiments
 
@@ -170,35 +163,6 @@ The `create` command:
 - Generates `test.json` (test cases - hidden, used for grading)
 - Creates the experiment and agents using the `arc-agi` profile
 
-Agents receive only the training examples and must discover the transformation pattern to solve the problem. Solutions should be attached as Python files containing a `solve(input_grid) -> output_grid` function.
-
-## Computer Use
-
-Computer use allows agents to run code and interact with a sandboxed environment in a Kubernetes pod.
-
-Make sure you have Kubernetes installed and configured. If you have Docker Desktop,
-you simply need to go to `Settings > Kubernetes > Enable Kubernetes`.
-
-```bash
-# Build the base computer image before using computer tools
-npx tsx src/srchd.ts computer image-build
-
-# Build a custom profile image (e.g., security profile)
-npx tsx src/srchd.ts computer image-build -p security
-
-# Clean up Docker containers and volumes
-docker rm -f $(docker ps -q --filter ancestor=agent-computer:base)
-docker volume ls -q | grep '^srchd_computer' | xargs docker volume rm
-```
-
-Each agent profile with `computer` tools gets its own isolated pod with a custom Docker environment
-defined by the profile's `Dockerfile`. The environment persists across agent interactions within an
-experiment, allowing for stateful development and testing.
-
-## Architecture
-
-See [AGENTS.md](./AGENTS.md) for detailed architecture documentation.
-
-## License
-
-MIT
+Agents receive only the training examples and must discover the transformation pattern to solve the
+problem. Solutions should be attached as Python files containing a `solve(input_grid) ->
+output_grid` function.

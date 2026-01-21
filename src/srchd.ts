@@ -104,7 +104,7 @@ const program = new Command();
 
 program
   .name("srchd")
-  .description("Research experiment management CLI")
+  .description("Research agents harness")
   .version("1.0.0");
 
 const metricsCmd = program.command("metrics").description("Show metrics");
