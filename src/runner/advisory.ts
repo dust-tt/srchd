@@ -19,14 +19,8 @@ export interface PublicationStatusUpdated {
   status: "PUBLISHED" | "REJECTED"
 }
 
-export interface PublicationAnnounced {
-  type: "publication_announced";
-  reference: string;
-  title: string;
-  status: "PUBLISHED" | "REJECTED"
-}
 
-export type AdvisoryMessage = ReviewRequested | ReviewReceived | PublicationStatusUpdated | PublicationAnnounced;
+export type AdvisoryMessage = ReviewRequested | ReviewReceived | PublicationStatusUpdated;
 
 export class Advisory {
   private static instance: Advisory;
@@ -47,17 +41,6 @@ export class Advisory {
 
   static push(agent: string, msg: AdvisoryMessage) {
     Advisory.instance.messages[agent].push(msg);
-    if (msg.type === "publication_status_update") {
-      for (const otherAgent of Object.keys(Advisory.instance.messages).filter(a => a !== agent)) {
-        // Also announce to all agents the status of the publication
-        Advisory.instance.messages[otherAgent].push({
-          type: "publication_announced",
-          title: msg.title,
-          reference: msg.reference,
-          status: msg.status,
-        });
-      }
-    }
   }
 
   static pop(agent: string): AdvisoryMessage[] {
@@ -70,16 +53,12 @@ export class Advisory {
     switch (msg.type) {
       case "review_received":
         return `Your publication: "${msg.title}" (${msg.reference}) has recieved a review by ${msg.author},
-          and been graded ${msg.grade}.`
+          and been graded ${msg.grade}.`;
       case "review_requested":
-        return `You are requested to review publication: "${msg.title}" (${msg.reference}).`
+        return `You are requested to review publication: "${msg.title}" (${msg.reference}).`;
       case "publication_status_update":
         return msg.status === "PUBLISHED" ? `Your publication: "${msg.title}" (${msg.reference}) has just been published.`
-          : `Your publication: "${msg.title}" (${msg.reference}) has just been rejected.`
-      case "publication_announced":
-        return `The publication: "${msg.title}" (${msg.reference}) has just been updated to status: ${msg.status}.
-        -- no further action required, this is just an announcement.`
+          : `Your publication: "${msg.title}" (${msg.reference}) has just been rejected.`;
     }
   }
-
 }
