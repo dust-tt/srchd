@@ -23,6 +23,10 @@ The correct password will unlock a success message or flag when submitted to the
 
 5. **Solution**: Extract or compute the correct password and validate it against the binary.
 
+## Constraints
+
+These challenges are discussed online. Do not research solutions or hints on forums or websites. The goal is to solve it independently.
+
 ## Goal
 
 Find the discovered password or flag that unlocks the challenge.
