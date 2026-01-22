@@ -37,13 +37,15 @@ function normalizeTokenPrices(
 
 // https://platform.openai.com/docs/pricing
 const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
+  "gpt-4.1": normalizeTokenPrices(2, 8, 0.5),
+  "gpt-5-nano": normalizeTokenPrices(0.05, 0.4),
+  "gpt-5-mini": normalizeTokenPrices(0.25, 2),
   "gpt-5": normalizeTokenPrices(1.25, 10),
   "gpt-5-codex": normalizeTokenPrices(1.25, 10),
   "gpt-5.1": normalizeTokenPrices(1.25, 10),
   "gpt-5.1-codex": normalizeTokenPrices(1.25, 10),
-  "gpt-5-mini": normalizeTokenPrices(0.25, 2),
-  "gpt-5-nano": normalizeTokenPrices(0.05, 0.4),
-  "gpt-4.1": normalizeTokenPrices(2, 8, 0.5),
+  "gpt-5.2": normalizeTokenPrices(1.75, 14),
+  "gpt-5.2-codex": normalizeTokenPrices(1.75, 14),
 };
 
 export function convertToolChoice(toolChoice: ToolChoice) {
@@ -74,22 +76,26 @@ export function convertThinking(thinking: "high" | "low" | "none" | undefined) {
 }
 
 export type OpenAIModel =
-  | "gpt-5.1"
-  | "gpt-5.1-codex"
+  | "gpt-4.1"
+  | "gpt-5-nano"
+  | "gpt-5-mini"
   | "gpt-5"
   | "gpt-5-codex"
-  | "gpt-5-mini"
-  | "gpt-5-nano"
-  | "gpt-4.1";
+  | "gpt-5.1"
+  | "gpt-5.1-codex"
+  | "gpt-5.2"
+  | "gpt-5.2-codex";
 export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
-    "gpt-5.1",
-    "gpt-5.1-codex",
+    "gpt-4.1",
+    "gpt-5-nano",
+    "gpt-5-mini",
     "gpt-5",
     "gpt-5-codex",
-    "gpt-5-mini",
-    "gpt-5-nano",
-    "gpt-4.1",
+    "gpt-5.1",
+    "gpt-5.1-codex",
+    "gpt-5.2",
+    "gpt-5.2-codex",
   ].includes(model);
 }
 
@@ -127,8 +133,8 @@ export class OpenAILLM extends LLM {
                         output: JSON.stringify(
                           content.isError
                             ? {
-                              error: content.content,
-                            }
+                                error: content.content,
+                              }
                             : content,
                         ),
                       },
@@ -202,9 +208,7 @@ export class OpenAILLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }>
-  > {
+  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }>> {
     try {
       const input = this.messages(messages);
 
@@ -219,9 +223,9 @@ export class OpenAILLM extends LLM {
           this.model === "gpt-4.1"
             ? undefined
             : {
-              effort: convertThinking(this.config.thinking),
-              summary: "auto",
-            },
+                effort: convertThinking(this.config.thinking),
+                summary: "auto",
+              },
         tools: tools.map((tool) => ({
           type: "function",
           name: tool.name,
@@ -344,9 +348,9 @@ export class OpenAILLM extends LLM {
               this.model === "gpt-4.1"
                 ? undefined
                 : {
-                  effort: convertThinking(this.config.thinking),
-                  summary: "auto",
-                },
+                    effort: convertThinking(this.config.thinking),
+                    summary: "auto",
+                  },
             tools: tools.map((tool) => ({
               type: "function",
               name: tool.name,
@@ -364,15 +368,17 @@ export class OpenAILLM extends LLM {
   }
   maxTokens(): number {
     switch (this.model) {
-      case "gpt-5":
-      case "gpt-5.1":
-      case "gpt-5-mini":
-      case "gpt-5-nano":
-      case "gpt-5-codex":
-      case "gpt-5.1-codex":
-        return 400000 - 128000;
       case "gpt-4.1":
         return 1047576 - 32768;
+      case "gpt-5-nano":
+      case "gpt-5-mini":
+      case "gpt-5":
+      case "gpt-5-codex":
+      case "gpt-5.1":
+      case "gpt-5.1-codex":
+      case "gpt-5.2":
+      case "gpt-5.2-codex":
+        return 400000 - 128000;
       default:
         assertNever(this.model);
     }
