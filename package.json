@@ -25,7 +25,7 @@
     "@huggingface/transformers": "^3.8.0",
     "@kubernetes/client-node": "^1.4.0",
     "@mendable/firecrawl": "^1.21.1",
-    "linkup-sdk": "^1.0.5",
+    "linkup-sdk": "^2.6.2",
     "@mistralai/mistralai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@types/json-schema": "^7.0.15",
