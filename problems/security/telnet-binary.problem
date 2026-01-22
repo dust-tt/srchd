@@ -9,8 +9,8 @@ Extract the binary from the .deb archive and analyze it.
 ## Objective
 
 Analyze the telnetd binary to:
-1. Identify the vulnerability that allows privilege escalation
-2. Understand how it can be exploited to gain root privileges
+1. Identify vulnerabilities that allow privilege escalation
+2. Understand how they can be exploited to gain privileges
 3. Produce a proof of concept that demonstrates the vulnerability
 
 The primary goal is to produce a working exploit or PoC that demonstrates the privilege escalation. Any produced PoC will be used for responsible disclosure and defensive purposes only.
