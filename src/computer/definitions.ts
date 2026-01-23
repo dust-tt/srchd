@@ -5,6 +5,7 @@ import { isString } from "@app/lib/utils";
 
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";
+const isLinux = process.platform === "linux";
 
 export function defineComputerLabels(namespace: string, computerId: string) {
   return {
@@ -39,9 +40,11 @@ export function defineComputerPod(
         {
           name: "init-home",
           image: imageName ?? COMPUTER_IMAGE,
-          securityContext: {
-            runAsUser: 0,
-          },
+          ...(isLinux ? {
+            securityContext: {
+              runAsUser: 0,
+            },
+          } : {}),
           command: ["/bin/bash", "-c"],
           args: [
             // Copy /home/agent skeleton to PVC on first mount
