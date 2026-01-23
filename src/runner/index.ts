@@ -458,9 +458,14 @@ This is an automated system message and there is no user available to respond. P
       this.messages.push(newMessage.value);
     }
 
+    const problemContent = await this.experiment.getProblemContent();
+    if (problemContent.isErr()) {
+      return problemContent;
+    }
+
     const systemPrompt = `\
 <goal>
-${this.experiment.toJSON().problem}
+${problemContent.value}
 </goal>
 
 ${this.agent.toJSON().system}`;

@@ -2,6 +2,10 @@ import { db } from "@app/db";
 import { experiments } from "@app/db/schema";
 import { err, ok, Result } from "@app/lib/error";
 import { eq, InferSelectModel, InferInsertModel } from "drizzle-orm";
+import {
+  readProblemContent,
+  getProblemDataPath,
+} from "@app/lib/problem";
 
 type Experiment = InferSelectModel<typeof experiments>;
 
@@ -69,5 +73,19 @@ export class ExperimentResource {
   // Return raw data if needed
   toJSON() {
     return this.data;
+  }
+
+  /**
+   * Reads and returns the problem content from the problem ID.
+   */
+  async getProblemContent(): Promise<Result<string>> {
+    return readProblemContent(this.data.problem);
+  }
+
+  /**
+   * Returns the path to the problem's data/ directory, or null if none exists.
+   */
+  getProblemDataPath(): string | null {
+    return getProblemDataPath(this.data.problem);
   }
 }

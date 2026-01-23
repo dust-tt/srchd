@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { readFileContent } from "./lib/fs";
+import { resolveProblemId } from "./lib/problem";
 import { Err, err, ok, Result, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
 import { Runner } from "./runner";
-import { isArrayOf, isString, newID4, removeNulls } from "./lib/utils";
+import { newID4, removeNulls } from "./lib/utils";
 import { isThinkingConfig } from "./models";
 import { isAnthropicModel } from "./models/anthropic";
 import { isOpenAIModel } from "./models/openai";
@@ -177,27 +177,24 @@ experimentCmd
   .command("create <name>")
   .description("Create a new experiment")
   .requiredOption(
-    "-p, --problem <problem_file>",
-    "Problem description file path",
+    "-p, --problem <problem>",
+    "Problem ID, relative path, or absolute path",
   )
   .action(async (name, options) => {
     console.log(`Creating experiment: ${name}`);
 
-    // Read problem from file
-    const problem = await readFileContent(options.problem);
-    if (problem.isErr()) {
-      return exitWithError(problem);
+    // Resolve problem input to a normalized problem ID
+    const problemId = resolveProblemId(options.problem);
+    if (problemId.isErr()) {
+      return exitWithError(problemId);
     }
 
     const experiment = await ExperimentResource.create({
       name,
-      problem: problem.value,
+      problem: problemId.value,
     });
 
-    const e = experiment.toJSON();
-    e.problem =
-      e.problem.substring(0, 32) + (e.problem.length > 32 ? "..." : "");
-    console.table([e]);
+    console.table([experiment.toJSON()]);
   });
 
 experimentCmd
@@ -210,14 +207,7 @@ experimentCmd
       return exitWithError(err("not_found_error", "No experiments found."));
     }
 
-    console.table(
-      experiments.map((exp) => {
-        const e = exp.toJSON();
-        e.problem =
-          e.problem.substring(0, 32) + (e.problem.length > 32 ? "..." : "");
-        return e;
-      }),
-    );
+    console.table(experiments.map((exp) => exp.toJSON()));
   });
 
 // Agent commands
@@ -427,7 +417,6 @@ agentCmd
     "Number of required reviewers for each publication",
     DEFAULT_REVIEWERS_COUNT.toString(),
   )
-  .option("-p, --path <path...>", "Add a file or directory to the computer")
   .option("-t, --tick", "Run one tick only")
   .option("--max-tokens <tokens>", "Max tokens (in millions) before stopping run")
   .option("--max-cost <cost>", "Max cost (in dollars) before stopping run")
@@ -455,23 +444,21 @@ agentCmd
       }
     }
 
-    if (options.path && isArrayOf(options.path, isString)) {
-      // Copy paths to all agents with computers
+    // Inject problem data/ directory contents if present
+    const problemDataPath = experiment.getProblemDataPath();
+    if (problemDataPath) {
       for (const agent of agents.filter((a) =>
         a.toJSON().profile.tools.includes("computer"),
       )) {
-        // Ensure computer exists before copying files
         const cid = computerId(experiment, agent);
         const computerRes = await Computer.ensure(cid, undefined, agent.toJSON().profile);
         if (computerRes.isErr()) {
           return exitWithError(computerRes);
         }
 
-        for (const path of options.path) {
-          const res = await copyToComputer(cid, path);
-          if (res.isErr()) {
-            return exitWithError(res);
-          }
+        const res = await copyToComputer(cid, problemDataPath, undefined, "data");
+        if (res.isErr()) {
+          return exitWithError(res);
         }
       }
     }

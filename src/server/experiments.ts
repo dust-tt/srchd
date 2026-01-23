@@ -85,6 +85,12 @@ export const experimentOverview = async (c: Input) => {
   const publicationMetrics = await publicationMetricsByExperiment(experiment);
   const runtimeMetrics = await runtimeMetricsByExperiment(experiment);
 
+  // Fetch problem content
+  const problemContentRes = await experiment.getProblemContent();
+  const problemContent = problemContentRes.isOk()
+    ? problemContentRes.value
+    : `Error loading problem: ${problemContentRes.error.message}`;
+
   // Calculate cost
   const cost = await TokenUsageResource.experimentCost(experiment);
   const formattedCost = cost < 0.01
@@ -100,6 +106,7 @@ export const experimentOverview = async (c: Input) => {
       <div class="meta">
         Created: ${sanitizeText(expData.created.toLocaleString())} |
         Updated: ${sanitizeText(expData.updated.toLocaleString())} |
+        Problem: ${sanitizeText(expData.problem)} |
         Agents: ${experimentAgents.length} |
         Publications: ${experimentPublications.length} |
         Solutions: ${experimentSolutions.length} |
@@ -107,7 +114,7 @@ export const experimentOverview = async (c: Input) => {
       </div>
     </div>
     <div class="card">
-      <div class="markdown-content">${sanitizeMarkdown(expData.problem)}</div>
+      <div class="markdown-content">${sanitizeMarkdown(problemContent)}</div>
     </div>
     ${renderRuntimeMetrics(runtimeMetrics)}
     ${renderMessageMetrics(messageMetrics)}
