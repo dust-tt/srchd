@@ -456,7 +456,7 @@ agentCmd
           return exitWithError(computerRes);
         }
 
-        const res = await copyToComputer(cid, problemDataPath, undefined, "data");
+        const res = await copyToComputer(cid, problemDataPath);
         if (res.isErr()) {
           return exitWithError(res);
         }
