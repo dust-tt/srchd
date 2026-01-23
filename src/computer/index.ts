@@ -13,8 +13,7 @@ import { AgentProfile,
 import { spawn as k8sSpawn, ensureComputerPod, execute as k8sExecute, deleteComputerVolume } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 import { newProcess,
-  Process,
-  ProcessStatus } from "./process";
+  Process } from "./process";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -187,13 +186,8 @@ export class Computer {
       tty?: boolean;
     },
   ): Promise<
-    Result<{
-      exitCode?: number;
-      stdout: string;
-      stderr: string;
+    Result<Process & {
       durationMs: number;
-      status: ProcessStatus;
-      pid: number;
     }>
   > {
     const startTs = Date.now();
@@ -255,9 +249,10 @@ export class Computer {
       });
     } else {
       return ok({
-        ...value,
+        ...process,
+        exitCode: value.exitCode,
+        status: value.status,
         durationMs: Date.now() - startTs,
-        pid: process.pid,
       });
     }
   }

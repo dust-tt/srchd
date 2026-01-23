@@ -6,7 +6,7 @@ Start (using python) a small webserver and ping it.
 
 Put the outputs of the ping in a ping.txt file.
 
-Edit file.txt using VIM. Add the following line:
+Edit file.txt using VIM. (INTERACTIVELY) Add the following line:
 
 ```
 Hello from VIM!
