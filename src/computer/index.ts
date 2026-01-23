@@ -13,8 +13,7 @@ import { AgentProfile,
 import { spawn as k8sSpawn, ensureComputerPod, execute as k8sExecute, deleteComputerVolume } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 import { newProcess,
-  Process,
-  ProcessStatus } from "./process";
+  Process } from "./process";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -187,13 +186,8 @@ export class Computer {
       tty?: boolean;
     },
   ): Promise<
-    Result<{
-      exitCode?: number;
-      stdout: string;
-      stderr: string;
+    Result<Process & {
       durationMs: number;
-      status: ProcessStatus;
-      pid: number;
     }>
   > {
     const startTs = Date.now();
@@ -202,7 +196,8 @@ export class Computer {
     const process = newProcess(cmd, cwd, env, options?.tty);
 
     // Build the command with environment variables and working directory
-    // We wrap the command to capture the PID and output it to stderr with a marker
+    // We wrap the command to capture the PID and run it in the foreground
+    // This keeps the K8s exec connection alive for the duration of the command
     let fullCmd = "";
     if (options?.env) {
       const envVars = Object.entries(env)
@@ -211,10 +206,15 @@ export class Computer {
       fullCmd += envVars + "; ";
     }
 
-    // Wrap in a subshell that runs the command in background, captures its PID, then waits
+    // Run the command in foreground to keep the K8s exec connection alive.
+    // We use a wrapper script that:
+    // 1. Changes to the specified directory
+    // 2. Prints the PID to stderr for tracking
+    // 3. Runs the command directly (not in background)
+    // This ensures stdin/stdout/stderr remain connected for the duration of the process.
     const escapedCmd = cmd.replace(/'/g, "'\\''");
     const escapedCwd = cwd.replace(/'/g, "'\\''");
-    fullCmd += `bash -c 'cd '\''${escapedCwd}'\'' && ${escapedCmd} & PID=$!; echo "SRCHD_PID:$PID" >&2; wait $PID'`;
+    fullCmd += `cd '\''${escapedCwd}'\'' && echo "SRCHD_PID:$$" >&2 && ${escapedCmd}`;
 
     const res = await k8sSpawn(
       ["/bin/bash", "-lc", fullCmd],
@@ -224,20 +224,12 @@ export class Computer {
       options?.tty ? undefined : options?.timeoutMs,
     );
 
-    // Extract PID from stderr
-    if (options?.tty) {
-      // In tty stderr is redirected to stdout
-      const stdoutContent = process.stdoutStream.read().toString();
-      const pidMatch = stdoutContent.match(/SRCHD_PID:(\d+)/);
-      if (pidMatch && pidMatch[1]) {
-        process.pid = parseInt(pidMatch[1], 10);
-      }
-    } else {
-      const stderrContent = process.stderrStream.read().toString();
-      const pidMatch = stderrContent.match(/SRCHD_PID:(\d+)/);
-      if (pidMatch && pidMatch[1]) {
-        process.pid = parseInt(pidMatch[1], 10);
-      }
+    // Extract PID from captured output
+    // The PID marker is written to stderr (or stdout in TTY mode)
+    const outputToSearch = options?.tty ? process.stdout : process.stderr;
+    const pidMatch = outputToSearch.match(/SRCHD_PID:(\d+)/);
+    if (pidMatch && pidMatch[1]) {
+      process.pid = parseInt(pidMatch[1], 10);
     }
 
     this.processes.set(process.pid, process);
@@ -255,9 +247,10 @@ export class Computer {
       });
     } else {
       return ok({
-        ...value,
+        ...process,
+        exitCode: value.exitCode,
+        status: value.status,
         durationMs: Date.now() - startTs,
-        pid: process.pid,
       });
     }
   }
@@ -275,17 +268,15 @@ export class Computer {
   }
 
   stdin(pid: number, data: string): Result<Process> {
+    const parsedData = parseEscapeSequences(data);
     const process = this.processes.get(pid);
     if (!process) {
       return err("not_found_error", `Process ${pid} not found`);
     }
-    if (process.stdinStream.isPaused()) {
-      process.stdinStream.resume();
-      process.stdinStream.write(data);
-      process.stdinStream.pause();
-    } else if (process.stdinStream.closed) {
+    if (process.stdinStream.closed) {
       return err("computer_run_error", "Stdin stream is closed");
     }
+    process.stdinStream.write(parsedData);
     return ok(process);
   }
 
@@ -318,6 +309,24 @@ export class Computer {
 
     return ok(process);
   }
+}
+
+
+// Helper to parse escape sequences from JSON strings
+function parseEscapeSequences(input: string): string {
+  return input
+    // First parse \xHH hex byte sequences
+    .replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => {
+      return String.fromCharCode(parseInt(hex, 16));
+    })
+    // Then parse standard escape sequences
+    .replace(/\\n/g, '\n')   // newline
+    .replace(/\\r/g, '\r')   // carriage return
+    .replace(/\\t/g, '\t')   // tab
+    .replace(/\\b/g, '\b')   // backspace
+    .replace(/\\f/g, '\f')   // form feed
+    .replace(/\\v/g, '\v')   // vertical tab
+    .replace(/\\\\/g, '\\'); // backslash (must be last)
 }
 
 export const COMPUTER_REGISTRY: Record<string, Computer> = {};

@@ -38,10 +38,20 @@ export async function createProcessServer(
 - Start long-running processes (servers, builds) in background
 - Execute commands that need stdin interaction
 
+**TTY Mode:**
+Enable tty: true for interactive terminal applications (vim, htop, python REPL, etc.).
+- Required for control sequences sent via stdin (ESC, arrows, Ctrl-C, etc.) to work
+- Output is rendered cleanly without ANSI escape codes
+- MUST use with background: false if you need stdin interaction
+
+**IMPORTANT - Stdin Limitation:**
+The stdin tool only works for tty: true processes.
+If you send stdin to a background process that is not interactive, it will be closed automatically.
 **Returns:** Process status (running, terminated), exit code, stdout, stderr, and process ID
 
 **Examples:**
 - Quick command: spawn({ command: "ls -la" })
+- Interactive: spawn({ command: "python", tty: true, background: true })
 - Background server: spawn({ command: "python -m http.server 8000", background: true })
 - Long build: spawn({ command: "npm install", timeout: 60, background: true })`,
     {
@@ -102,8 +112,10 @@ export async function createProcessServer(
       const backgrounded = result.status === "running" || background;
 
       // Truncate output for display
-      const stdout =
-        result.stdout.slice(0, 8196) +
+      const stdout = tty && result.terminal
+        ? result.getTerminalBuffer().slice(0, 8196) +
+        (result.getTerminalBuffer().length > 8196 ? "\n...[truncated]" : "")
+        : result.stdout.slice(0, 8196) +
         (result.stdout.length > 8196 ? "\n...[truncated]" : "");
       const stderr =
         result.stderr.slice(0, 8196) +
@@ -112,11 +124,14 @@ export async function createProcessServer(
       let text = `id: ${result.pid}\n`;
       text += `status: ${result.status}\n`;
       text += `backgrounded: ${backgrounded}\n`;
+      text += `tty: ${tty}\n`;
       if (result.exitCode !== undefined) {
         text += `exit_code: ${result.exitCode}\n`;
       }
       text += `stdout:\n\`\`\`\n${stdout}\n\`\`\`\n`;
-      text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
+      if (!tty && stderr) {
+        text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
+      }
 
       return {
         isError: false,
@@ -188,21 +203,46 @@ export async function createProcessServer(
     },
   );
 
+
+
   // stdin - Send input to a process
   server.tool(
     "stdin",
     `Sends input to a running process's stdin stream, enabling interaction with interactive applications.
 
+**IMPORTANT - Stdin Availability:**
+- stdin only works for INTERACTIVE processes (tty: true)
+- Background processes will not parse stdin escape sequences correctly
+- If you need stdin interaction, set tty: true
+
+**Control Characters:**
+For TTY processes, you can send control characters using hex escape sequences:
+- \\x03 for Ctrl-C (interrupt)
+- \\x04 for Ctrl-D (EOF)
+- \\x1A for Ctrl-Z (suspend)
+- \\x1B for ESC key
+- \\x1B[A for Up arrow
+- \\x1B[B for Down arrow
+- \\x1B[C for Right arrow
+- \\x1B[D for Left arrow
+- \\x7F for Backspace
+- \\r for Enter/Return
+- \\n for newline
+
 **Use cases:**
 - Interact with prompts (e.g., python input(), confirmation dialogs)
 - Send commands to REPLs or shells
-- Provide input to interactive programs
+- Control interactive terminal applications (vim, nano, etc.)
+- Send control signals to processes
 
 **Returns:** Success status, last 100 lines of stdout after sending input, stderr, and exit code if available
 
-**Example:**
-stdin({ id: "123", input: "yes\\n" }) - Confirm a prompt
-stdin({ id: "124", input: "print('hello')\\n" }) - Send to Python REPL`,
+**Examples:**
+- stdin({ id: "123", input: "yes\\n" }) - Confirm a prompt
+- stdin({ id: "124", input: "\\x03" }) - Send Ctrl-C to interrupt
+- stdin({ id: "125", input: "print('hello')\\n" }) - Send to Python REPL
+- stdin({ id: "126", input: "\\x1B[A\\r" }) - Up arrow then enter
+- stdin({ id: "127", input: "iHello World!\\x1B:wq\\r" }) - VIM: insert text, escape, save and quit`,
     {
       id: z.string().describe("Process ID"),
       input: z.string().describe("Input to send to the process stdin"),
@@ -214,8 +254,7 @@ stdin({ id: "124", input: "print('hello')\\n" }) - Send to Python REPL`,
           err("computer_run_error", "Failed to access running computer"),
         );
       }
-
-      console.log(`\x1b[90m[stdin ${id}] ${input.replace(/\n/g, "\\n")}\x1b[0m`);
+      console.log(`\x1b[90m[stdin ${id}] ${input.replace(/\n/g, "\\n").replace(/\x1B/g, "\\x1B")}\x1b[0m`);
 
       const pid = parseInt(id, 10);
       if (isNaN(pid)) {
@@ -231,8 +270,11 @@ stdin({ id: "124", input: "print('hello')\\n" }) - Send to Python REPL`,
 
       const process = r.value;
 
-      // Get last 100 lines of stdout
-      const stdoutLines = process.stdout
+      // Get last 100 lines of stdout, using terminal buffer for TTY
+      const stdout = process.tty && process.terminal
+        ? process.getTerminalBuffer()
+        : process.stdout;
+      const stdoutLines = stdout
         .split("\n")
         .slice(-100)
         .join("\n");
@@ -240,11 +282,12 @@ stdin({ id: "124", input: "print('hello')\\n" }) - Send to Python REPL`,
 
       let text = `success: true\n`;
       text += `status: ${process.status}\n`;
+      text += `tty: ${process.tty}\n`;
       if (process.exitCode !== undefined) {
         text += `exit_code: ${process.exitCode}\n`;
       }
       text += `stdout (last 100 lines):\n\`\`\`\n${stdoutLines}\n\`\`\`\n`;
-      if (stderr) {
+      if (!process.tty && stderr) {
         text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
       }
 
@@ -302,21 +345,25 @@ stdout({ id: "123", lines: 50 }) - View last 50 lines of output`,
 
       const process = r.value;
 
-      // Get last N lines of stdout
-      const stdoutLines = process.stdout
+      // Get last N lines of stdout, using terminal buffer for TTY
+      const stdout = process.tty && process.terminal
+        ? process.getTerminalBuffer()
+        : process.stdout;
+      const stdoutLines = stdout
         .split("\n")
         .slice(-(lines ?? 100))
         .join("\n");
       const stderr = process.stderr;
 
-      let text = `id: ${process.pid}\n`;
+      let text = `id: ${id}\n`;
       text += `status: ${process.status}\n`;
+      text += `interactive: ${process.tty}\n`;
       text += `tty: ${process.tty}\n`;
       if (process.exitCode !== undefined) {
         text += `exit_code: ${process.exitCode}\n`;
       }
       text += `stdout (last ${lines ?? 100} lines):\n\`\`\`\n${stdoutLines}\n\`\`\`\n`;
-      if (stderr) {
+      if (!process.tty && stderr) {
         text += `stderr:\n\`\`\`\n${stderr}\n\`\`\``;
       }
 

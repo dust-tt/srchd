@@ -1,4 +1,5 @@
 import { PassThrough } from "stream";
+import { Terminal } from "@xterm/xterm";
 
 export type ProcessStatus =
   | 'running'
@@ -20,6 +21,8 @@ export type Process = {
   env: Record<string, string>;
   promise?: Promise<void>;
   tty: boolean;
+  terminal?: Terminal;
+  getTerminalBuffer(): string;
 }
 
 export function newProcess(
@@ -34,10 +37,29 @@ export function newProcess(
   // Since JS strings are passed by value, we need to use getters to capture the output
   const output = { stdout: "", stderr: "" };
 
+  // Create terminal instance for TTY mode
+  let terminal: Terminal | undefined;
+  if (tty) {
+    terminal = new Terminal({
+      cols: 120,
+      rows: 30,
+      convertEol: true,
+      cursorBlink: false,
+      disableStdin: true,
+      allowProposedApi: true,
+    });
+  }
+
   const originalStdoutWrite = stdoutStream.write.bind(stdoutStream);
   stdoutStream.write = (chunk: any, ...args: any[]) => {
     if (chunk && chunk !== null) {
-      output.stdout += chunk.toString();
+      const text = chunk.toString();
+      output.stdout += text;
+
+      // Write to terminal if in TTY mode
+      if (terminal) {
+        terminal.write(text);
+      }
     }
     return originalStdoutWrite(chunk, ...args);
   };
@@ -45,13 +67,18 @@ export function newProcess(
   const originalStderrWrite = stderrStream.write.bind(stderrStream);
   stderrStream.write = (chunk: any, ...args: any[]) => {
     if (chunk && chunk !== null) {
-      output.stderr += chunk.toString();
+      const text = chunk.toString();
+      output.stderr += text;
+
+      // In TTY mode, stderr also goes to terminal (like real TTY behavior)
+      if (terminal) {
+        terminal.write(text);
+      }
     }
     return originalStderrWrite(chunk, ...args);
   };
 
   const stdinStream = new PassThrough();
-  stdinStream.pause(); // Prevents sending EOF to the process
 
   return {
     pid: -1, // Nonexistent when starting process
@@ -62,10 +89,30 @@ export function newProcess(
     output,
     get stdout() { return output.stdout; },
     get stderr() { return output.stderr; },
+    exitCode: undefined,
     createdAt: new Date(),
     command,
     cwd,
     env,
     tty,
+    terminal,
+    getTerminalBuffer(): string {
+      if (!terminal) {
+        return output.stdout;
+      }
+
+      // Serialize the terminal buffer
+      const buffer = terminal.buffer.active;
+      const lines: string[] = [];
+
+      for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+          lines.push(line.translateToString(true));
+        }
+      }
+
+      return lines.join('\n');
+    },
   };
 }

@@ -130,8 +130,11 @@ function createExecPromise(
         stdinStream,
         tty,
         (status: k8s.V1Status) => {
-          stdoutStream?.end();
-          stderrStream?.end();
+          // NOTE: We intentionally do NOT close any streams here
+          // The K8s exec connection should remain open as long as the process is running
+          // and streams should close naturally when the connection ends.
+          // Closing streams prematurely will terminate the exec connection and kill
+          // the process, especially for interactive processes waiting on stdin.
 
           if (status.status === "Success") {
             exitCode = 0;
@@ -241,6 +244,11 @@ export async function spawn(
     process.status = 'terminated';
     process.exitCode = exec.failReason.get() === "commandRunFailed" ? exec.exitCode.get() : 1;
   });
+
+
+  if (!timeoutMs) {
+    console.log("no timeout");
+  }
 
 
   // With timeout - race between completion and timeout
