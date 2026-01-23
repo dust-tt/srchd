@@ -20,7 +20,6 @@ export const experiments = sqliteTable(
       .$defaultFn(() => new Date()),
 
     name: text("name").notNull(),
-    // Problem ID: relative path from problems/ directory (e.g., "security/rootme/cracking/24")
     problem: text("problem").notNull(),
   },
   (t) => [unique().on(t.name)],
