@@ -4,7 +4,7 @@ import { err, ok, Result } from "@app/lib/error";
 import { eq, InferSelectModel, InferInsertModel } from "drizzle-orm";
 import {
   readProblemContent,
-  getProblemDataPath,
+  problemDataPath,
 } from "@app/lib/problem";
 
 type Experiment = InferSelectModel<typeof experiments>;
@@ -85,7 +85,7 @@ export class ExperimentResource {
   /**
    * Returns the path to the problem's data/ directory, or null if none exists.
    */
-  getProblemDataPath(): string | null {
-    return getProblemDataPath(this.data.problem);
+  problemDataPath(): string | null {
+    return problemDataPath(this.data.problem);
   }
 }

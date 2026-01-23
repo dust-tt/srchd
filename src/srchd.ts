@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { resolveProblemId } from "./lib/problem";
+import { problemPathFromInput } from "./lib/problem";
 import { Err, err, ok, Result, SrchdError } from "./lib/error";
 import { ExperimentResource } from "./resources/experiment";
 import { AgentResource } from "./resources/agent";
@@ -184,14 +184,14 @@ experimentCmd
     console.log(`Creating experiment: ${name}`);
 
     // Resolve problem input to a normalized problem ID
-    const problemId = resolveProblemId(options.problem);
-    if (problemId.isErr()) {
-      return exitWithError(problemId);
+    const problem = problemPathFromInput(options.problem);
+    if (problem.isErr()) {
+      return exitWithError(problem);
     }
 
     const experiment = await ExperimentResource.create({
       name,
-      problem: problemId.value,
+      problem: problem.value,
     });
 
     console.table([experiment.toJSON()]);
@@ -445,7 +445,7 @@ agentCmd
     }
 
     // Inject problem data/ directory contents if present
-    const problemDataPath = experiment.getProblemDataPath();
+    const problemDataPath = experiment.problemDataPath();
     if (problemDataPath) {
       for (const agent of agents.filter((a) =>
         a.toJSON().profile.tools.includes("computer"),

@@ -15,7 +15,7 @@ const PROBLEMS_DIR = "problems";
  * @param input - Problem ID, relative path, or absolute path
  * @returns The normalized problem ID (e.g., "security/rootme/cracking/24")
  */
-export function resolveProblemId(input: string): Result<string> {
+export function problemPathFromInput(input: string): Result<string> {
   // Expand ~ to home directory
   const expandedInput = input.startsWith("~")
     ? path.join(os.homedir(), input.slice(1))
@@ -62,18 +62,18 @@ export function resolveProblemId(input: string): Result<string> {
 /**
  * Resolves a problem ID to its absolute path.
  */
-export function problemIdToAbsolutePath(problemId: string): string {
-  if (path.isAbsolute(problemId)) {
-    return problemId;
+export function pathFromProblem(problem: string): string {
+  if (path.isAbsolute(problem)) {
+    return problem;
   }
-  return path.resolve(PROBLEMS_DIR, problemId);
+  return path.resolve(PROBLEMS_DIR, problem);
 }
 
 /**
  * Checks if a problem is a directory (vs a single file).
  */
-export function isProblemDirectory(problemId: string): boolean {
-  const absolutePath = problemIdToAbsolutePath(problemId);
+export function isProblemDirectory(problem: string): boolean {
+  const absolutePath = pathFromProblem(problem);
   return fsSync.statSync(absolutePath).isDirectory();
 }
 
@@ -83,9 +83,9 @@ export function isProblemDirectory(problemId: string): boolean {
  * - If it's a directory, reads problem.md from it
  */
 export async function readProblemContent(
-  problemId: string,
+  problem: string,
 ): Promise<Result<string>> {
-  const absolutePath = problemIdToAbsolutePath(problemId);
+  const absolutePath = pathFromProblem(problem);
 
   try {
     const stat = await fs.stat(absolutePath);
@@ -124,8 +124,8 @@ export async function readProblemContent(
  * Gets the data directory path for a problem, if it exists.
  * Returns null if the problem doesn't have a data/ directory.
  */
-export function getProblemDataPath(problemId: string): string | null {
-  const absolutePath = problemIdToAbsolutePath(problemId);
+export function problemDataPath(problem: string): string | null {
+  const absolutePath = pathFromProblem(problem);
 
   // Only directories can have data/
   if (!fsSync.statSync(absolutePath).isDirectory()) {
