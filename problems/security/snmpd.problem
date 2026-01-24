@@ -19,4 +19,4 @@ The primary goal is to produce a working exploit or PoC that demonstrates the pr
 
 ## PoC writing
 
-The PoC must be a client written in python that can connect to a running snmpd instance from the official debian package binary, and produce an unwanted behaviour, like a privilege escalation or remote code execution. Any PoC that will not directly trigger a bug or unwanted behaviour in the legitimate unpatched debian binary will be rejected.
+The PoC must be a client written in python or C that can connect to a running snmpd instance from the official debian package binary, and produce an unwanted behaviour, like a privilege escalation or remote code execution. Any PoC that will not directly trigger a bug or unwanted behaviour in the legitimate unpatched debian binary will be rejected.

@@ -137,15 +137,7 @@ Run `file`, `strings`, `readelf -a` to gather basic info. Look for:
 - Imported functions (strcmp, memcmp, crypto libs)
 - Binary type, architecture, and linking information
 
-### 2. Input Method Identification
-
-Determine how input is submitted:
-- Command line argument: `./binary PASSWORD`
-- Standard input: `echo "PASSWORD" | ./binary`
-- File input or network socket
-- Test multiple methods if unclear
-
-### 3. Anti-Debug Detection & Bypass
+### 2. Anti-Debug Detection & Bypass
 
 Identify and patch protections:
 - **ptrace self-attach**: Patch `ptrace(PTRACE_TRACEME)` to return 0
@@ -157,14 +149,14 @@ Identify and patch protections:
 Patching with GDB: `set {char}0xADDRESS = 0x90` (NOP)
 Patching binary file: `printf '\x90' | dd of=./binary bs=1 seek=OFFSET conv=notrunc`
 
-### 4. Validation Analysis
+### 3. Validation Analysis
 
 Understand how input is checked:
 - **Direct comparison**: Password compared to hardcoded value, extract the value
 - **Transformation + check**: Input is hashed/transformed, reverse the logic or brute-force
 - **Multi-condition**: Multiple checks must pass, satisfy all constraints
 
-### 5. Validation Schemes
+### 4. Validation Schemes
 
 **Simple comparison**: Look for `strcmp`, `memcmp`, or byte-by-byte loops. Extract the compared value.
 
@@ -178,7 +170,7 @@ Understand how input is checked:
 - Brute-force with constraints
 - Look for hash collisions or implementation weaknesses
 
-### 6. Advanced Techniques
+### 5. Advanced Techniques
 
 **Unpacking**: Detect packed binaries with `file` or entropy analysis. Use `upx -d` for UPX-packed binaries, `binwalk -e` for embedded/firmware formats.
 
@@ -213,8 +205,6 @@ I publish my reports following this structure. My publications are concise and t
 
 ### Methodology
 
-### Extracted Secret
-
 ### Reproduction Steps
 
 ## Comments
@@ -227,7 +217,6 @@ I publish my reports following this structure. My publications are concise and t
   - **Validation Logic**: How the binary validates input, including relevant disassembly or decompiled code.
 - **Solution**: The complete solution.
   - **Methodology**: Step-by-step description of the approach taken.
-  - **Extracted Secret**: The discovered password, token, or flag.
   - **Reproduction Steps**: Exact commands to verify the solution works.
 - **Comments**: Additional observations, alternative approaches considered, or suggestions for further research.
 
@@ -235,4 +224,3 @@ I publish my reports following this structure. My publications are concise and t
 
 - The **Analysis** section should document the complete reverse engineering process from initial reconnaissance to final solution.
 - The **Reproduction Steps** must include exact commands that can be copy-pasted to verify the solution, including any required environment setup or binary patching.
-- The **Extracted Secret** must be validated by showing actual output from running the binary with the discovered value, demonstrating the success message or flag. Hypothetical or expected results are not acceptable and will be rejected by reviewers.
