@@ -1,0 +1,4 @@
+This is a legacy problem placeholder.
+
+The original problem content was stored directly in the database before the migration to problem IDs.
+Please update this experiment to use a valid problem ID.

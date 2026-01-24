@@ -24,7 +24,7 @@ import { createServer } from "@app/tools";
 import { DEFAULT_TOOLS } from "@app/tools/constants";
 import { RunConfig } from "./config";
 import { createLLM } from "@app/models/provider";
-import { Advisory } from "./advisory"
+import { Advisory } from "./advisory";
 
 export class Runner {
   private experiment: ExperimentResource;
@@ -278,13 +278,13 @@ This is an automated system message and there is no user available to respond. P
 
     let idx =
       this.contextPruning.lastAgentLoopInnerStartIdx >
-        this.contextPruning.lastAgentLoopStartIdx
+      this.contextPruning.lastAgentLoopStartIdx
         ? this.contextPruning.lastAgentLoopInnerStartIdx + 1
         : /* This avoids an unneeded iteration, without this, if they were equal, the result of the
            * iteration would have been: lastAgentLoopInnerStartIdx === lastAgentLoopStartIdx + 1.
            * Which results in no change to `messages` since:
            * forall idx, messages.slice(idx) === [messages[idx], ...messages.slice(idx+1)] */
-        this.contextPruning.lastAgentLoopInnerStartIdx + 2;
+          this.contextPruning.lastAgentLoopInnerStartIdx + 2;
     let foundNewAgenticLoop = false;
 
     for (; idx < this.messages.length; idx++) {
@@ -428,9 +428,10 @@ This is an automated system message and there is no user available to respond. P
         out += `\x1b[1m\x1b[34mToolResult:\x1b[0m `; // label: bold blue
         out +=
           `${c.toolUseName} ` +
-          `${c.isError
-            ? "\x1b[1m\x1b[31m[error]\x1b[0m"
-            : "\x1b[1m\x1b[32m[success]\x1b[0m"
+          `${
+            c.isError
+              ? "\x1b[1m\x1b[31m[error]\x1b[0m"
+              : "\x1b[1m\x1b[32m[success]\x1b[0m"
           }`;
         break;
       }
@@ -449,7 +450,6 @@ This is an automated system message and there is no user available to respond. P
       return tools;
     }
 
-
     if (this.isNewUserMessageNeeded()) {
       const newMessage = await this.newUserMessage();
       if (newMessage.isErr()) {
@@ -458,9 +458,14 @@ This is an automated system message and there is no user available to respond. P
       this.messages.push(newMessage.value);
     }
 
+    const problemMarkdown = await this.experiment.getProblemMarkdown();
+    if (problemMarkdown.isErr()) {
+      return problemMarkdown;
+    }
+
     const systemPrompt = `\
 <goal>
-${this.experiment.toJSON().problem}
+${problemMarkdown.value}
 </goal>
 
 ${this.agent.toJSON().system}`;
@@ -489,7 +494,8 @@ ${this.agent.toJSON().system}`;
 
     if (message.content.length === 0) {
       console.log(
-        `WARNING: Skipping empty agent response content for agent ${this.agent.toJSON().name
+        `WARNING: Skipping empty agent response content for agent ${
+          this.agent.toJSON().name
         }`,
       );
       return ok(undefined);
@@ -502,7 +508,6 @@ ${this.agent.toJSON().system}`;
       },
       { concurrency: 8 },
     );
-
 
     const last = this.messages[this.messages.length - 1];
 
@@ -535,7 +540,11 @@ ${this.agent.toJSON().system}`;
       const content: (TextContent | ToolResult)[] = toolResults;
       const advisoryMessages = Advisory.pop(this.agent.toJSON().name);
       if (advisoryMessages.length > 0) {
-        content.push({ type: "text", text: advisoryMessages.map((s) => Advisory.toString(s)).join("\n\n"), provider: null });
+        content.push({
+          type: "text",
+          text: advisoryMessages.map((s) => Advisory.toString(s)).join("\n\n"),
+          provider: null,
+        });
         // Log advisory messages
         advisoryMessages.forEach((msg) => {
           let out = `\x1b[1m\x1b[37m${this.agent.toJSON().name}\x1b[0m`; // name: bold white
@@ -555,7 +564,6 @@ ${this.agent.toJSON().system}`;
         last.position() + 2,
       );
       this.messages.push(toolResultsMessage);
-
 
       toolResults.forEach((tr) => {
         this.logContent(tr, toolResultsMessage.toJSON().id);
