@@ -66,6 +66,14 @@ export class ExperimentResource {
   }
 
   async delete(): Promise<void> {
+    // Delete all agents (which will cascade to their dependencies)
+    const { AgentResource } = await import("./agent");
+    const agents = await AgentResource.listByExperiment(this);
+    for (const agent of agents) {
+      await agent.delete();
+    }
+
+    // Delete the experiment itself
     await db.delete(experiments).where(eq(experiments.id, this.data.id));
   }
 

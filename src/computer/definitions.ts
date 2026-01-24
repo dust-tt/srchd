@@ -5,6 +5,7 @@ import { isString } from "@app/lib/utils";
 
 export const COMPUTER_IMAGE = "agent-computer:base";
 export const DEFAULT_WORKDIR = "/home/agent";
+const isLinux = process.platform === "linux";
 
 export function defineComputerLabels(namespace: string, computerId: string) {
   return {
@@ -17,7 +18,10 @@ export function defineComputerLabels(namespace: string, computerId: string) {
 }
 
 // Returns hostPath directory for agent work
-export function computerHostPath(namespace: string, computerId: string): string {
+export function computerHostPath(
+  namespace: string,
+  computerId: string,
+): string {
   // Use project-local volumes directory for single-node setups (minikube/docker desktop)
   return `${process.cwd()}/volumes/${namespace}/${computerId}`;
 }
@@ -34,14 +38,18 @@ export function defineComputerPod(
       labels: defineComputerLabels(namespace, computerId),
     },
     spec: {
-      securityContext: {
-        fsGroup: 1001,
-      },
       restartPolicy: "Never",
       initContainers: [
         {
           name: "init-home",
           image: imageName ?? COMPUTER_IMAGE,
+          ...(isLinux
+            ? {
+                securityContext: {
+                  runAsUser: 0,
+                },
+              }
+            : {}),
           command: ["/bin/bash", "-c"],
           args: [
             // Copy /home/agent skeleton to PVC on first mount

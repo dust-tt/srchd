@@ -1,5 +1,5 @@
 import { db } from "@app/db";
-import { citations, publications, reviews } from "@app/db/schema";
+import { citations, publications, reviews, solutions } from "@app/db/schema";
 import {
   eq,
   InferSelectModel,
@@ -505,6 +505,26 @@ export class PublicationResource {
     this.reviews[idx] = { ...updated, author: reviewer.toJSON() };
 
     return ok(this.reviews[idx]);
+  }
+
+  async delete(): Promise<void> {
+    const pubId = this.data.id;
+
+    // Delete citations where this publication is referenced (from or to)
+    await db.delete(citations).where(eq(citations.from, pubId));
+    await db.delete(citations).where(eq(citations.to, pubId));
+
+    // Delete reviews for this publication
+    await db.delete(reviews).where(eq(reviews.publication, pubId));
+
+    // Nullify solutions that reference this publication
+    await db
+      .update(solutions)
+      .set({ publication: null })
+      .where(eq(solutions.publication, pubId));
+
+    // Delete the publication itself
+    await db.delete(publications).where(eq(publications.id, pubId));
   }
 
   toJSON() {

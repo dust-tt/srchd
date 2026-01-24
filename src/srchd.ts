@@ -210,6 +210,49 @@ experimentCmd
     console.table(experiments.map((exp) => exp.toJSON()));
   });
 
+experimentCmd
+  .command("delete <name>")
+  .description("Delete an experiment and all related data (agents, messages, publications, etc.)")
+  .option("-y, --yes", "Skip confirmation prompt")
+  .action(async (name, options) => {
+    const experimentRes = await ExperimentResource.findByName(name);
+    if (experimentRes.isErr()) {
+      return exitWithError(experimentRes);
+    }
+    const experiment = experimentRes.value;
+
+    // Get agents to show what will be deleted
+    const agents = await AgentResource.listByExperiment(experiment);
+
+    console.log(`\nExperiment: ${name}`);
+    console.log(`  Agents: ${agents.length}`);
+    if (agents.length > 0) {
+      for (const agent of agents) {
+        console.log(`    - ${agent.toJSON().name}`);
+      }
+    }
+    console.log(`\nThis will delete the experiment and all related data:`);
+    console.log(`  - All agents and their evolutions`);
+    console.log(`  - All messages`);
+    console.log(`  - All publications, citations, and reviews`);
+    console.log(`  - All solutions`);
+    console.log(`  - All token usage records`);
+
+    // Ask for confirmation unless -y flag is provided
+    if (!options.yes) {
+      const confirmed = await confirmAction(
+        "\nAre you sure you want to delete this experiment?",
+      );
+      if (!confirmed) {
+        console.log("Deletion cancelled.");
+        return;
+      }
+    }
+
+    await experiment.delete();
+    console.log(`\nExperiment '${name}' deleted successfully.`);
+  });
+
 // Agent commands
 const agentCmd = program.command("agent").description("Manage agents");
 

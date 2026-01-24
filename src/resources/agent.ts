@@ -1,5 +1,13 @@
 import { db } from "@app/db";
-import { agents, evolutions } from "@app/db/schema";
+import {
+  agents,
+  evolutions,
+  messages,
+  token_usages,
+  solutions,
+  reviews,
+  publications,
+} from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Result, err, ok } from "@app/lib/error";
@@ -140,8 +148,32 @@ export class AgentResource {
   }
 
   async delete(): Promise<void> {
-    await db.delete(evolutions).where(eq(evolutions.agent, this.data.id));
-    await db.delete(agents).where(eq(agents.id, this.data.id));
+    const agentId = this.data.id;
+
+    // Delete token usages for this agent
+    await db.delete(token_usages).where(eq(token_usages.agent, agentId));
+
+    // Delete reviews authored by this agent
+    await db.delete(reviews).where(eq(reviews.author, agentId));
+
+    // Delete solutions for this agent
+    await db.delete(solutions).where(eq(solutions.agent, agentId));
+
+    // Delete messages for this agent
+    await db.delete(messages).where(eq(messages.agent, agentId));
+
+    // Delete evolutions for this agent
+    await db.delete(evolutions).where(eq(evolutions.agent, agentId));
+
+    // Get and delete all publications by this agent (this handles citations/reviews)
+    const { PublicationResource } = await import("./publication");
+    const pubs = await PublicationResource.listByAuthor(this.experiment, this);
+    for (const pub of pubs) {
+      await pub.delete();
+    }
+
+    // Delete the agent itself
+    await db.delete(agents).where(eq(agents.id, agentId));
   }
 
   async evolve(
