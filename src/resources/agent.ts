@@ -6,13 +6,16 @@ import {
   token_usages,
   solutions,
   reviews,
-  publications,
 } from "@app/db/schema";
 import { eq, InferSelectModel, InferInsertModel, and, desc } from "drizzle-orm";
 import { ExperimentResource } from "./experiment";
 import { Result, err, ok } from "@app/lib/error";
 import { concurrentExecutor } from "@app/lib/async";
-import { AgentProfile, getAgentProfile, PLACEHOLDER_AGENT_PROFILE } from "@app/agent_profile";
+import {
+  AgentProfile,
+  getAgentProfile,
+  PLACEHOLDER_AGENT_PROFILE,
+} from "@app/agent_profile";
 import assert from "assert";
 
 export type Agent = Omit<InferSelectModel<typeof agents>, "profile"> & {
@@ -26,7 +29,10 @@ export class AgentResource {
   private profile: AgentProfile;
   experiment: ExperimentResource;
 
-  private constructor(data: InferSelectModel<typeof agents>, experiment: ExperimentResource) {
+  private constructor(
+    data: InferSelectModel<typeof agents>,
+    experiment: ExperimentResource,
+  ) {
     this.data = data;
     this.evolutions = [];
     this.experiment = experiment;
