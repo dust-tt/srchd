@@ -82,7 +82,7 @@ export function isProblemDirectory(problem: string): boolean {
  * - If it's a file, reads the file content
  * - If it's a directory, reads problem.md from it
  */
-export async function readProblemContent(
+export async function readProblemMarkdown(
   problem: string,
 ): Promise<Result<string>> {
   const absolutePath = pathFromProblem(problem);

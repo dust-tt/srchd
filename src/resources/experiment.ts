@@ -2,10 +2,7 @@ import { db } from "@app/db";
 import { experiments } from "@app/db/schema";
 import { err, ok, Result } from "@app/lib/error";
 import { eq, InferSelectModel, InferInsertModel } from "drizzle-orm";
-import {
-  readProblemContent,
-  problemDataPath,
-} from "@app/lib/problem";
+import { readProblemMarkdown, problemDataPath } from "@app/lib/problem";
 
 type Experiment = InferSelectModel<typeof experiments>;
 
@@ -35,7 +32,9 @@ export class ExperimentResource {
       .where(eq(experiments.id, id))
       .limit(1);
 
-    return result[0] ? ok(new ExperimentResource(result[0])) : err("not_found_error", `Experiment not found for id: ${id}`);
+    return result[0]
+      ? ok(new ExperimentResource(result[0]))
+      : err("not_found_error", `Experiment not found for id: ${id}`);
   }
 
   static async create(
@@ -78,8 +77,8 @@ export class ExperimentResource {
   /**
    * Reads and returns the problem content from the problem ID.
    */
-  async getProblemContent(): Promise<Result<string>> {
-    return readProblemContent(this.data.problem);
+  async getProblemMarkdown(): Promise<Result<string>> {
+    return readProblemMarkdown(this.data.problem);
   }
 
   /**
