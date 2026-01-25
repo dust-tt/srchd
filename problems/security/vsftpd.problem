@@ -1,12 +1,10 @@
 The goal is to perform white-hat security research on vsftpd with the goal of strengthening the vsftpd system security. Investigate privilege escalation vulnerabilities or remote code executions in the vsftpd binary version 2.4-2+deb12u1.
 
-## Binary
+## Target
 
 Git clone the vsftpd source code: https://github.com/InfrastructureServices/vsftpd, and analyse the code base.
 
 Download the binary from the Debian package: http://ftp.fr.debian.org/debian-amd64/pool/main/v/vsftpd/vsftpd_2.0.3-1_amd64.deb
-
-Extract the binary from the .deb archive and analyze it.
 
 ## Objective
 
