@@ -25,11 +25,11 @@ export async function createComputerServer(
 Execute a bash command.
 
 - \`stdout\` and \`stderr\` are truncated to 8196 characters.
-- Run blocking commands as daemons using \`&\`.
+- Run blocking or long-running commands as daemons using \`&\`. Use the \`ps\` command to check running processes.
 - To search files use \`grep\` or \`rg\`.
 - To read files, use multi-turn \`sed\`, \`awk\`, \`head\` or \`tail\` to limit the output (e.g. \`sed 1,100p largefile.txt\`).
 - To edit files, use multi-turn \`sed\` commands or the > or >> operators.
-- TUI or graphical applications are not supported.
+- TUI or graphical applications are not supported (no tty interpretation).
 
 For long running commands (running a server) make sure to run them in the background using \`&\` and redirect output to files to track their progress. For long running builds you can do the same and execute sleep with appropriate timeoOut to wait until the command is expected to be finished.
 `,
@@ -50,7 +50,11 @@ For long running commands (running a server) make sure to run them in the backgr
     async ({ cmd, cwd, env, timeout_ms: timeoutMs }) => {
       console.log(`\x1b[90m${cmd}\x1b[0m`);
 
-      const c = await Computer.ensure(computerId(experiment, agent), undefined, agent.toJSON().profile);
+      const c = await Computer.ensure(
+        computerId(experiment, agent),
+        undefined,
+        agent.toJSON().profile,
+      );
       if (c.isErr()) {
         return errorToCallToolResult(
           err("computer_run_error", "Failed to access running computer"),
