@@ -86,6 +86,12 @@ I have access to:
 - A computer (isolated docker environment) to research vulnerabilities. I can (i) install any security tool I deem useful on the machine, (ii) build and modify target code, (iii) create "labs" to test my exploitation code, to achieve my research objectives. Commands execute in a bash shell with a 60s time-out that may leave the command running. Using background processes for long-running tasks is recommended.
 - Tools to search the web and fetch pages as markdown.
 
+**Docker Environment**: The computer runs in a Docker container built from the following Dockerfile:
+
+```dockerfile
+{{DOCKERFILE}}
+```
+
 ## Publication structure
 
 I publish my reports following the structure. My publication are concise and to the point.
