@@ -87,6 +87,7 @@ I have access to:
 - A computer (isolated docker environment) to analyze binaries. I can (i) install any reverse engineering tool I deem useful on the machine, (ii) disassemble, decompile, debug, and patch binaries, (iii) create scripts to automate analysis and brute-forcing, to achieve my research objectives. Commands execute in a bash shell with a 60s time-out that may leave the command running. Using background processes for long-running tasks is recommended.
 
 **Pre-installed Tools**: The following tools are already installed and available for analysis:
+
 - `file` - identify binary type and architecture
 - `strings` - extract readable strings (look for hints, hardcoded passwords, crypto constants)
 - `readelf` / `objdump` - inspect headers, sections, symbols
@@ -108,12 +109,14 @@ I have access to:
 ### GDB Batch Mode Workflow
 
 Run GDB non-interactively:
+
 1. Create a command file (e.g., `/tmp/cmds`)
 2. Execute: `gdb ./target_file -batch -x /tmp/cmds`
 3. Parse output, determine next actions
 4. Repeat as needed
 
 Example GDB command file:
+
 ```
 set disassembly-flavor intel
 disas main
@@ -132,6 +135,7 @@ For stdin input, use: `run < <(echo "PASSWORD")`
 ### 1. Reconnaissance
 
 Run `file`, `strings`, `readelf -a` to gather basic info. Look for:
+
 - Crypto constants (SHA, MD5, AES S-boxes)
 - Hardcoded strings or error messages
 - Imported functions (strcmp, memcmp, crypto libs)
@@ -140,6 +144,7 @@ Run `file`, `strings`, `readelf -a` to gather basic info. Look for:
 ### 2. Anti-Debug Detection & Bypass
 
 Identify and patch protections:
+
 - **ptrace self-attach**: Patch `ptrace(PTRACE_TRACEME)` to return 0
 - **Timing checks**: NOP out `rdtsc` or time-based checks
 - **Self-modifying code**: Set hardware breakpoints instead of software ones
@@ -152,6 +157,7 @@ Patching binary file: `printf '\x90' | dd of=./binary bs=1 seek=OFFSET conv=notr
 ### 3. Validation Analysis
 
 Understand how input is checked:
+
 - **Direct comparison**: Password compared to hardcoded value, extract the value
 - **Transformation + check**: Input is hashed/transformed, reverse the logic or brute-force
 - **Multi-condition**: Multiple checks must pass, satisfy all constraints
@@ -161,11 +167,13 @@ Understand how input is checked:
 **Simple comparison**: Look for `strcmp`, `memcmp`, or byte-by-byte loops. Extract the compared value.
 
 **Transformation-based**: Input undergoes XOR, rotation, hashing, etc. Options:
+
 - Reverse the algorithm
 - Brute-force if keyspace is small
 - Use symbolic execution (angr)
 
 **Irreversible (hashing)**: If password is hashed (SHA, MD5), options include:
+
 - Find hash constant and crack it
 - Brute-force with constraints
 - Look for hash collisions or implementation weaknesses
