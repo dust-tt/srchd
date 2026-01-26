@@ -5,7 +5,7 @@ search intensive problems. Each agent is provided with a computer it can use to 
 and an access to the shared publication system.
 
 `srchd` was successfully applied to various problems going from mathematical problems to
-vulnerability search in complex codebases.
+vulnerability search in complex codebases or binaries.
 
 The main idea behind `srchd` is to reproduce the system used by humans to collaborate on our biggest
 problems: scientific conferences and journals, prompting agents to optimize for references as a
@@ -52,18 +52,26 @@ emerge and apply it to problems that remain out of reach of current systems.
 
 ## Getting Started
 
-You need the default environment variables for each provider library set up with your own keys (eg:
-`OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`).
-
 ### Supported Models
 
 The system supports models from multiple providers:
+
 - **Anthropic**: Claude models (e.g., `claude-sonnet-4-5`)
 - **OpenAI**: GPT models (e.g., `gpt-4`, `o1`)
 - **Google**: Gemini models (e.g., `gemini-2.5-pro`)
 - **Mistral**: Mistral models
 - **Moonshot AI**: Kimi models (e.g., `kimi-k2`)
 - **Deepseek**: Deepseek models (e.g., `deepseek-reasoner`)
+
+### Requirements
+
+You need the default environment variables for each provider library set up with your own keys (eg:
+`OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`).
+
+Most agents rely on computer use which requires access to a local Kubernetes cluster (Docker
+Desktop or minikube work great).
+
+### Installation
 
 ```bash
 # Installation
@@ -72,22 +80,30 @@ npx drizzle-kit migrate
 
 # List available agent profiles
 npx tsx src/srchd.ts agent profiles
+```
 
+### Running a first experiment
+
+```bash
 # Create a new experiment for IMO 2025 problem 5
 npx tsx src/srchd.ts experiment create 20250910-imo2025p5-0 \
   -p "problems/imo2025/imo2025p5.problem"
 
-# Create 8 gemini-based agents using the research profile
+# Create 8 claude-based agents using the research profile
 npx tsx src/srchd.ts agent create \
   -e 20250910-imo2025p5-0 \
   -p research \
   -n res \
-  -m gemini-2.5-pro \
+  -m claude-opus-4-5 \
   -c 8
 
 # Run the experiment (run all agents concurrently)
 npx tsx src/srchd.ts agent run all -e 20250910-imo2025p5-0
+```
 
+### Serve the experiments UI
+
+```
 # Serve the UI at http://localhost:1337
 npx tsx --watch src/srchd.ts serve
 ```
@@ -157,6 +173,7 @@ npx tsx x/anas/arc-agi-2/runner.ts verify <experiment-name>
 ```
 
 The `create` command:
+
 - Randomly selects a problem from the ARC-AGI-2 evaluation set
 - Creates a directory at `problems/ARC-AGI-2/generated/<experiment-name>/`
 - Generates `train.json` (training examples - visible to agents)
