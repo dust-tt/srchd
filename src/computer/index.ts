@@ -8,12 +8,10 @@ import {
 import { ExperimentResource } from "@app/resources/experiment";
 import { AgentResource } from "@app/resources/agent";
 import { podName } from "@app/lib/k8s";
-import { computerExec, ensureComputerPod } from "./k8s";
-import { computerHostPath,
-  DEFAULT_WORKDIR } from "./definitions";
+import { computerExec, ensureComputerPod, deleteComputerVolume } from "./k8s";
+import { DEFAULT_WORKDIR } from "./definitions";
 import { AgentProfile,
   Env } from "@app/agent_profile";
-import { rm } from "fs/promises";
 
 export function computerId(
   experiment: ExperimentResource,
@@ -164,14 +162,12 @@ export class Computer {
     }
 
     if (deleteVolumes) {
-      const path = computerHostPath(this.namespace, this.computerId);
-      try {
-        console.log(`  Deleting volume: ${path}`);
-        await rm(path, { recursive: true, force: true });
-        console.log(`  Volume deleted successfully`);
-      } catch (e: any) {
-        return err("computer_run_error", "Failed to delete volume", e);
+      console.log(`  Deleting PVC for computer: ${this.computerId}`);
+      const deleteResult = await deleteComputerVolume(this.namespace, this.computerId);
+      if (deleteResult.isErr()) {
+        return deleteResult;
       }
+      console.log(`  PVC deleted successfully`);
     }
 
     return ok(true);
