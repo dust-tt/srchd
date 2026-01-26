@@ -147,15 +147,33 @@ MIT
 
 ## Vulnerability Search
 
-### Applying `srchd` to search vulnerabilities in your code
+`srchd` was successfully applied to find new vulnerabiliies or 1-day exploits through binary
+analysis. The problem used in link in each case. The final vulnerability submission involved a
+manual review and final rewrite requiring only minimal human intervention in all cases.
 
-- Run `srchd` yourself ($200 dollar per run with Sonnet 4.5 for 8 agents over ~1h, $50 for Kimi K2).
-- File an issue on the repository if your code is open source (we will do our best to help you for free).
-- Contact us at [srchd@dust.tt](mailto:srchd@dust.tt) to have us run it for you as a service.
+### Vulnerabilities found
 
-### Vulnerabilities found by `srchd`
+**tor** [problem](https://github.com/dust-tt/srchd/blob/main/problems/security/tor.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security)
 
-(list upcoming, vulnerabilities are under responsible disclosure)
+- TROVE-2025-014: Remote Denial of Service via Assertion Failure in Tor Exit Relays Conflux Sequence
+  Number Validation (report pending, bounty awarded: $1200).
+- TROVE-2025-015: Conflux: Sequence Number Manipulation Relay DoS via CONFLUX_SWITCH Command (report
+  pending, bounty awarded: $1000).
+
+**ksmbd** problem: [ksmbd](https://github.com/dust-tt/srchd/blob/main/problems/security/linux/ksmbd.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security)
+
+- [CVE-2025-71150](https://lore.kernel.org/linux-cve-announce/2026012328-CVE-2025-71150-1b7c@gregkh/T/#u): Fix refcount leak when
+  invalid session is found on session lookup.
+- [CVE-2025-68806](https://nvd.nist.gov/vuln/detail/CVE-2025-68806) fix buffer validation by
+  including null terminator size in EA length.
+
+### 1-day exploit creation
+
+**telnet** problem: [telnet-binary](https://github.com/dust-tt/srchd/blob/main/problems/security/telnet-binary.problem)
+agent: [security-revese](https://github.com/dust-tt/srchd/tree/main/agents/security-reverse)
+
+- The vulnerability disclosed by [https://nvd.nist.gov/vuln/detail/CVE-2026-24061] was re-discovered
+  without hint using binary analysis only (see [telnet-binary](https://github.com/dust-tt/srchd/blob/main/problems/security/telnet-binary.problem)).
 
 ## ARC-AGI Experiments
 
