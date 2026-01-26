@@ -4,9 +4,7 @@ import { Command } from 'commander';
 import { spawn, execSync } from 'child_process';
 import * as path from 'path';
 import * as readline from 'readline';
-import { db } from '@app/db/index';
-import { experiments, agents, solutions, publications, messages, evolutions, reviews, citations, token_usages } from '@app/db/schema';
-import { eq } from 'drizzle-orm';
+import { ExperimentResource } from '@app/resources/experiment';
 
 // Parse range expression like "1-5,8,22-25" into array of numbers
 function parseRangeExpression(expr: string): number[] {
@@ -391,104 +389,65 @@ async function main() {
         });
         console.log('');
 
-        // Step 1: Find all matching pods
-        console.log('📦 Finding Kubernetes pods...');
-
-        try {
-          const listResult = execSync('kubectl get pods -o name', {
-            encoding: 'utf-8',
-            cwd: path.join(__dirname, '../../..')
-          });
-
-          const allPods = listResult.split('\n').filter(line => line.trim());
-          const matchingPods: string[] = [];
-
-          for (const experimentName of experimentNames) {
-            const podPattern = `srchd-default-${experimentName}-`;
-            const matching = allPods.filter(pod => pod.includes(podPattern));
-            matchingPods.push(...matching);
-          }
-
-          if (matchingPods.length === 0) {
-            console.log('   No matching pods found\n');
-          } else {
-            console.log(`   Found ${matchingPods.length} pod(s) to delete:`);
-            matchingPods.forEach(pod => console.log(`   - ${pod}`));
-            console.log('');
-
-            const shouldDeletePods = await askConfirmation('Delete all these pods?');
-            if (shouldDeletePods) {
-              // Build grep pattern: pod1|pod2|pod3
-              const podNames = matchingPods.map(pod => pod.replace('pod/', ''));
-              const grepPattern = podNames.join('|');
-
-              console.log('   Deleting pods (async)...');
-
-              // Run deletion in background (detached)
-              spawn('sh', ['-c', `kubectl get pods -o name | grep -E '${grepPattern}' | xargs kubectl delete`], {
-                cwd: path.join(__dirname, '../../..'),
-                detached: true,
-                stdio: 'ignore'
-              }).unref();
-
-              console.log('   ✅ Pod deletion started in background\n');
-            } else {
-              console.log('   Skipped pod deletion\n');
-            }
-          }
-        } catch (error) {
-          console.error('   ⚠️  Failed to list/delete pods:', error instanceof Error ? error.message : String(error));
+        const shouldClean = await askConfirmation(`Clean ${experimentNames.length} experiment(s)? (pods${options.data ? ' and volumes' : ' only, keeping volumes'})`);
+        if (!shouldClean) {
+          console.log('Cleanup cancelled.\n');
+          return;
         }
 
-        // Step 2: Delete database data if requested
+        console.log('');
+
+        // Use srchd clean command for each experiment
+        for (let i = 0; i < experimentNames.length; i++) {
+          const experimentName = experimentNames[i];
+          const detail = experimentDetails[i];
+
+          console.log(`[${i + 1}/${experimentNames.length}] Cleaning: ${experimentName}`);
+
+          try {
+            const cleanArgs = ['npx', 'tsx', 'src/srchd.ts', 'clean', experimentName, '-a', 'all'];
+
+            if (!options.data) {
+              // Only delete pods, keep volumes
+              cleanArgs.push('--pods-only');
+            }
+
+            // Add -y flag to skip confirmation
+            cleanArgs.push('-y');
+
+            execSync(cleanArgs.join(' '), {
+              stdio: 'pipe',
+              cwd: path.join(__dirname, '../../..')
+            });
+
+            console.log(`   ✅ Cleaned successfully\n`);
+          } catch (error) {
+            console.error(`   ⚠️  Failed to clean: ${error instanceof Error ? error.message : String(error)}\n`);
+          }
+        }
+
+        // Delete database data if requested
         if (options.data) {
-          console.log('🗑️  Finding database data...');
+          console.log('🗑️  Deleting database data...');
 
-          const experimentsToDelete: Array<{ name: string; id: number }> = [];
-
+          let deletedCount = 0;
           for (const experimentName of experimentNames) {
-            const experiment = db
-              .select()
-              .from(experiments)
-              .where(eq(experiments.name, experimentName))
-              .get();
+            const experiment = await ExperimentResource.findByName(experimentName);
 
-            if (experiment) {
-              experimentsToDelete.push({ name: experimentName, id: experiment.id });
+            if (experiment.isOk()) {
+              try {
+                await experiment.value.delete();
+                deletedCount++;
+              } catch (error) {
+                console.error(`   ⚠️  Failed to delete ${experimentName}: ${error instanceof Error ? error.message : String(error)}`);
+              }
             }
           }
 
-          if (experimentsToDelete.length === 0) {
-            console.log('   No experiments found in database\n');
+          if (deletedCount > 0) {
+            console.log(`   ✅ Deleted ${deletedCount} experiment(s) from database\n`);
           } else {
-            console.log(`   Found ${experimentsToDelete.length} experiment(s) in database:`);
-            experimentsToDelete.forEach(exp => console.log(`   - ${exp.name} (id: ${exp.id})`));
-            console.log('');
-
-            const shouldDeleteData = await askConfirmation('Delete ALL database data for these experiments? This cannot be undone!');
-
-            if (shouldDeleteData) {
-              console.log('   Deleting database data...');
-
-              for (const exp of experimentsToDelete) {
-                const expId = exp.id;
-                console.log(`   - Cleaning experiment: ${exp.name}`);
-
-                db.delete(token_usages).where(eq(token_usages.experiment, expId)).run();
-                db.delete(messages).where(eq(messages.experiment, expId)).run();
-                db.delete(evolutions).where(eq(evolutions.experiment, expId)).run();
-                db.delete(reviews).where(eq(reviews.experiment, expId)).run();
-                db.delete(citations).where(eq(citations.experiment, expId)).run();
-                db.delete(solutions).where(eq(solutions.experiment, expId)).run();
-                db.delete(publications).where(eq(publications.experiment, expId)).run();
-                db.delete(agents).where(eq(agents.experiment, expId)).run();
-                db.delete(experiments).where(eq(experiments.id, expId)).run();
-              }
-
-              console.log('   ✅ Database data deleted\n');
-            } else {
-              console.log('   Skipped database deletion\n');
-            }
+            console.log('   No experiments found in database\n');
           }
         }
 
