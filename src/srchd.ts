@@ -706,7 +706,7 @@ program
     console.log("");
 
     await concurrentExecutor(agents, async (agent, _) => {
-      const computerRes = await Computer.create(K8S_NAMESPACE, computerId(experiment, agent), undefined, undefined, true);
+      const computerRes = await Computer.create(computerId(experiment, agent), K8S_NAMESPACE, undefined, [], true);
       // Object is sure to exist as we're not creating the pods
       assert(computerRes.isOk());
       const computer = computerRes.value;
