@@ -1,7 +1,7 @@
 import { K8S_NAMESPACE, kc, podName, timeout } from "@app/lib/k8s";
 import { ensure, k8sApi } from "@app/lib/k8s";
 import { err, Err, ok, Result } from "@app/lib/error";
-import { defineComputerPod } from "./definitions";
+import { defineComputerPod, defineComputerVolume, computerVolumeName } from "./definitions";
 import { Readable, Writable } from "stream";
 import * as k8s from "@kubernetes/client-node";
 import fs from "fs";
@@ -11,12 +11,61 @@ import { readFile } from "fs/promises";
 import { addDirectoryToTar } from "@app/lib/image";
 import { Env } from "@app/agent_profile";
 
+async function ensureComputerVolume(
+  namespace: string,
+  computerId: string,
+): Promise<Result<void>> {
+  const name = computerVolumeName(namespace, computerId);
+  return await ensure(
+    async () => {
+      await k8sApi.readNamespacedPersistentVolumeClaim({
+        name,
+        namespace,
+      });
+    },
+    async () => {
+      await k8sApi.createNamespacedPersistentVolumeClaim({
+        namespace,
+        body: defineComputerVolume(namespace, computerId),
+      });
+    },
+    "PVC",
+    name,
+  );
+}
+
+export async function deleteComputerVolume(
+  namespace: string,
+  computerId: string,
+): Promise<Result<void>> {
+  const name = computerVolumeName(namespace, computerId);
+  try {
+    await k8sApi.deleteNamespacedPersistentVolumeClaim({
+      name,
+      namespace,
+    });
+    return ok(undefined);
+  } catch (e: any) {
+    if (e.code === 404) {
+      // PVC already deleted
+      return ok(undefined);
+    }
+    return err("pvc_deletion_error", `Failed to delete PVC ${name}`, e);
+  }
+}
+
 export async function ensureComputerPod(
   namespace: string,
   computerId: string,
   imageName?: string,
   env: Env[] = [],
 ): Promise<Result<void>> {
+  // Ensure PVC exists first
+  const volumeResult = await ensureComputerVolume(namespace, computerId);
+  if (volumeResult.isErr()) {
+    return volumeResult;
+  }
+
   const name = podName(namespace, computerId);
   return await ensure(
     async () => {
