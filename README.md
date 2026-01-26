@@ -148,19 +148,19 @@ MIT
 ## Vulnerability Search
 
 `srchd` was successfully applied to find new vulnerabiliies or 1-day exploits through binary
-analysis. The problem used in link in each case. The final vulnerability submission involved a
+analysis. The problem and agent used is linked in each case. The final vulnerability submission involved a
 manual review and final rewrite requiring only minimal human intervention in all cases.
 
 ### Vulnerabilities found
 
-**tor** [problem](https://github.com/dust-tt/srchd/blob/main/problems/security/tor.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security)
+**tor** (problem: [tor](https://github.com/dust-tt/srchd/blob/main/problems/security/tor.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security))
 
 - TROVE-2025-014: Remote Denial of Service via Assertion Failure in Tor Exit Relays Conflux Sequence
   Number Validation (report pending, bounty awarded: $1200).
 - TROVE-2025-015: Conflux: Sequence Number Manipulation Relay DoS via CONFLUX_SWITCH Command (report
   pending, bounty awarded: $1000).
 
-**ksmbd** problem: [ksmbd](https://github.com/dust-tt/srchd/blob/main/problems/security/linux/ksmbd.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security)
+**ksmbd** (problem: [ksmbd](https://github.com/dust-tt/srchd/blob/main/problems/security/linux/ksmbd.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security))
 
 - [CVE-2025-71150](https://lore.kernel.org/linux-cve-announce/2026012328-CVE-2025-71150-1b7c@gregkh/T/#u): Fix refcount leak when
   invalid session is found on session lookup.
@@ -169,8 +169,7 @@ manual review and final rewrite requiring only minimal human intervention in all
 
 ### 1-day exploit creation
 
-**telnet** problem: [telnet-binary](https://github.com/dust-tt/srchd/blob/main/problems/security/telnet-binary.problem)
-agent: [security-revese](https://github.com/dust-tt/srchd/tree/main/agents/security-reverse)
+**telnet** (problem: [telnet-binary](https://github.com/dust-tt/srchd/blob/main/problems/security/telnet-binary.problem) agent: [security-revese](https://github.com/dust-tt/srchd/tree/main/agents/security-reverse))
 
 - The vulnerability disclosed by [https://nvd.nist.gov/vuln/detail/CVE-2026-24061] was re-discovered
   without hint using binary analysis only (see [telnet-binary](https://github.com/dust-tt/srchd/blob/main/problems/security/telnet-binary.problem)).
