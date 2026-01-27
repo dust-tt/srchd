@@ -18,9 +18,9 @@ import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type MoonshotAIModel = "kimi-k2-thinking";
+export type MoonshotAIModel = "kimi-k2-thinking" | "kimi-k2.5";
 export function isMoonshotAIModel(model: string): model is MoonshotAIModel {
-  return ["kimi-k2-thinking"].includes(model);
+  return ["kimi-k2-thinking", "kimi-k2.5"].includes(model);
 }
 
 type MoonshotAITokenPrices = {
@@ -44,6 +44,7 @@ function normalizeTokenPrices(
 // https://platform.moonshot.ai/docs/pricing/chat#product-pricing
 const TOKEN_PRICING: Record<MoonshotAIModel, MoonshotAITokenPrices> = {
   "kimi-k2-thinking": normalizeTokenPrices(0.6, 2.5, 0.15),
+  "kimi-k2.5": normalizeTokenPrices(0.6, 3.0, 0.1),
 };
 
 export class MoonshotAILLM extends LLM {
@@ -129,9 +130,7 @@ export class MoonshotAILLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }>
-  > {
+  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }>> {
     try {
       const input = this.messages(prompt, messages);
 
@@ -282,16 +281,13 @@ export class MoonshotAILLM extends LLM {
       const data = await response.json();
       return ok(data.data.total_tokens);
     } catch (error) {
-      return err(
-        "model_error",
-        "Failed to estimate token count",
-        error,
-      );
+      return err("model_error", "Failed to estimate token count", error);
     }
   }
 
   maxTokens(): number {
     switch (this.model) {
+      case "kimi-k2.5":
       case "kimi-k2-thinking":
         return 256000;
       default:
