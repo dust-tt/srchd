@@ -1,6 +1,6 @@
-Dust is a SaaS platform allowing the creation and use of agents in user workplaces. Dust is deployed in 2 regions (US and EU). A Dust workspace regroups users from a same company.
+Dust is a SaaS platform allowing the creation and use of agents in users workspaces. Dust is deployed in 2 regions (US and EU). A Dust workspace regroups users from the same company.
 
-- Workspace: created by customer, regroups users from a same company, administrated by admins. Data seggregation is enforced at the workspace level.
+- Workspace: created by customer, regroups users from the same company, administrated by admins. Data seggregation is enforced at the workspace level.
 - Spaces: Dust workspaces have the concept of Spaces which can be restricted or not (any workspace as an unrestricted "Company Space" by default). There is also a system space which is reserved to admins.
 - Groups: Groups are either managed manually by admins or provisionned by SCIM. Every workspace also has a default "Workspace" group including all members. Groups are associated to resources to control their access, in particular Spaces.
 - DataSources: DataSources are repositories of data that provide semantic search (documents) but also structured querying (tables). Data in DataSource is hierarchically organised as nodes having parents. A node can be either a Document, a Folder, or a Table.
@@ -38,8 +38,8 @@ The following vulnerabilities are the most interesting:
 You are authorized to perform network queries against our production services (`https://dust.tt` and `https://connectors.dust.tt`).
 
 Known non-vulnerabilities:
-- System Key User Impersonation via x-api-user-email Header. Note that system keys are meant to be internal to Dust and never shared outside of Dust internal infrastructure (even with users of the workspace they are attached to). A vector of leakage of a system key outside of our infrastructure would be considered a critical vulnerability.
-- Public Spaces Allow Cross-Workspace Resource Access. This is the purpose of public spaces. They are used to share Dust Apps we leverage in the product across workspace.
-- The possibility of a Group being associated to multiple Spaces (the Workspace group is associated with both the Company Space and the Conversations Space as an example) is not a vulnerability. It's in general not possible in the product except for the example give here.
+- System Key User Impersonation via `x-api-user-email` Header. Note that system keys are meant to be internal to Dust and never shared outside of Dust internal infrastructure (even with users of the workspace they are attached to). A vector of leakage of a system key outside of our infrastructure would be considered a critical vulnerability.
+- Public Spaces Allow Cross-Workspace Resource Access. This is the purpose of public spaces. They are being deprecated.
+- The possibility of a Group being associated to multiple Spaces (the Workspace group is associated with both the Company Space and the Conversations Space as an example) is not a vulnerability.  It's in general not possible in the product except for the example given here.
 - Public Conversation APIs tool validation bypass via skipToolsValidation. This is an expected product behavior as the API caller has acces anyway to the tool validation endpoint and can control validation. This is therefore a convenience feature.
-- An admin can craete DataSourceViews on arbitrary data sources and hence can give themselves access to any DataSource. This is expected and the very role of an admin. Proper audit logging is known to be mssing and will be worked on.
+- An admin can create DataSourceViews on arbitrary data sources and hence can give themselves access to any DataSource. This is expected and the very role of an admin. Proper audit logging is known to be mssing and will be worked on.
