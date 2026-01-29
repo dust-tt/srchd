@@ -61,7 +61,9 @@ For long running commands (running a server) make sure to run them in the backgr
         );
       }
 
-      const r = await c.value.execute(cmd, {
+      console.log(`\x1b[90m${cmd}\x1b[0m`);
+
+      const r = await c.value.spawn(cmd, {
         cwd,
         env,
         timeoutMs: timeoutMs ?? 60000,
