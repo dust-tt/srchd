@@ -124,9 +124,9 @@ export async function verifyExperiment(
   }
 
   // Extract task ID from problem name
-  // Expected format: "cybergym-arvo-{taskId}" or similar
+  // Expected format: "cybergym/arvos/12345" or "arvo:12345" or "arvo-12345"
   const problemName = experiment.problem;
-  const taskMatch = problemName.match(/arvo[:\-]?(\d+)/i);
+  const taskMatch = problemName.match(/arvos?[:\-\/](\d+)/i);
   if (!taskMatch) {
     return {
       success: false,
