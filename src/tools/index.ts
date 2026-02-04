@@ -1,4 +1,5 @@
-import { createProcessServer } from "./process";
+import { createComputerServer } from "./computer";
+import { createComputerProcessServer } from "./computer_process";
 import { createGoalSolutionServer } from "./goal_solution";
 import { createPublicationsServer } from "./publications";
 import { createSystemPromptSelfEditServer } from "./system_prompt_self_edit";
@@ -23,7 +24,9 @@ export async function createServer(
 ): Promise<McpServer> {
   switch (tool) {
     case "computer":
-      return createProcessServer(agent);
+      return createComputerServer(experiment, agent);
+    case "computer-process":
+      return createComputerProcessServer(agent);
     case "goal_solution":
       return createGoalSolutionServer(experiment, agent);
     case "publications":

@@ -9,6 +9,10 @@ import { err } from "@app/lib/error";
 
 const SERVER_VERSION = "0.1.0";
 
+/**
+ * Creates the legacy computer server with execute command.
+ * @deprecated Use createComputerProcessServer (computer-process) instead for better process management.
+ */
 export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
@@ -61,9 +65,7 @@ For long running commands (running a server) make sure to run them in the backgr
         );
       }
 
-      console.log(`\x1b[90m${cmd}\x1b[0m`);
-
-      const r = await c.value.spawn(cmd, {
+      const r = await c.value.execute(cmd, {
         cwd,
         env,
         timeoutMs: timeoutMs ?? 60000,
