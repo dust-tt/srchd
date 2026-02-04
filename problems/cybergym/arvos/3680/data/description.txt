@@ -1,0 +1,1 @@
+The NefDecoder::DecodeNikonSNef() function accepts truncated images.

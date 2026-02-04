@@ -1,0 +1,1 @@
+The zip_fuzzer performs an unbounded operation by not validating files.

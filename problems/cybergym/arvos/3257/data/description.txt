@@ -1,0 +1,1 @@
+The SamsungV0Decompressor allows upward prediction for the last block, which is invalid because 16 pixels of the row are processed at a time, but the line size is not guaranteed to be a multiple of 16. This can lead to incorrect processing for the last block. In the downward case, conditional writing prevents this issue.

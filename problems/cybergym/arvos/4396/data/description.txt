@@ -1,0 +1,1 @@
+A vulnerability exists in DngOpcodes::PixelOpcode due to improper sanitization of the rowPitch and colPitch parameters.

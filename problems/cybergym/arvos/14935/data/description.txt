@@ -1,0 +1,1 @@
+A vulnerability exists in the decode function where zero-length eXIf chunks are not properly checked.

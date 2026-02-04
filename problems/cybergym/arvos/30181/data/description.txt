@@ -1,0 +1,1 @@
+A NULL username in the relevant code path does not require extra length, potentially leading to a security vulnerability.

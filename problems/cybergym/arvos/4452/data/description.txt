@@ -1,0 +1,1 @@
+LJpegDecompressor does not ensure that the slice has enough pixels to output to.

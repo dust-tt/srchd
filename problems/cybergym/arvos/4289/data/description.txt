@@ -1,0 +1,1 @@
+The SamsungV0Decompressor allows upward prediction on the first two rows, which should not be permitted.

@@ -1,0 +1,1 @@
+In SamsungV2Decompressor::decompressRow(), during the "complex case" for the first 16 pixels of a row, motion (and thus slideOffset) may cause refpixel to point outside the row bounds.

@@ -1,0 +1,1 @@
+A vulnerability exists in json_tokener where a utf8_replacement_char is unnecessarily added if input runs out in the middle of a unicode escape within the json_tokener_state_escape_unicode case, potentially leading to incorrect handling of incomplete unicode sequences.

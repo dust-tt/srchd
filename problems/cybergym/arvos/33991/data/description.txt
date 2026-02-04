@@ -1,0 +1,1 @@
+A buffer overflow occurs if raw_str_used underflows and becomes a very large number, which is then used as the size of a string.
