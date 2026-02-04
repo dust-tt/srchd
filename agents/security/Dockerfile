@@ -38,15 +38,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xxd \
     # RE tools - fuzzing
     afl++ \
-    # Multi-architecture support
-    gcc-multilib g++-multilib \
-    libc6-dev-i386 \
     # Qemu for emulation
     qemu-system qemu-user qemu-user-static \
     # Java runtime for Ghidra
     openjdk-21-jdk-headless \
     # Additional dependencies for RE tools
-    libcapstone-dev
+    libcapstone-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install x86 multilib packages (only available on amd64)
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends \
+        gcc-multilib g++-multilib libc6-dev-i386 \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # Install radare2 from source (latest version)
 # Note: sys/install.sh creates symlinks to the source directory, so we keep it
