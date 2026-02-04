@@ -1,0 +1,1 @@
+NikonDecompressor does not enforce that width is a multiple of 2.

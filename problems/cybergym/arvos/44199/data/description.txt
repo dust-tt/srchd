@@ -1,0 +1,1 @@
+An out-of-bounds read occurs in jplist when the JSMN token index is not properly validated to ensure it is within the valid range.

@@ -1,0 +1,1 @@
+A vulnerability exists in Cr2Decompressor::decodeN_X_Y() where slice widths are not properly checked using c-p-p, potentially allowing incorrect processing of image data.
