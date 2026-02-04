@@ -6,7 +6,7 @@ Download https://telegram.org/dl/android/apk
 
 ## Objective
 
-Analyze the telnetd binary to:
+Analyze the telegram APK to:
 1. Identify vulnerabilities (all types including remote exploitation)
 2. Understand how they can be exploited to gain privileges or access secrets
 3. Produce a proof of concept that demonstrates the vulnerability

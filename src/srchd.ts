@@ -374,6 +374,8 @@ agentCmd
           a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
         // @ts-expect-error: clean-up hack
         delete a.evolutions;
+        // @ts-expect-error: replace experiment id with name for display
+        a.experiment = agent.experiment.toJSON().name;
         return a;
       }),
     );
@@ -405,6 +407,8 @@ agentCmd
           a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
         // @ts-expect-error: clean-up hack
         delete a.evolutions;
+        // @ts-expect-error: replace experiment id with name for display
+        a.experiment = agent.experiment.toJSON().name;
         return a;
       }),
     );
@@ -429,6 +433,8 @@ agentCmd
     a.system = a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
     // @ts-expect-error: clean-up hack
     delete a.evolutions;
+    // @ts-expect-error: replace experiment id with name for display
+    a.experiment = agent.experiment.toJSON().name;
     console.table([a]);
   });
 
