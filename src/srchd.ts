@@ -357,7 +357,7 @@ agentCmd
       );
       agents.push(agent);
 
-      if (tools.includes("computer")) {
+      if (tools.includes("computer") || tools.includes("computer-process")) {
         await Computer.create(
           computerId(experiment, agent),
           undefined,
@@ -488,7 +488,7 @@ agentCmd
     }
 
     for (const agent of agents.filter((a) =>
-      a.toJSON().profile.tools.includes("computer"),
+      a.toJSON().profile.tools.includes("computer") || a.toJSON().profile.tools.includes("computer-process"),
     )) {
       const cid = computerId(experiment, agent);
       const computerRes = await Computer.ensure(cid, undefined, agent.toJSON().profile);

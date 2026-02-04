@@ -89,6 +89,144 @@ export async function ensureComputerPod(
   );
 }
 
+const MAX_OUTPUT_SIZE = 32 * 1024; // 32KB max output buffer (tool truncates to 8KB anyway)
+
+/**
+ * Execute a command and wait for completion with timeout. Non-TTY.
+ * Used by the old computer tool's execute command.
+ * Returns stdout, stderr, and exit code.
+ *
+ * @deprecated Use the computer-process server with spawn/ps/stdin/stdout/kill tools instead.
+ */
+export async function computerExec(
+  cmd: string[],
+  namespace: string,
+  computerId: string,
+  timeoutMs?: number,
+  stdinStream?: Readable,
+  stdoutStream?: Writable,
+): Promise<Result<{ stdout: string; stderr: string; exitCode: number }>> {
+  const k8sExec = new k8s.Exec(kc);
+  let stdout = "";
+  let stderr = "";
+  let stdoutTruncated = false;
+  let stderrTruncated = false;
+  let exitCode = 0;
+  let failReason: "commandRunFailed" | "executionFailed" | undefined;
+  const execPromise = new Promise<void>((resolve, reject) => {
+    stdoutStream = stdoutStream ?? new Writable({
+      write(chunk, _enc, callback) {
+        if (!stdoutTruncated) {
+          const str = chunk.toString();
+          if (stdout.length + str.length > MAX_OUTPUT_SIZE) {
+            stdout += str.slice(0, MAX_OUTPUT_SIZE - stdout.length);
+            stdout += "\n... [output truncated]";
+            stdoutTruncated = true;
+          } else {
+            stdout += str;
+          }
+        }
+        callback();
+      },
+    });
+
+    const stderrStream = new Writable({
+      write(chunk, _encoding, callback) {
+        if (!stderrTruncated) {
+          const str = chunk.toString();
+          if (stderr.length + str.length > MAX_OUTPUT_SIZE) {
+            stderr += str.slice(0, MAX_OUTPUT_SIZE - stderr.length);
+            stderr += "\n... [output truncated]";
+            stderrTruncated = true;
+          } else {
+            stderr += str;
+          }
+        }
+        callback();
+      },
+    });
+
+    k8sExec
+      .exec(
+        namespace,
+        podName(namespace, computerId),
+        computerId ? "computer" : "srchd",
+        cmd,
+        stdoutStream,
+        stderrStream,
+        stdinStream ?? null,
+        false,
+        (status: k8s.V1Status) => {
+          stdoutStream?.end();
+          stderrStream.end();
+
+          /* Error Status example:
+          {
+            "metadata": {},
+            "status": "Failure",
+            "message": "command terminated with non-zero exit code: command terminated with exit code 127",
+            "reason": "NonZeroExitCode",
+            "details": {
+              "causes": [
+                {
+                  "reason": "ExitCode",
+                  "message": "127"
+                }
+              ]
+            }
+          }
+          */
+
+          if (status.status === "Success") {
+            exitCode = 0;
+          } else {
+            reject(new Error(status.message));
+            const tryToNumber = Number(status.details?.causes?.[0]?.message);
+            exitCode = isNaN(tryToNumber) ? 1 : tryToNumber;
+            failReason = "commandRunFailed";
+          }
+          resolve();
+        },
+      )
+      .catch((e: any) => {
+        failReason = "executionFailed";
+        reject(e as Error);
+      });
+  });
+
+  try {
+    if (!timeoutMs) {
+      await execPromise;
+    } else {
+      await Promise.race([execPromise, timeout(timeoutMs)]);
+    }
+  } catch (e: any) {
+    if (failReason === "commandRunFailed") {
+      return ok({
+        exitCode,
+        stdout,
+        stderr,
+      });
+    }
+
+    if (e instanceof Err) {
+      return e;
+    }
+
+    return err(
+      "pod_run_error",
+      `Failed to execute ${cmd.join(" ")}`,
+      e,
+    );
+  }
+
+  return ok({
+    exitCode,
+    stdout,
+    stderr,
+  });
+}
+
 /**
  * Creates an exec promise that executes a command in a Kubernetes pod.
  * This is a low-level helper used by both execute() and spawn().

@@ -201,7 +201,8 @@ ${r.content}`;
     },
   );
 
-  const hasComputerTool = agent.toJSON().profile.tools.includes("computer");
+  const hasComputerTool = agent.toJSON().profile.tools.includes("computer")
+    || agent.toJSON().profile.tools.includes("computer-process");
 
   server.tool(
     "submit_publication",

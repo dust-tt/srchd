@@ -10,7 +10,7 @@ import { AgentResource } from "@app/resources/agent";
 import { podName } from "@app/lib/k8s";
 import { AgentProfile,
   Env } from "@app/agent_profile";
-import { spawn as k8sSpawn, ensureComputerPod, execute as k8sExecute, deleteComputerVolume } from "./k8s";
+import { spawn as k8sSpawn, ensureComputerPod, execute as k8sExecute, deleteComputerVolume, computerExec } from "./k8s";
 import { DEFAULT_WORKDIR } from "./definitions";
 import { newProcess,
   Process } from "./process";
@@ -190,6 +190,28 @@ export class Computer {
       durationMs: number;
     }>
   > {
+    const MAX_PROCESSES = 32;
+
+    // Check if we're at max capacity
+    const runningProcesses = Array.from(this.processes.values()).filter(p => p.status === "running");
+    if (runningProcesses.length >= MAX_PROCESSES) {
+      return err(
+        "computer_run_error",
+        `Maximum number of running processes (${MAX_PROCESSES}) reached. Please kill some processes before spawning new ones.`,
+      );
+    }
+
+    // If we're at total capacity, remove oldest terminated process
+    if (this.processes.size >= MAX_PROCESSES) {
+      const terminated = Array.from(this.processes.entries())
+        .filter(([_, p]) => p.status === "terminated")
+        .sort(([_, p1], [__, p2]) => p1.createdAt.getTime() - p2.createdAt.getTime()); // oldest first
+
+      if (terminated.length > 0) {
+        this.processes.delete(terminated[0][0]);
+      }
+    }
+
     const startTs = Date.now();
     const cwd = options?.cwd ?? DEFAULT_WORKDIR;
     const env = options?.env ?? {};
@@ -256,15 +278,57 @@ export class Computer {
   }
 
   ps(): Result<Process[]> {
-    if (Array.from(this.processes.values()).filter(p => p.status === "terminated").length > 5) {
-      Array.from(this.processes.entries())
-        .filter(([_, p]) => p.status === "terminated")
-        .sort(([_, p1], [__, p2]) => p2.createdAt.getTime() - p1.createdAt.getTime())
-        .map(([pid, _]) => pid).slice(0, 5).forEach((pid) => {
-          this.processes.delete(pid);
-        })
-    }
     return ok(Array.from(this.processes.values()));
+  }
+
+  /**
+   * Execute a command and wait for completion.
+   * @deprecated Use the computer-process server with spawn/ps/stdin/stdout/kill tools instead.
+   */
+  async execute(
+    cmd: string,
+    options?: {
+      cwd?: string;
+      env?: Record<string, string>;
+      timeoutMs?: number;
+    },
+  ): Promise<
+    Result<{
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+      durationMs: number;
+    }>
+  > {
+    const cwd = options?.cwd ?? DEFAULT_WORKDIR;
+
+    const startTs = Date.now();
+
+    // Build the command with environment variables and working directory
+    let fullCmd = "";
+    if (options?.env) {
+      const envVars = Object.entries(options.env)
+        .map(([k, v]) => `export ${k}="${v.replace(/"/g, '\\"')}"`)
+        .join("; ");
+      fullCmd += envVars + "; ";
+    }
+    fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
+
+    const execPromise = computerExec(
+      ["/bin/bash", "-lc", fullCmd],
+      this.namespace,
+      this.computerId,
+      options?.timeoutMs,
+    );
+    const res = await execPromise;
+    if (res.isErr()) {
+      return res;
+    } else {
+      return ok({
+        ...res.value,
+        durationMs: Date.now() - startTs,
+      });
+    }
   }
 
   stdin(pid: number, data: string): Result<Process> {
