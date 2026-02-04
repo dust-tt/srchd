@@ -1,0 +1,19 @@
+{
+  "experiments": [
+    {
+      "problemId": "3012",
+      "problemIndex": 1,
+      "numAgents": 2,
+      "budget": 1,
+      "model": "deepseek-reasoner",
+      "variant": null,
+      "experimentName": "cybergym-arvo-3012-2agents",
+      "status": "in_progress",
+      "retryCount": 0,
+      "lastError": null,
+      "createdAt": "2026-02-04T13:18:13.391Z",
+      "lastRun": "2026-02-04T13:18:13.392Z",
+      "completedAt": null
+    }
+  ]
+}
