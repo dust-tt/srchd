@@ -10,6 +10,10 @@ import p from "path";
 import { readFile } from "fs/promises";
 import { addDirectoryToTar } from "@app/lib/image";
 import { Env } from "@app/agent_profile";
+import { Process } from "./process";
+
+
+const MIN_TIMEOUT_MS = 1000;
 
 async function ensureComputerVolume(
   namespace: string,
@@ -87,6 +91,13 @@ export async function ensureComputerPod(
 
 const MAX_OUTPUT_SIZE = 32 * 1024; // 32KB max output buffer (tool truncates to 8KB anyway)
 
+/**
+ * Execute a command and wait for completion with timeout. Non-TTY.
+ * Used by the old computer tool's execute command.
+ * Returns stdout, stderr, and exit code.
+ *
+ * @deprecated Use the computer-process server with spawn/ps/stdin/stdout/kill tools instead.
+ */
 export async function computerExec(
   cmd: string[],
   namespace: string,
@@ -216,6 +227,207 @@ export async function computerExec(
   });
 }
 
+/**
+ * Creates an exec promise that executes a command in a Kubernetes pod.
+ * This is a low-level helper used by both execute() and spawn().
+ */
+function createExecPromise(
+  namespace: string,
+  computerId: string,
+  cmd: string[],
+  streams: {
+    stdoutStream?: Writable,
+    stderrStream?: Writable,
+    stdinStream?: Readable,
+  },
+  tty: boolean,
+): {
+  promise: Promise<{ exitCode: number }>;
+  exitCode: { get: () => number };
+  failReason: { get: () => "commandRunFailed" | "k8sExecutionFailed" | undefined };
+} {
+  const k8sExec = new k8s.Exec(kc);
+  let exitCode = 0;
+  let failReason: "commandRunFailed" | "k8sExecutionFailed" | undefined;
+
+  // Capture stdout/stderr from the stream writes
+
+  const stdoutStream = streams.stdoutStream ?? null;
+  const stderrStream = streams.stderrStream ?? null;
+  const stdinStream = streams.stdinStream ?? null;
+
+  const promise = new Promise<{ exitCode: number }>((resolve, reject) => {
+    k8sExec
+      .exec(
+        namespace,
+        podName(namespace, computerId),
+        "computer",
+        cmd,
+        stdoutStream,
+        stderrStream,
+        stdinStream,
+        tty,
+        (status: k8s.V1Status) => {
+          // NOTE: We intentionally do NOT close any streams here
+          // The K8s exec connection should remain open as long as the process is running
+          // and streams should close naturally when the connection ends.
+          // Closing streams prematurely will terminate the exec connection and kill
+          // the process, especially for interactive processes waiting on stdin.
+
+          if (status.status === "Success") {
+            exitCode = 0;
+          } else {
+            const tryToNumber = Number(status.details?.causes?.[0]?.message);
+            exitCode = isNaN(tryToNumber) ? 1 : tryToNumber;
+            failReason = "commandRunFailed";
+          }
+          resolve({ exitCode });
+        },
+      )
+      .catch((e: any) => {
+        failReason = "k8sExecutionFailed";
+        reject(e as Error);
+      });
+  });
+
+
+
+  return {
+    promise,
+    exitCode: { get: () => exitCode },
+    failReason: { get: () => failReason },
+  };
+}
+
+/**
+ * Execute a command and wait for completion. Non-TTY, no timeout.
+ * Used by copyTo and copyFrom functions.
+ */
+export async function execute(
+  cmd: string[],
+  namespace: string,
+  computerId: string,
+  streams?: {
+    stdinStream?: Readable,
+    stdoutStream?: Writable,
+  },
+): Promise<Result<{ exitCode: number; stderr?: string }>> {
+  let stderr = "";
+  const stderrStream = new Writable({
+    write(chunk: any, _enc: BufferEncoding, callback: (error?: Error | null) => void) {
+      stderr += chunk.toString();
+      callback();
+    },
+  });
+
+
+  const exec = createExecPromise(
+    namespace,
+    computerId,
+    cmd,
+    { ...streams, stderrStream },
+    false, // non-TTY
+  );
+
+  try {
+    const result = await exec.promise;
+    return ok(result);
+  } catch (e: any) {
+    if (exec.failReason.get() === "commandRunFailed") {
+      return ok({ exitCode: exec.exitCode.get(), stderr });
+    }
+
+    if (e instanceof Err) {
+      return e;
+    }
+
+    return err(
+      "pod_run_error",
+      `Failed to execute ${cmd.join(" ")}`,
+      e,
+    );
+  }
+}
+
+/**
+ * Spawn a command with optional timeout. Non-TTY.
+ * Returns different shapes based on whether the process completes before timeout.
+ */
+export async function spawn(
+  cmd: string[],
+  namespace: string,
+  computerId: string,
+  process: Process,
+  timeoutMs?: number,
+): Promise<Result<
+  | { status: "running"; process: Promise<void> }
+  | { status: "terminated"; exitCode: number; stdout: string; stderr: string }
+>> {
+
+  // makes sure there is a bit of time for process to start
+  timeoutMs = timeoutMs ?? MIN_TIMEOUT_MS;
+  const exec = createExecPromise(
+    namespace,
+    computerId,
+    cmd,
+    { ...process },
+    process.tty, // non-TTY
+  );
+
+  // Wrap exec promise to update process state on completion
+  const processPromise = exec.promise.then((result) => {
+    process.status = 'terminated';
+    process.exitCode = result.exitCode;
+  }).catch(() => {
+    process.status = 'terminated';
+    process.exitCode = exec.failReason.get() === "commandRunFailed" ? exec.exitCode.get() : 1;
+  });
+
+
+  if (!timeoutMs) {
+    console.log("no timeout");
+  }
+
+
+  // With timeout - race between completion and timeout
+  try {
+    const val = await Promise.race([exec.promise, timeout(timeoutMs)]);
+
+    if (typeof val === 'object' && 'exitCode' in val) {
+      // exec.promise resolved first - process completed
+      return ok({
+        ...process,
+        status: "terminated",
+        exitCode: val.exitCode,
+      });
+    } else {
+      // timeout resolved first - process still running
+      return ok({
+        status: "running",
+        process: processPromise,
+      });
+    }
+  } catch (e: any) {
+    if (exec.failReason.get() === "commandRunFailed") {
+      return ok({
+        ...process,
+        status: "terminated",
+        exitCode: exec.exitCode.get(),
+      });
+    }
+
+    if (e instanceof Err) {
+      return e;
+    }
+
+    return err(
+      "pod_run_error",
+      `Failed to execute ${cmd.join(" ")}`,
+      e,
+    );
+  }
+}
+
 export async function copyToComputer(
   computerId: string,
   path: string,
@@ -247,7 +459,7 @@ export async function copyToComputer(
     ? `/home/agent/${destinationDir}`
     : "/home/agent";
 
-  const createDestinationDirIfNotExistsRes = await computerExec(
+  const createDestinationDirIfNotExistsRes = await execute(
     ["mkdir", "-p", destinationPath],
     namespace,
     computerId,
@@ -257,23 +469,23 @@ export async function copyToComputer(
     return createDestinationDirIfNotExistsRes;
   }
 
+
   const copyCommand = ["tar", "xf", "-", "-C", destinationPath];
-  const res = await computerExec(
+  const res = await execute(
     copyCommand,
     namespace,
     computerId,
-    undefined,
-    pack,
+    { stdinStream: pack },
   );
 
   if (res.isErr()) {
     return res;
-  } else if (res.value.exitCode !== 0 || res.value.stderr.length > 0) {
+  } else if (res.value.exitCode !== 0) {
     return err(
       "copy_file_error",
       `Couldn't copy file to computer: ${podName(namespace, computerId)}:
       Got exit code: ${res.value.exitCode}
-      And error: ${res.value.stderr}`,
+      ${res.value.stderr ? `And error: ${res.value.stderr}` : ""}`,
     );
   }
 
@@ -302,25 +514,21 @@ export async function copyFromComputer(
     }
   });
 
-  const res = await computerExec(
+  const res = await execute(
     copyCommand,
     namespace,
     computerId,
-    undefined,
-    undefined,
-    extract,
+    { stdoutStream: extract },
   );
 
   if (res.isErr()) {
     return res;
-  }
-
-  if (res.value.exitCode !== 0) {
+  } else if (res.value.exitCode !== 0) {
     return err(
       "copy_file_error",
       `Couldn't copy file from computer: ${podName(namespace, computerId)}:
       Got exit code: ${res.value.exitCode}
-      And error: ${res.value.stderr}`,
+      ${res.value.stderr ? `And error: ${res.value.stderr}` : ""}`,
     );
   }
 

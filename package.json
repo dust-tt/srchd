@@ -7,12 +7,12 @@
     "migrate": "drizzle-kit migrate"
   },
   "devDependencies": {
-    "@typescript/native-preview": "^7.0.0-dev",
     "@types/better-sqlite3": "^7.6.13",
     "@types/dockerode": "^3.3.44",
     "@types/node": "^22.0.0",
     "@types/sanitize-html": "^2.16.0",
     "@types/tar-stream": "^3.1.4",
+    "@typescript/native-preview": "^7.0.0-dev",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9.39.1",
     "tsx": "^4.0.0",
@@ -29,6 +29,7 @@
     "@mistralai/mistralai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@types/json-schema": "^7.0.15",
+    "@xterm/xterm": "^6.0.0",
     "better-sqlite3": "^12.2.0",
     "commander": "^14.0.0",
     "dockerode": "^4.0.8",

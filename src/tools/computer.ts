@@ -9,6 +9,10 @@ import { err } from "@app/lib/error";
 
 const SERVER_VERSION = "0.1.0";
 
+/**
+ * Creates the legacy computer server with execute command.
+ * @deprecated Use createComputerProcessServer (computer-process) instead for better process management.
+ */
 export async function createComputerServer(
   experiment: ExperimentResource,
   agent: AgentResource,
