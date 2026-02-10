@@ -376,6 +376,8 @@ agentCmd
         delete a.evolutions;
         // @ts-expect-error: replace experiment id with name for display
         a.experiment = agent.experiment.toJSON().name;
+        // @ts-expect-error: replace profile object with name for display
+        a.profile = a.profile.name;
         return a;
       }),
     );
@@ -409,6 +411,8 @@ agentCmd
         delete a.evolutions;
         // @ts-expect-error: replace experiment id with name for display
         a.experiment = agent.experiment.toJSON().name;
+        // @ts-expect-error: replace profile object with name for display
+        a.profile = a.profile.name;
         return a;
       }),
     );
@@ -435,6 +439,8 @@ agentCmd
     delete a.evolutions;
     // @ts-expect-error: replace experiment id with name for display
     a.experiment = agent.experiment.toJSON().name;
+    // @ts-expect-error: replace profile object with name for display
+    a.profile = a.profile.name;
     console.table([a]);
   });
 
