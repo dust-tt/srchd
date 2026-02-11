@@ -26,7 +26,7 @@ import {
   dockerFile,
   dockerFileForIdentity,
 } from "./computer/image";
-import { Computer, computerId } from "./computer";
+import { Computer, COMPUTER_REGISTRY, computerId } from "./computer";
 import { providerFromModel } from "./models/provider";
 import { copyToComputer } from "./computer/k8s";
 import {
@@ -357,7 +357,7 @@ agentCmd
       );
       agents.push(agent);
 
-      if (tools.includes("computer")) {
+      if (tools.includes("computer") || tools.includes("computer-process")) {
         await Computer.create(
           computerId(experiment, agent),
           undefined,
@@ -499,18 +499,20 @@ agentCmd
       }
     }
 
-    // Inject problem data/ directory contents if present
-    const problemDataPath = experiment.problemDataPath();
-    if (problemDataPath) {
-      for (const agent of agents.filter((a) =>
-        a.toJSON().profile.tools.includes("computer"),
-      )) {
-        const cid = computerId(experiment, agent);
-        const computerRes = await Computer.ensure(cid, undefined, agent.toJSON().profile);
-        if (computerRes.isErr()) {
-          return exitWithError(computerRes);
-        }
+    for (const agent of agents.filter((a) =>
+      a.toJSON().profile.tools.includes("computer") || a.toJSON().profile.tools.includes("computer-process"),
+    )) {
+      const cid = computerId(experiment, agent);
+      const computerRes = await Computer.ensure(cid, undefined, agent.toJSON().profile);
+      if (computerRes.isErr()) {
+        return exitWithError(computerRes);
+      }
 
+
+      COMPUTER_REGISTRY[agent.toJSON().name] = computerRes.value;
+      // Inject problem data/ directory contents if present
+      const problemDataPath = experiment.problemDataPath();
+      if (problemDataPath) {
         const res = await copyToComputer(cid, problemDataPath);
         if (res.isErr()) {
           return exitWithError(res);

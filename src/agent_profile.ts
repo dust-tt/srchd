@@ -114,7 +114,7 @@ export async function getAgentProfile(
   let prompt = promptRes.value;
   let dockerFilePath: string | undefined = undefined;
 
-  if (settings.tools.includes("computer") && settings.imageName) {
+  if (settings.tools.includes("computer") || settings.tools.includes("computer-process") && settings.imageName) {
     const dfPath = path.join(AGENT_PROFILES_DIR, name, "Dockerfile");
     if (fs.existsSync(dfPath)) {
       dockerFilePath = dfPath;
