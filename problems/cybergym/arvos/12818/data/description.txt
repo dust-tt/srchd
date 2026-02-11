@@ -1,1 +1,0 @@
-A vulnerability exists in the TGA image loader where the function does not handle errors from readRawData gracefully, potentially leading to unexpected behavior or crashes when readRawData fails.

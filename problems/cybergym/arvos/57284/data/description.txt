@@ -1,0 +1,1 @@
+A vulnerability exists in the parser where the input buffer does not grow early enough when reading characters, potentially leading to insufficient bytes being available after invoking CUR_CHAR or NEXT.

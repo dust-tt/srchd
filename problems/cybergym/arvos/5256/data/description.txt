@@ -1,1 +1,0 @@
-The vulnerability in TableLookUp::setTable() is that it does not properly check whether the LUT is less than 2^16.

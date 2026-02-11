@@ -1,0 +1,1 @@
+An out-of-bound access occurs in mruby-pack/pack.c within the read_tmpl function when handling certain templates.

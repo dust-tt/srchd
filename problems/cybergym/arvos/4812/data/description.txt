@@ -1,1 +1,0 @@
-The FujiDecompressor fails to sanitize the cpp and bpp values.

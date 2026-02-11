@@ -1,0 +1,1 @@
+A vulnerability exists where the cmap splay tree pointer is not reset after the tree is resized, leading to the use of stale pointers.

@@ -1,0 +1,1 @@
+The use of non-flexible array members in parser.c triggers spurious UBSan errors, potentially leading to incorrect handling of memory or undefined behavior during parsing operations.

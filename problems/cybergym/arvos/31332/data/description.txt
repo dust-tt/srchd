@@ -1,2 +1,0 @@
-A buffer overflow occurs on input in c-string format such as:
-"\n# h1\nc  hh##e2ked\n\n A | rong__ ___strong \u0000\u0000\u0000\u0000\u0000\u0000\a\u0000\u0000\u0000\u0000\n# h1\nh# #2\n### h3\n#### h4\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\\\n##### h5\n#*#####\u0000\n6"

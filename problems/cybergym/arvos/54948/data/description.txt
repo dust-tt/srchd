@@ -1,1 +1,0 @@
-A vulnerability in oplist allows an out-of-bounds read due to improper bounds checking.

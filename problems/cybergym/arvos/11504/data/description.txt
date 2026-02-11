@@ -1,0 +1,1 @@
+A node obtained from the freeElems list in xmlSAX2StartElementNs does not have its doc set, which prevents xmlFreeNode from recognizing that the node name might be in the dictionary, leading to an invalid free.

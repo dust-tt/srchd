@@ -1,1 +1,0 @@
-A vulnerability exists in sequential access where key verification is not properly performed. In src/gdbmseq.c, the function gdbm_valid_key_p does not use gdbm_dir_entry_valid_p to validate the buffer index, and the order of checks is incorrect. This can lead to improper validation of keys during sequential access.

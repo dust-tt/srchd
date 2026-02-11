@@ -1,0 +1,1 @@
+A buffer overflow occurs in the vms_traverse_index function in vms-lib.c due to missing sanity checks on the remaining size before accessing vms_idx or vms_elfidx.

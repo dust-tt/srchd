@@ -1,1 +1,0 @@
-A vulnerability exists in Cr2Decompressor where std::vector<> is used inappropriately to describe the slicing pattern, which may lead to incorrect handling of data structures.

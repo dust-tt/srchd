@@ -1,0 +1,1 @@
+Dropping a variation table does not remove it from m_tables.

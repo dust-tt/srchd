@@ -1,0 +1,1 @@
+A security vulnerability exists in smbd where file_attributes are overridden with unix_mode in the VFS, potentially leading to incorrect file permission handling. This issue is present in open.c, where internal logic still uses this override.

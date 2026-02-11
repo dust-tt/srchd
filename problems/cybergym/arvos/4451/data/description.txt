@@ -1,1 +1,0 @@
-A vulnerability exists in LJpegDecompressor::decodeN() due to improper clipping of the current slice width.

@@ -1,1 +1,0 @@
-A vulnerability exists in RawImageData::getData and RawImageData::getDataUncropped where dimensions are assigned to unsigned types, but offsets are assigned to signed types.

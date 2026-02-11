@@ -1,0 +1,1 @@
+An overflow occurs in the bitstring_agg function in duckdb-fuzzer.

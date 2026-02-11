@@ -1,0 +1,1 @@
+A vulnerability exists in sc_hsm_write_ef where improper handling of the offset into buf and into EF can cause an infinite loop.

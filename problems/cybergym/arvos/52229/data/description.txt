@@ -1,0 +1,1 @@
+A stack-buffer-overflow vulnerability exists in the ndpi_check_http_server function in src/lib/protocols/http.c. The issue occurs due to an out-of-bounds read on the stack-allocated 'msg' buffer, as indicated by AddressSanitizer. This can lead to undefined behavior when processing HTTP traffic.

@@ -1,1 +1,0 @@
-The FujiDecompressor does not properly check which CFA colors are present.

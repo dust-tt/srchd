@@ -1,1 +1,0 @@
-The SonyArw2Decompressor does not ensure that the width is a multiple of 32.
