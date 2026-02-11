@@ -1,1 +1,0 @@
-The vulnerability in Cr2Decompressor::decodeN_X_Y() allows slices to not cover the whole image size.

@@ -1,0 +1,1 @@
+A vulnerability exists where the nb_meta_channels value in squeeze is not updated when applying the transform in MetaSqueeze(), causing transforms to become out of sync between meta-applying and inverse applying.

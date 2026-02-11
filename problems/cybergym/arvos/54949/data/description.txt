@@ -1,1 +1,0 @@
-A use-after-free vulnerability exists in the oplist code, where a pointer is not set to NULL after being freed.

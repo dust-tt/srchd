@@ -1,0 +1,1 @@
+A use-of-uninitialized-value vulnerability exists in `LibRaw::parse_fuji_compressed_header`, where the `uchar header[16];` array is not initialized and may contain garbage values if the stream is at EOF.

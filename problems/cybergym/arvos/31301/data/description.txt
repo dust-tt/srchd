@@ -1,1 +1,0 @@
-A crash occurs when the hash function is called with zero-length buffers, as it does not handle empty strings.

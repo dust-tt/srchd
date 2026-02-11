@@ -1,0 +1,1 @@
+A vulnerability exists due to inadequate checking for bad augmentation data, such as field lengths, in src/lib/libdwarf/dwarf_frame.c and src/lib/libdwarf/dwarf_frame2.c.

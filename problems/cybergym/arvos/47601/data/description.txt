@@ -1,0 +1,1 @@
+A vulnerability exists where an object is used directly from the stack without taking a reference. Triggering a repair can cause the stack to be flushed, leading to potential issues.

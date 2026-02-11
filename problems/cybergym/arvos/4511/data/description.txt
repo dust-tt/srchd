@@ -1,1 +1,0 @@
-A vulnerability exists in PanasonicDecompressor where load_flags is not properly sanitized.

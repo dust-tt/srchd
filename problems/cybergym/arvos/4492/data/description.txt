@@ -1,1 +1,0 @@
-A vulnerability exists in DngOpcodes::DeltaRowOrCol where the count of 'delta' elements is not properly sanitized. This may lead to incorrect behavior in some edge cases, such as with unusual pitch values.

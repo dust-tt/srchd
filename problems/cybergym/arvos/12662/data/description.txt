@@ -1,1 +1,0 @@
-The SAS7BDAT reader contains insufficient bounds checking, which allows a buffer overrun when reading the subheader pointers.

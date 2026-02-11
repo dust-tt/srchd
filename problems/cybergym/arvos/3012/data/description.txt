@@ -1,1 +1,0 @@
-A vulnerability exists in OrfDecoder where image dimensions are not checked before processing, potentially allowing invalid or malicious input to be handled. The decodeCompressed() function is involved in this issue.

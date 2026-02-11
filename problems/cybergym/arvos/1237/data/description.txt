@@ -1,0 +1,1 @@
+A potential out of bounds error exists in packet-quakeworld.c, where an overflow can occur while writing to a buffer.

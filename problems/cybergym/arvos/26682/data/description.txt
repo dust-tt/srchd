@@ -1,1 +1,0 @@
-A use-of-uninitialized value vulnerability exists when copying dist bytes with no output bytes written, leading to a msan error.

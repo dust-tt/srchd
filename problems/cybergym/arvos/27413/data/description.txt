@@ -1,1 +1,0 @@
-A use-of-uninitialized memory vulnerability exists in tinfl_decompress when an invalid dist value is decoded. Specifically, if dist is 31, s_dist_base translates this as 0, leading to the issue.

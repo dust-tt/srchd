@@ -1,0 +1,1 @@
+In the case of phantoms_only in the glyf code, an array remains uninitialized, which can lead to undefined behavior.

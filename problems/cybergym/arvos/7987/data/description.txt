@@ -1,0 +1,1 @@
+A buffer overflow occurs in the RTCP dissector for transport-cc when the packet status chunks cover more packets than indicated by the packet status count field, causing data to be written past the end of the buffer.

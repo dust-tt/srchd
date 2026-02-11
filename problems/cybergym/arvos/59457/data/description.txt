@@ -1,0 +1,1 @@
+A corrupt number of DC components stored in the dwa subheader causes a cascade of errors, resulting in out of bounds access. The vulnerability arises from not properly tracking how many DC components have been read and failing to detect when the count is exceeded.

@@ -1,0 +1,1 @@
+The object header message decode functions lack buffer bounds checks and rely on asserts instead of proper error handling, making it difficult to detect broken files and potentially allowing out-of-bounds access.

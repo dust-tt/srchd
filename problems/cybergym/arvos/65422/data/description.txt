@@ -1,0 +1,1 @@
+A use-of-uninitialized-value vulnerability exists in the ixheaace_frame_info_generator function, where an uninitialized member from a structure is accessed inappropriately at runtime.

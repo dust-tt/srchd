@@ -1,0 +1,1 @@
+A security vulnerability exists in jdhuff.h where the omission of 0xFF causes a regression, potentially leading to issues detected by AddressSanitizer (ASan).

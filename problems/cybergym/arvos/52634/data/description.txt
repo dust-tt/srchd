@@ -1,0 +1,1 @@
+A vulnerability exists in subparse where non-closed tag handling can result in reading memory far past the next_tag. The logic in subparse may move data incorrectly when processing after the end tag ('>'), leading to potential out-of-bounds memory access.

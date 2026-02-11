@@ -1,1 +1,0 @@
-A vulnerability exists in AbstractLJpegDecompressor::parseSOF() where cpp is not properly checked to ensure it is less than or equal to the row length.

@@ -1,1 +1,0 @@
-The vulnerability exists in DngOpcodes::FixBadPixelsList within the handling of iRectangle2D fullImage, where isPointInside()/isThisInside() considers both points to be valid, potentially resulting in invalid information due to an off-by-one error.
