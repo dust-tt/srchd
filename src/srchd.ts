@@ -35,6 +35,7 @@ import {
   listAgentProfiles,
 } from "./agent_profile";
 import { isDeepseekModel } from "./models/deepseek";
+import { isZhipuModel } from "./models/zhipu";
 import { TokenUsageResource } from "./resources/token_usage";
 import * as readline from "readline";
 import { K8S_NAMESPACE } from "./lib/k8s";
@@ -326,7 +327,8 @@ agentCmd
           isGeminiModel(model) ||
           isMistralModel(model) ||
           isMoonshotAIModel(model) ||
-          isDeepseekModel(model)
+          isDeepseekModel(model) ||
+          isZhipuModel(model)
         )
       ) {
         return exitWithError(
