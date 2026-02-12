@@ -428,19 +428,13 @@ export async function spawn(
   }
 }
 
-export async function copyToComputer(
-  computerId: string,
-  path: string,
-  namespace: string = K8S_NAMESPACE,
-  destinationDir?: string,
-): Promise<Result<void>> {
-  if (!fs.existsSync(path)) {
-    return err("reading_file_error", `Path ${path} does not exist`);
-  }
-  const stat = fs.statSync(path);
-  const name = p.basename(path);
-  // If the path isn't absolute, we'll append the cwd to it.
+const MAX_PART_SIZE = 25 * 1024 * 1024; // 25MB per part (under the ~30MB streaming limit)
 
+async function collectTarBuffer(
+  path: string,
+  stat: fs.Stats,
+  name: string,
+): Promise<Result<Buffer>> {
   const pack = tar.pack();
   if (stat.isFile()) {
     const content = await readFile(path);
@@ -455,37 +449,131 @@ export async function copyToComputer(
   }
   pack.finalize();
 
+  const chunks: Buffer[] = [];
+  return new Promise<Result<Buffer>>((resolve) => {
+    pack.on("data", (chunk: Buffer) => chunks.push(chunk));
+    pack.on("end", () => resolve(ok(Buffer.concat(chunks))));
+    pack.on("error", (e) =>
+      resolve(err("reading_file_error", `Failed to create tar: ${e.message}`, e)),
+    );
+  });
+}
+
+export async function copyToComputer(
+  computerId: string,
+  path: string,
+  namespace: string = K8S_NAMESPACE,
+  destinationDir?: string,
+): Promise<Result<void>> {
+  if (!fs.existsSync(path)) {
+    return err("reading_file_error", `Path ${path} does not exist`);
+  }
+  const stat = fs.statSync(path);
+  const name = p.basename(path);
+
+  const tarBufferRes = await collectTarBuffer(path, stat, name);
+  if (tarBufferRes.isErr()) {
+    return tarBufferRes;
+  }
+  const tarBuffer = tarBufferRes.value;
+
   const destinationPath = destinationDir
     ? `/home/agent/${destinationDir}`
     : "/home/agent";
 
-  const createDestinationDirIfNotExistsRes = await execute(
+  const mkdirRes = await execute(
     ["mkdir", "-p", destinationPath],
     namespace,
     computerId,
   );
-
-  if (createDestinationDirIfNotExistsRes.isErr()) {
-    return createDestinationDirIfNotExistsRes;
+  if (mkdirRes.isErr()) {
+    return mkdirRes;
   }
 
+  // Small tarball: send directly
+  if (tarBuffer.length <= MAX_PART_SIZE) {
+    const stdinStream = Readable.from(tarBuffer);
+    const res = await execute(
+      ["tar", "xf", "-", "-C", destinationPath],
+      namespace,
+      computerId,
+      { stdinStream },
+    );
 
-  const copyCommand = ["tar", "xf", "-", "-C", destinationPath];
-  const res = await execute(
-    copyCommand,
+    if (res.isErr()) {
+      return res;
+    } else if (res.value.exitCode !== 0) {
+      return err(
+        "copy_file_error",
+        `Couldn't copy file to computer: ${podName(namespace, computerId)}:
+        Got exit code: ${res.value.exitCode}
+        ${res.value.stderr ? `And error: ${res.value.stderr}` : ""}`,
+      );
+    }
+
+    return ok(undefined);
+  }
+
+  // Large tarball: split into parts, send each, then reassemble on the remote
+  const tmpDir = `/tmp/upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+  const mkTmpRes = await execute(["mkdir", "-p", tmpDir], namespace, computerId);
+  if (mkTmpRes.isErr()) {
+    return mkTmpRes;
+  }
+
+  const numParts = Math.ceil(tarBuffer.length / MAX_PART_SIZE);
+  for (let i = 0; i < numParts; i++) {
+    const start = i * MAX_PART_SIZE;
+    const end = Math.min(start + MAX_PART_SIZE, tarBuffer.length);
+    const chunk = tarBuffer.subarray(start, end);
+
+    const partName = `part_${String(i).padStart(4, "0")}`;
+    const partPack = tar.pack();
+    partPack.entry({ name: partName }, chunk);
+    partPack.finalize();
+
+    const res = await execute(
+      ["tar", "xf", "-", "-C", tmpDir],
+      namespace,
+      computerId,
+      { stdinStream: partPack },
+    );
+
+    if (res.isErr()) {
+      await execute(["rm", "-rf", tmpDir], namespace, computerId);
+      return res;
+    }
+    if (res.value.exitCode !== 0) {
+      await execute(["rm", "-rf", tmpDir], namespace, computerId);
+      return err(
+        "copy_file_error",
+        `Couldn't copy part ${i} to computer: ${podName(namespace, computerId)}:
+        Got exit code: ${res.value.exitCode}
+        ${res.value.stderr ? `And error: ${res.value.stderr}` : ""}`,
+      );
+    }
+  }
+
+  // Reassemble parts and extract the original tarball
+  const reassembleRes = await execute(
+    ["sh", "-c", `cat ${tmpDir}/part_* | tar xf - -C '${destinationPath}'`],
     namespace,
     computerId,
-    { stdinStream: pack },
   );
 
-  if (res.isErr()) {
-    return res;
-  } else if (res.value.exitCode !== 0) {
+  // Clean up temp dir regardless of result
+  await execute(["rm", "-rf", tmpDir], namespace, computerId);
+
+  if (reassembleRes.isErr()) {
+    return reassembleRes;
+  }
+  if (reassembleRes.value.exitCode !== 0) {
     return err(
       "copy_file_error",
-      `Couldn't copy file to computer: ${podName(namespace, computerId)}:
-      Got exit code: ${res.value.exitCode}
-      ${res.value.stderr ? `And error: ${res.value.stderr}` : ""}`,
+      `Couldn't reassemble file on computer: ${podName(namespace, computerId)}:
+      Got exit code: ${reassembleRes.value.exitCode}
+      ${reassembleRes.value.stderr ? `And error: ${reassembleRes.value.stderr}` : ""}`,
     );
   }
 
