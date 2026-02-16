@@ -40,11 +40,14 @@ export class Advisory {
   }
 
   static push(agent: string, msg: AdvisoryMessage) {
+    if (!Advisory.instance.messages[agent]) {
+      Advisory.instance.messages[agent] = [];
+    }
     Advisory.instance.messages[agent].push(msg);
   }
 
   static pop(agent: string): AdvisoryMessage[] {
-    const messages = Advisory.instance.messages[agent];
+    const messages = Advisory.instance.messages[agent] ?? [];
     Advisory.instance.messages[agent] = [];
     return messages;
   }
