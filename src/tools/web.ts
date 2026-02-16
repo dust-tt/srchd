@@ -14,7 +14,7 @@ export async function createWebServer(): Promise<McpServer> {
     version: SERVER_VERSION,
   });
 
-  // The Firecrawl SDK dosen't fetch the key automatically from env.
+  // The Firecrawl SDK doesn't fetch the key automatically from env.
   const firecrawl = new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY });
 
   server.tool(

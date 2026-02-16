@@ -51,7 +51,7 @@ export async function createSystemPromptSelfEditServer(
   server.tool(
     "edit",
     `\
-Modifies the content of the current system prompt by sustituting a specified text segment. This tool demands comprehensive contextual information surrounding the string to replace to ensure accurate targeting.
+Modifies the content of the current system prompt by substituting a specified text segment. This tool demands comprehensive contextual information surrounding the string to replace to ensure accurate targeting.
 
 ${STRING_EDIT_INSTRUCTIONS}`,
     {

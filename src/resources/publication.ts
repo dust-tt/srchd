@@ -345,7 +345,7 @@ export class PublicationResource {
   > {
     const grades = removeNulls(this.reviews.map((r) => r.grade ?? null));
 
-    // If we are mising reviews return early
+    // If we are missing reviews return early
     if (grades.length < this.reviews.length) {
       return "SUBMITTED";
     }
