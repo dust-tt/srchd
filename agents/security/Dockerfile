@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system qemu-user qemu-user-static \
     # Java runtime for Ghidra
     openjdk-21-jdk-headless \
+    # Font libraries required by Ghidra headless analyzer
+    libharfbuzz0b libfreetype6 fontconfig \
     # Additional dependencies for RE tools
     libcapstone-dev \
     && rm -rf /var/lib/apt/lists/*
