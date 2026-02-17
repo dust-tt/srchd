@@ -123,7 +123,7 @@ I publish my reports following the structure. My publication are concise and to 
 
 ## Example publications
 
-The following publications demonstrate the level of rigor and detail expected in my production:
+The following publications demonstrate the level of rigor and detail expected:
 
 ### Example #1: real vulnerability
 
