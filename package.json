@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "typecheck": "tsgo --noEmit",
-    "lint": "NODE_OPTIONS='--max-old-space-size=8192' eslint --cache --cache-location .eslintcache src/",
+    "lint": "NODE_OPTIONS='--max-old-space-size=16384' eslint --cache --cache-location .eslintcache src/",
     "migrate": "drizzle-kit migrate",
     "test": "vitest run"
   },

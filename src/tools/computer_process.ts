@@ -13,7 +13,6 @@ const MAX_TIMEOUT_MS = 60000;
 const MAX_PROCESSES = 32;
 const MAX_STDOUT_SIZE = 8192;
 
-
 export async function createComputerProcessServer(
   agent: AgentResource,
 ): Promise<McpServer> {
@@ -34,29 +33,32 @@ export async function createComputerProcessServer(
   server.tool(
     "spawn",
     `\
-Executes a command and returns its output. Processes exceeding the timeout (default 10s) are automatically moved to background execution. You can also specify to immediately background it.
+Spawn a process. Processes exceeding the timeout (default 10s) are automatically moved to background execution. You can also specify to immediately background it.
 
 **Use cases:**
 - Run quick commands with immediate output
-- Start long-running processes (servers, builds) in background
-- Execute commands that need stdin interaction
+- Start long-running processes (servers, builds, VMs) in background
+- Execute interactive terminal applications
+
+**Background Mode:**
+Set \`background: true\` for long-runing processes.
+- Returns immediately after spawning the process.
 
 **TTY Mode:**
-Enable tty: true for interactive terminal applications (vim, htop, python REPL, etc.).
+Set \`tty: true\` for interactive terminal applications (vim, htop, python REPL, etc.).
 - Required for control sequences sent via stdin (ESC, arrows, Ctrl-C, etc.) to work
-- Output is rendered cleanly without ANSI escape codes
-- MUST use with background: false if you need stdin interaction
+- Output is interpreted (xterm.js) and rendered
+- MUST use with \`background: false\` if you need to send data to stdin
 
-**IMPORTANT - Stdin Limitation:**
-The stdin tool only works for tty: true processes.
-If you send stdin to a background process that is not interactive, it will be closed automatically.
+Limimtation: The \`stdin\` tool only works with processes spawned with \`tty: true\`. If you send stdin to a process that is not interactive, it will be closed automatically.
 
-**Returns:** Process status (running, terminated), exit code, stdout, stderr, and process ID
+**Returns:**
+Process status (running, terminated), exit code, stdout, stderr, and process ID
 
 **Examples:**
 - Quick command: spawn({ command: "ls -la" })
-- Interactive: spawn({ command: "python", tty: true, background: true })
 - Background server: spawn({ command: "python -m http.server 8000", background: true })
+- Interactive: spawn({ command: "python", tty: true })
 - Long build: spawn({ command: "npm install", timeout: 60, background: true })`,
     {
       command: z.string().describe("Command to execute"),
@@ -64,11 +66,10 @@ If you send stdin to a background process that is not interactive, it will be cl
         .string()
         .optional()
         .default(DEFAULT_WORKDIR)
-        .describe(`Working directory for the process (default: ${DEFAULT_WORKDIR})`),
-      env: z
-        .record(z.string())
-        .optional()
-        .describe("Environment variables"),
+        .describe(
+          `Working directory for the process (default: ${DEFAULT_WORKDIR})`,
+        ),
+      env: z.record(z.string()).optional().describe("Environment variables"),
       timeoutMs: z
         .number()
         .int()
@@ -97,9 +98,7 @@ If you send stdin to a background process that is not interactive, it will be cl
 
       console.log(`\x1b[90m[spawn] ${command}\x1b[0m`);
 
-      timeoutMs = background
-        ? undefined
-        : timeoutMs ?? DEFAULT_TIMEOUT_MS;
+      timeoutMs = background ? undefined : (timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
       const r = await computer.spawn(command, {
         cwd: cwd ?? DEFAULT_WORKDIR,
@@ -116,17 +115,20 @@ If you send stdin to a background process that is not interactive, it will be cl
       const backgrounded = result.status === "running" || background;
 
       // Truncate output for display
-      const stdout = tty && result.terminal
-        ? result.getTerminalBuffer().slice(0, MAX_STDOUT_SIZE) +
-        (result.getTerminalBuffer().length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "")
-        : result.stdout.slice(0, MAX_STDOUT_SIZE) +
-        (result.stdout.length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
+      const stdout =
+        tty && result.terminal
+          ? result.getTerminalBuffer().slice(0, MAX_STDOUT_SIZE) +
+            (result.getTerminalBuffer().length > MAX_STDOUT_SIZE
+              ? "\n...[truncated]"
+              : "")
+          : result.stdout.slice(0, MAX_STDOUT_SIZE) +
+            (result.stdout.length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
       const stderr =
         result.stderr.slice(0, MAX_STDOUT_SIZE) +
         (result.stderr.length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
 
       // Return status and output separately for clarity
-      const statusText = `id: ${result.pid}\nstatus: ${result.status}\nbackgrounded: ${backgrounded}\ntty: ${tty}${result.exitCode !== undefined ? `\nexit_code: ${result.exitCode}` : ""}`;
+      const statusText = `id: ${result.pid}\nstatus: ${result.status}\nbackground: ${backgrounded}\ntty: ${tty}${result.exitCode !== undefined ? `\nexit_code: ${result.exitCode}` : ""}`;
 
       const stdoutText = `stdout:\n\`\`\`\n${stdout}\n\`\`\``;
 
@@ -213,18 +215,15 @@ Lists all processes in order of creation, showing their current status (running 
     },
   );
 
-
-
   // stdin - Send input to a process
   server.tool(
     "stdin",
     `\
-Sends input to a running process's stdin stream, enabling interaction with interactive applications.
+Sends inputs to a running process's stdin stream, enabling interaction with interactive applications.
 
-**IMPORTANT - Stdin Availability:**
-- stdin only works for INTERACTIVE processes (tty: true)
+**IMPORTANT - stdin Availability:**
+- stdin only works for INTERACTIVE processes started with \`tty: true\`
 - Background processes will not parse stdin escape sequences correctly
-- If you need stdin interaction, set tty: true
 
 **Control Characters:**
 For TTY processes, you can send control characters using hex escape sequences:
@@ -246,7 +245,8 @@ For TTY processes, you can send control characters using hex escape sequences:
 - Control interactive terminal applications (vim, nano, etc.)
 - Send control signals to processes
 
-**Returns:** Success status, last 100 lines of stdout after sending input, stderr, and exit code if available
+**Returns:**
+Success status, last 100 lines of stdout after sending input, stderr, and exit code if available
 
 **Examples:**
 - stdin({ id: "123", input: "yes\\n" }) - Confirm a prompt
@@ -265,7 +265,9 @@ For TTY processes, you can send control characters using hex escape sequences:
           err("computer_run_error", "Failed to access running computer"),
         );
       }
-      console.log(`\x1b[90m[stdin ${id}] ${input.replace(/\n/g, "\\n").replace(/\x1B/g, "\\x1B")}\x1b[0m`);
+      console.log(
+        `\x1b[90m[stdin ${id}] ${input.replace(/\n/g, "\\n").replace(/\x1B/g, "\\x1B")}\x1b[0m`,
+      );
 
       const pid = parseInt(id, 10);
       if (isNaN(pid)) {
@@ -297,15 +299,15 @@ For TTY processes, you can send control characters using hex escape sequences:
       const process = r.value;
 
       // Get last 100 lines of stdout, using terminal buffer for TTY
-      const stdout = process.tty && process.terminal
-        ? process.getTerminalBuffer()
-        : process.stdout;
-      const stdoutLines = stdout
-        .split("\n")
-        .slice(-100)
-        .join("\n")
-        .slice(0, MAX_STDOUT_SIZE) +
-        (stdout.split("\n").slice(-100).join("\n").length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
+      const stdout =
+        process.tty && process.terminal
+          ? process.getTerminalBuffer()
+          : process.stdout;
+      const stdoutLines =
+        stdout.split("\n").slice(-100).join("\n").slice(0, MAX_STDOUT_SIZE) +
+        (stdout.split("\n").slice(-100).join("\n").length > MAX_STDOUT_SIZE
+          ? "\n...[truncated]"
+          : "");
       const stderr = process.stderr;
 
       let text = `success: true\n`;
@@ -332,7 +334,7 @@ For TTY processes, you can send control characters using hex escape sequences:
     `\
 Displays the tail of a process's stdout (for long outputs), stderr, current status, and exit code if available.
 
-**Background Process Behavior:**
+**Background processes:**
 When a process is moved to background (either explicitly or via timeout), this command shows any output received up until that point. The output buffer continues to accumulate while the process runs in the background.
 
 **Use cases:**
@@ -341,7 +343,8 @@ When a process is moved to background (either explicitly or via timeout), this c
 - Monitor background processes
 - Debug failed processes
 
-**Returns:** Process status, stdout tail, stderr, exit code, and whether it's interactive
+**Returns:**
+Process status, stdout tail, stderr, exit code, and whether it's interactive
 
 **Example:**
 stdout({ id: "123", lines: 50 }) - View last 50 lines of output`,
@@ -378,16 +381,24 @@ stdout({ id: "123", lines: 50 }) - View last 50 lines of output`,
       const process = r.value;
 
       // Get last N lines of stdout, using terminal buffer for TTY
-      const stdout = process.tty && process.terminal
-        ? process.getTerminalBuffer()
-        : process.stdout;
-      const stdoutLines = stdout
-        .split("\n")
-        .slice(-(lines ?? 100))
-        .join("\n")
-        .slice(0, MAX_STDOUT_SIZE) +
-        (stdout.split("\n").slice(-(lines ?? 100)).join("\n").length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
-      const stderr = process.stderr.slice(0, MAX_STDOUT_SIZE) +
+      const stdout =
+        process.tty && process.terminal
+          ? process.getTerminalBuffer()
+          : process.stdout;
+      const stdoutLines =
+        stdout
+          .split("\n")
+          .slice(-(lines ?? 100))
+          .join("\n")
+          .slice(0, MAX_STDOUT_SIZE) +
+        (stdout
+          .split("\n")
+          .slice(-(lines ?? 100))
+          .join("\n").length > MAX_STDOUT_SIZE
+          ? "\n...[truncated]"
+          : "");
+      const stderr =
+        process.stderr.slice(0, MAX_STDOUT_SIZE) +
         (process.stderr.length > MAX_STDOUT_SIZE ? "\n...[truncated]" : "");
 
       const statusText = `id: ${id}\nstatus: ${process.status}\ninteractive: ${process.tty}\ntty: ${process.tty}${process.exitCode !== undefined ? `\nexit_code: ${process.exitCode}` : ""}`;
@@ -429,7 +440,8 @@ Sends a signal to a running process, causing it to terminate.
 - SIGKILL: Forceful termination
 - SIGINT: Interrupt (Ctrl+C equivalent)
 
-**Returns:** Success status and optional error message
+**Returns:**
+Success status and optional error message
 
 **Example:**
 kill({ id: "123" }) - Gracefully terminate process 123
