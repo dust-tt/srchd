@@ -283,12 +283,13 @@ ${r.content}`;
         }
       }
 
-      const reviews = await publication.value.requestReviewers(reviewers);
-      if (reviews.isErr()) {
-        return errorToCallToolResult(reviews);
-      }
       if (reviewers.length === 0) {
-        await publication.value.maybePublishOrReject();
+        await publication.value.publish();
+      } else {
+        const reviews = await publication.value.requestReviewers(reviewers);
+        if (reviews.isErr()) {
+          return errorToCallToolResult(reviews);
+        }
       }
 
       const res = publication.value.toJSON();

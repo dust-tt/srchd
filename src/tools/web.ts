@@ -14,7 +14,7 @@ export async function createWebServer(): Promise<McpServer> {
     version: SERVER_VERSION,
   });
 
-  // The Firecrawl SDK dosen't fetch the key automatically from env.
+  // The Firecrawl SDK doesn't fetch the key automatically from env.
   const firecrawl = new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY });
 
   server.tool(
@@ -33,9 +33,9 @@ export async function createWebServer(): Promise<McpServer> {
         .number()
         .describe(
           "length (in number of characters) of the data returned from the fetched content (max\
-          8169, defaults to 8196).",
+          8192, defaults to 8192).",
         )
-        .default(8196),
+        .default(8192),
     },
     async ({
       url,
@@ -51,18 +51,18 @@ export async function createWebServer(): Promise<McpServer> {
         formats: ["markdown"],
       });
 
-      if (length > 8196) {
+      if (length > 8192) {
         return errorToCallToolResult(
           err(
             "web_fetch_error",
-            `The length of ${length} characters is too large. It must be less than 8196.`,
+            `The length of ${length} characters is too large. It must be less than 8192.`,
           ),
         );
       }
 
       if (scrapeResponse.success) {
         const text = scrapeResponse.markdown
-          ? scrapeResponse.markdown.slice(offset, 8196 + offset)
+          ? scrapeResponse.markdown.slice(offset, length + offset)
           : "";
         return {
           isError: false,

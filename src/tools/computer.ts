@@ -35,7 +35,7 @@ Execute a bash command.
 - To edit files, use multi-turn \`sed\` commands or the > or >> operators.
 - TUI or graphical applications are not supported (no tty interpretation).
 
-For long running commands (running a server) make sure to run them in the background using \`&\` and redirect output to files to track their progress. For long running builds you can do the same and execute sleep with appropriate timeoOut to wait until the command is expected to be finished.
+For long running commands (running a server) make sure to run them in the background using \`&\` and redirect output to files to track their progress. For long running builds you can do the same and execute sleep with appropriate timeout to wait until the command is expected to be finished.
 `,
     {
       cmd: z.string().describe("The bash command to execute."),

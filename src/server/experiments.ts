@@ -153,7 +153,7 @@ export const experimentAgents = async (c: Input) => {
             Provider: ${sanitizeText(agentData.provider)} | Model: ${sanitizeText(
               agentData.model,
             )} |
-            Thikning: ${sanitizeText(agentData.thinking)} | Evolutions: ${
+            Thinking: ${sanitizeText(agentData.thinking)} | Evolutions: ${
               agentData.evolutions.length
             } |
             Profile: ${sanitizeText(agentData.profile.name)} |
