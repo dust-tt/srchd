@@ -41,19 +41,24 @@ function normalizeTokenPrices(
 
 // https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
 const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
+  "claude-opus-4-6": normalizeTokenPrices(5, 25),
   "claude-opus-4-5": normalizeTokenPrices(5, 25),
   "claude-sonnet-4-5": normalizeTokenPrices(3, 15),
   "claude-haiku-4-5": normalizeTokenPrices(1, 5),
 };
 
 export type AnthropicModel =
+  | "claude-opus-4-6"
   | "claude-opus-4-5"
   | "claude-sonnet-4-5"
   | "claude-haiku-4-5";
 export function isAnthropicModel(model: string): model is AnthropicModel {
-  return ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"].includes(
-    model,
-  );
+  return [
+    "claude-opus-4-6",
+    "claude-opus-4-5",
+    "claude-sonnet-4-5",
+    "claude-haiku-4-5",
+  ].includes(model);
 }
 
 export class AnthropicLLM extends LLM {
@@ -185,9 +190,7 @@ export class AnthropicLLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<
-    Result<{ message: Message; tokenUsage?: TokenUsage }>
-  > {
+  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }>> {
     try {
       const message = await this.client.beta.messages.create({
         model: this.model,
@@ -360,11 +363,7 @@ export class AnthropicLLM extends LLM {
 
       return ok(response.input_tokens);
     } catch (error) {
-      return err(
-        "model_error",
-        "Failed to count tokens",
-        error,
-      );
+      return err("model_error", "Failed to count tokens", error);
     }
   }
 
@@ -397,6 +396,7 @@ export class AnthropicLLM extends LLM {
 
   maxTokens(): number {
     switch (this.model) {
+      case "claude-opus-4-6":
       case "claude-opus-4-5":
       case "claude-sonnet-4-5":
       case "claude-haiku-4-5":
