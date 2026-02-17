@@ -678,7 +678,7 @@ agentCmd
   });
 
 // Clean command
-program
+experimentCmd
   .command("clean")
   .description("Clean up Kubernetes pods and/or volumes for an experiment")
   .argument("<experiment>", "Experiment name")
