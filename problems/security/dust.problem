@@ -39,7 +39,6 @@ You are authorized to perform network queries against our production services (`
 
 Known non-vulnerabilities:
 - System Key User Impersonation via `x-api-user-email` Header. Note that system keys are meant to be internal to Dust and never shared outside of Dust internal infrastructure (even with users of the workspace they are attached to). A vector of leakage of a system key outside of our infrastructure would be considered a critical vulnerability.
-- Public Spaces Allow Cross-Workspace Resource Access. This is the purpose of public spaces. They are being deprecated.
-- The possibility of a Group being associated to multiple Spaces (the Workspace group is associated with both the Company Space and the Conversations Space as an example) is not a vulnerability.  It's in general not possible in the product except for the example given here.
+- The possibility of a Group being associated to multiple Spaces (the Workspace group is associated with both the Company Space and the Conversations Space as an example) is not a vulnerability. It's in general not possible in the product except for the example given here.
 - Public Conversation APIs tool validation bypass via skipToolsValidation. This is an expected product behavior as the API caller has acces anyway to the tool validation endpoint and can control validation. This is therefore a convenience feature.
 - An admin can create DataSourceViews on arbitrary data sources and hence can give themselves access to any DataSource. This is expected and the very role of an admin. Proper audit logging is known to be mssing and will be worked on.
