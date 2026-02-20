@@ -6,6 +6,7 @@ import { isMoonshotAIModel, MoonshotAIModel, MoonshotAILLM } from "./moonshotai"
 import { isDeepseekModel, DeepseekModel, DeepseekLLM } from "./deepseek";
 import { isOpenAIModel, OpenAIModel, OpenAILLM } from "./openai";
 import { isZhipuModel, ZhipuModel, ZhipuLLM } from "./zhipu";
+import { isStepfunModel, StepfunModel, StepfunLLM } from "./stepfun";
 import { LLM, ModelConfig } from "./index";
 
 export type Model =
@@ -15,7 +16,8 @@ export type Model =
   | MistralModel
   | MoonshotAIModel
   | DeepseekModel
-  | ZhipuModel;
+  | ZhipuModel
+  | StepfunModel;
 
 export type provider =
   | "openai"
@@ -24,7 +26,8 @@ export type provider =
   | "anthropic"
   | "gemini"
   | "mistral"
-  | "zhipu";
+  | "zhipu"
+  | "stepfun";
 
 export function isProvider(str: string): str is provider {
   return [
@@ -35,6 +38,7 @@ export function isProvider(str: string): str is provider {
     "moonshotai",
     "deepseek",
     "zhipu",
+    "stepfun",
   ].includes(str);
 }
 
@@ -46,7 +50,8 @@ export function providerFromModel(
     | GeminiModel
     | MistralModel
     | DeepseekModel
-    | ZhipuModel,
+    | ZhipuModel
+    | StepfunModel,
 ): provider {
   if (isOpenAIModel(model)) return "openai";
   if (isMoonshotAIModel(model)) return "moonshotai";
@@ -55,6 +60,7 @@ export function providerFromModel(
   if (isMistralModel(model)) return "mistral";
   if (isDeepseekModel(model)) return "deepseek";
   if (isZhipuModel(model)) return "zhipu";
+  if (isStepfunModel(model)) return "stepfun";
   else assertNever(model);
 }
 
@@ -78,6 +84,8 @@ export function createLLM(model: Model, config?: ModelConfig): LLM {
     return new DeepseekLLM(config, model);
   } else if (isZhipuModel(model)) {
     return new ZhipuLLM(config, model);
+  } else if (isStepfunModel(model)) {
+    return new StepfunLLM(config, model);
   } else {
     assertNever(model);
   }
