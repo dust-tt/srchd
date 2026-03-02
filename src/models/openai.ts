@@ -46,6 +46,7 @@ const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
   "gpt-5.1-codex": normalizeTokenPrices(1.25, 10),
   "gpt-5.2": normalizeTokenPrices(1.75, 14),
   "gpt-5.2-codex": normalizeTokenPrices(1.75, 14),
+  "gpt-5.3-codex": normalizeTokenPrices(1.75, 14),
 };
 
 export function convertToolChoice(toolChoice: ToolChoice) {
@@ -84,7 +85,8 @@ export type OpenAIModel =
   | "gpt-5.1"
   | "gpt-5.1-codex"
   | "gpt-5.2"
-  | "gpt-5.2-codex";
+  | "gpt-5.2-codex"
+  | "gpt-5.3-codex";
 export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
     "gpt-4.1",
@@ -96,6 +98,7 @@ export function isOpenAIModel(model: string): model is OpenAIModel {
     "gpt-5.1-codex",
     "gpt-5.2",
     "gpt-5.2-codex",
+    "gpt-5.3-codex",
   ].includes(model);
 }
 
@@ -378,6 +381,7 @@ export class OpenAILLM extends LLM {
       case "gpt-5.1-codex":
       case "gpt-5.2":
       case "gpt-5.2-codex":
+      case "gpt-5.3-codex":
         return 400000 - 128000;
       default:
         assertNever(this.model);

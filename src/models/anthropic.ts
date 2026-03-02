@@ -43,6 +43,7 @@ function normalizeTokenPrices(
 const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
   "claude-opus-4-6": normalizeTokenPrices(5, 25),
   "claude-opus-4-5": normalizeTokenPrices(5, 25),
+  "claude-sonnet-4-6": normalizeTokenPrices(3, 15),
   "claude-sonnet-4-5": normalizeTokenPrices(3, 15),
   "claude-haiku-4-5": normalizeTokenPrices(1, 5),
 };
@@ -50,12 +51,14 @@ const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
 export type AnthropicModel =
   | "claude-opus-4-6"
   | "claude-opus-4-5"
+  | "claude-sonnet-4-6"
   | "claude-sonnet-4-5"
   | "claude-haiku-4-5";
 export function isAnthropicModel(model: string): model is AnthropicModel {
   return [
     "claude-opus-4-6",
     "claude-opus-4-5",
+    "claude-sonnet-4-6",
     "claude-sonnet-4-5",
     "claude-haiku-4-5",
   ].includes(model);
@@ -67,7 +70,7 @@ export class AnthropicLLM extends LLM {
 
   constructor(
     config: ModelConfig,
-    model: AnthropicModel = "claude-sonnet-4-5",
+    model: AnthropicModel = "claude-sonnet-4-6",
   ) {
     super(config);
     this.client = new Anthropic({
@@ -398,6 +401,7 @@ export class AnthropicLLM extends LLM {
     switch (this.model) {
       case "claude-opus-4-6":
       case "claude-opus-4-5":
+      case "claude-sonnet-4-6":
       case "claude-sonnet-4-5":
       case "claude-haiku-4-5":
         return 200000 - 64000;
