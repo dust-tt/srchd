@@ -1,0 +1,23 @@
+.github/workflows/claude.yml
+  3c6dce4e969b3002 16-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.7",
+  "base_commit_sha": "be0cbcb76028cdf327ee9d4ceefa45b406382ae3",
+  "prompts": {
+    "3c6dce4e969b3002": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97b437e2-fd58-4557-9576-d1ff2d615d4a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Zeid Marouf <4321056+zmarouf@users.noreply.github.com>",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 4,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}
