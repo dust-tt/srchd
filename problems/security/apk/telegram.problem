@@ -4,6 +4,8 @@ The goal is to perform white-hat security research on telegram with the goal of 
 
 Download https://telegram.org/dl/android/apk
 
+When running jadx on the apk only run on targeted classes to avoid overhelming the system. Target commands that run in under a minute to decompile.
+
 ## Objective
 
 Analyze the telegram APK to:
