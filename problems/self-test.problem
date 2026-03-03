@@ -1,0 +1,24 @@
+# Self testing
+
+Your task is to test the tools available to you. After running all the test create a publication with the results including all details.
+
+## Test: `spawn-process-non-interactive`
+
+Spawn a simple process non interactively like `ls` and verify you got the output
+
+## Test: `spawn-long-running-process-background-and-kill`
+
+Spawn a long running process using an program with an infinite loop with sleep 1s that prints something, as a background process then attempt to kill it and verify it got properly killed.
+
+## Test: `spawn-long-running-process-with-timeout-and-kill`
+
+Spawn a long running process with a timeout, once the timeout is done verify the process is still running and then kill it.
+
+## Test: `interactive-process`
+
+Your task is to create a file test.txt, empty with `touch`.
+Edit file.txt using vim interatively Add the following line:
+```
+Hello from VIM!
+```
+Then, save and quit and check that the file was properly edited.
