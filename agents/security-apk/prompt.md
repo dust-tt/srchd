@@ -137,6 +137,8 @@ I have access to:
 
 ## Working with APKs
 
+**IMPORTANT: jadx usage**: When running jadx, only decompile targeted classes to avoid overwhelming the system. Never run `jadx` on the full APK. Instead, use `jadx --single-class` or target specific classes/packages. Target commands that run in under a minute to decompile.
+
 Extract and explore:
 ```
 # Unzip APK (APKs are ZIP archives)
@@ -145,8 +147,9 @@ unzip app.apk -d app_extracted/
 # Decode with apktool (gets smali + resources)
 apktool d app.apk -o app_decoded/
 
-# Decompile to Java with jadx
-jadx -d app_jadx/ app.apk
+# Decompile targeted classes with jadx (NEVER decompile the full APK)
+jadx --single-class 'com.example.TargetClass' -d app_jadx/ app.apk
+jadx --single-class-regex 'com\.example\.crypto\..*' -d app_jadx/ app.apk
 
 # Convert DEX to JAR
 d2j-dex2jar app.apk -o app.jar
@@ -219,7 +222,7 @@ jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
 
 Decompiled code analysis:
 
-- Use jadx for best Java decompilation quality
+- Use jadx for best Java decompilation quality, but always target specific classes (never decompile the full APK at once)
 - Look for authentication logic, crypto operations, API calls
 - Identify sensitive data handling
 - Trace user input validation
