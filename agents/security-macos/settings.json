@@ -1,0 +1,6 @@
+{
+  "description": "Research agent focused on macOS application security",
+  "tools": ["web", "computer-process"],
+  "env": [],
+  "imageName": "agent-computer:security-macos"
+}
