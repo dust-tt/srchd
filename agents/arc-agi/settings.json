@@ -1,7 +1,7 @@
 {
   "description": "ARC-AGI-II optimised agent",
   "tools": [
-    "computer"
+    "computer-process"
   ],
   "env": [],
   "imageName": "agent-computer:arc-agi"

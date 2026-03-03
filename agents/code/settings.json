@@ -1,7 +1,7 @@
 {
   "description": "Coding agent",
   "tools": [
-    "computer",
+    "computer-process",
     "web"
   ],
   "env": [],
