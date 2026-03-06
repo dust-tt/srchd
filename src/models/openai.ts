@@ -12,8 +12,8 @@ import {
 } from "./index";
 
 import OpenAI from "openai";
-import { Result, err, ok } from "@app/lib/error";
-import { assertNever } from "@app/lib/assert";
+import {Result, err, ok} from "@app/lib/error";
+import {assertNever} from "@app/lib/assert";
 
 type OpenAITokenPrices = {
   input: number;
@@ -47,6 +47,7 @@ const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
   "gpt-5.2": normalizeTokenPrices(1.75, 14),
   "gpt-5.2-codex": normalizeTokenPrices(1.75, 14),
   "gpt-5.3-codex": normalizeTokenPrices(1.75, 14),
+  "gpt-5.4": normalizeTokenPrices(2.50, 15),
 };
 
 export function convertToolChoice(toolChoice: ToolChoice) {
@@ -86,7 +87,8 @@ export type OpenAIModel =
   | "gpt-5.1-codex"
   | "gpt-5.2"
   | "gpt-5.2-codex"
-  | "gpt-5.3-codex";
+  | "gpt-5.3-codex"
+  | "gpt-5.4";
 export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
     "gpt-4.1",
@@ -99,6 +101,7 @@ export function isOpenAIModel(model: string): model is OpenAIModel {
     "gpt-5.2",
     "gpt-5.2-codex",
     "gpt-5.3-codex",
+    "gpt-5.4",
   ].includes(model);
 }
 
@@ -136,8 +139,8 @@ export class OpenAILLM extends LLM {
                         output: JSON.stringify(
                           content.isError
                             ? {
-                                error: content.content,
-                              }
+                              error: content.content,
+                            }
                             : content,
                         ),
                       },
@@ -211,7 +214,7 @@ export class OpenAILLM extends LLM {
     prompt: string,
     toolChoice: ToolChoice,
     tools: Tool[],
-  ): Promise<Result<{ message: Message; tokenUsage?: TokenUsage }>> {
+  ): Promise<Result<{message: Message; tokenUsage?: TokenUsage}>> {
     try {
       const input = this.messages(messages);
 
@@ -226,9 +229,9 @@ export class OpenAILLM extends LLM {
           this.model === "gpt-4.1"
             ? undefined
             : {
-                effort: convertThinking(this.config.thinking),
-                summary: "auto",
-              },
+              effort: convertThinking(this.config.thinking),
+              summary: "auto",
+            },
         tools: tools.map((tool) => ({
           type: "function",
           name: tool.name,
@@ -339,7 +342,7 @@ export class OpenAILLM extends LLM {
     try {
       const input = this.messages(messages);
       // @ts-ignore - input_tokens exists on the response but not typed on unknown
-      const { input_tokens } = await this.client.post(
+      const {input_tokens} = await this.client.post(
         "/responses/input_tokens",
         {
           body: {
@@ -351,9 +354,9 @@ export class OpenAILLM extends LLM {
               this.model === "gpt-4.1"
                 ? undefined
                 : {
-                    effort: convertThinking(this.config.thinking),
-                    summary: "auto",
-                  },
+                  effort: convertThinking(this.config.thinking),
+                  summary: "auto",
+                },
             tools: tools.map((tool) => ({
               type: "function",
               name: tool.name,
@@ -382,7 +385,11 @@ export class OpenAILLM extends LLM {
       case "gpt-5.2":
       case "gpt-5.2-codex":
       case "gpt-5.3-codex":
+      case "gpt-5.4":
         return 400000 - 128000;
+      // Real context size, start with 400k (cost for now)
+      // case "gpt-5.4":
+      //   return 1050000 - 128000;
       default:
         assertNever(this.model);
     }
