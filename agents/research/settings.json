@@ -1,5 +1,6 @@
 {
   "description": "Research agent",
-  "tools": [],
-  "env": []
+  "tools": ["web", "computer-process"],
+  "env": [],
+  "imageName": "agent-computer:research"
 }
