@@ -1,4 +1,54 @@
-Propose a computer simulation for artificial life that present the following properties:
-(i) has concepts of entropy and energy that relate to our understanding of entropy and energy and how they relate (in particular maximum entropy production principle, and the fact that dissipative structure self organize to maximize energy flowing through them).
-(ii) rules are maximally simple.
-(ii) allows open evolution and the emergence of systems that can be considered as artificial life (non predictable evolution and characteristic all the way to forms of intelligence).
+The goal is to investigate the fundamental conditions for open-ended evolution through computational simulation, with a particular focus on the relationship between artificial life and entropy.
+
+## What is Open-Ended Evolution?
+
+A central challenge is defining open-ended evolution itself. As part of this research, propose and refine working definitions. A starting point: a system exhibits open-ended evolution if it continually produces novel entities, strategies, or structures that are not predictable from the initial conditions — without converging to a fixed point, limit cycle, or statistical equilibrium. Key signatures may include:
+
+- Unbounded growth in complexity or diversity over time
+- Continual emergence of qualitatively new kinds of entities (not just parameter variations)
+- Evolutionary arms races, niche construction, major transitions (e.g., from unicellular to multicellular-like organization)
+- The system "surprises" the observer indefinitely
+
+Refining this definition through simulation results is itself a valuable output.
+
+## Core Questions
+
+The research should be driven by these questions, investigated through simulation:
+
+1. **What are the minimal ingredients for open-ended evolution?**
+   - Does it require reproduction? Can open-ended dynamics emerge from pure physics-like rules without explicit replication?
+   - Does it require energy? Is a thermodynamic gradient (energy source + sink) necessary, or can open-ended evolution arise in conservative systems?
+   - Does it require spatial structure, or can it emerge in well-mixed systems?
+   - Does it require a genetic/heritable information substrate, or can structure propagate through other means?
+
+2. **What is the role of entropy?**
+   - Does the system need a concept of entropy to exhibit open-ended evolution?
+   - How does the maximum entropy production principle relate to the emergence of self-organizing structures?
+   - Dissipative structures (Prigogine) self-organize to maximize energy flow through them — is this the engine of open-ended evolution, or merely a prerequisite?
+   - Can you measure entropy production in your simulations and correlate it with evolutionary transitions?
+   - Is there a relationship between the rate of entropy production and the "interestingness" or novelty rate of the system?
+
+3. **What kills open-endedness?**
+   - What causes systems to converge, stagnate, or die? Understanding failure modes is as valuable as finding success.
+   - Is there a critical threshold (population size, mutation rate, energy flux) below which open-endedness collapses?
+
+## Simulation Approach
+
+Design, implement, and run simulations that attempt to trigger open-ended evolution. Start simple and add complexity only when needed. Some directions to explore:
+
+- **Particle/chemistry systems**: Simple physics with energy, bonding rules, and dissipation. Can molecular-like complexity emerge? Can structures arise that catalyze their own formation?
+- **Grid-based artificial chemistries**: Cellular automata or reaction-diffusion systems with energy gradients. Explore whether thermodynamic structure alone can bootstrap replication.
+- **Minimal replicator worlds**: Tierra/Avida-inspired systems stripped to minimal rules. What is the simplest replicator world that stays open-ended? What happens when you remove reproduction and keep everything else?
+- **Ablation studies**: Take a system that shows open-ended behavior and systematically remove components (energy, reproduction, spatial structure, mutation) to determine which are truly necessary.
+
+For each simulation:
+- Define the rules precisely
+- Run it and collect quantitative metrics (diversity over time, novelty rate, complexity measures, entropy production if applicable)
+- Include actual execution output and traces — plots, logs, statistics from real runs
+- Analyze whether the system exhibits open-ended evolution and why or why not
+
+## Output
+
+Publish findings as research papers. Negative results (systems that fail to produce open-endedness) are just as valuable as positive ones if they illuminate why. The most interesting outcome would be identifying a minimal set of conditions that are both necessary and sufficient for open-ended evolution, and clarifying whether entropy/thermodynamics plays a fundamental or incidental role.
+
+Be creative. These directions are suggestions — pursue whatever you find most promising.
