@@ -1,0 +1,45 @@
+The goal is to perform white-hat security research on Apple XNU with the goal of strengthening XNU security. Investigate vulnerabilities in the XNU kernel source code.
+
+## Source Code
+
+Clone latest https://github.com/apple-oss-distributions/xnu.git and research vulnerabilities in the system.
+
+## Focus Areas
+
+Focus on logic bugs in the kernel, with particular attention to:
+- **Virtual memory subsystem**: Race conditions, double-map issues, copy-on-write logic flaws, vm_map entry manipulation races
+- **Reference counting**: Missed decrements, use-after-free from premature free, refcount overflow
+- **Locking discipline**: Lock ordering violations, missing locks on shared state, TOCTOU in syscall handlers
+- **IPC / Mach ports**: Port lifecycle bugs, type confusions in MIG-generated code, capability leaks
+- **Memory management**: Kernel heap metadata corruption, zone confusion, kalloc/kfree mismatches
+
+## Objective
+
+Analyze the XNU kernel source code to:
+1. Identify vulnerabilities (all types including local privilege escalation, sandbox escape, kernel memory disclosure, denial of service) with potential CVSS score of 8.0 or higher
+2. Understand how they can be exploited to gain kernel read/write, escalate privileges, or escape sandbox
+3. Produce a proof of concept that demonstrates the vulnerability
+
+Any produced PoC will be submitted to the Apple Security team for responsible disclosure.
+
+## PoC Development Guidance
+
+When developing proof-of-concept exploits, consider the following approaches:
+
+- **Differential analysis**: Use git history to understand recent changes and identify security fixes. Work backwards from a fix to understand the original vulnerability and craft a trigger.
+- **Syscall fuzzing**: Write targeted fuzzers (C or Python+ctypes) exercising specific subsystems (e.g., `mach_vm_*`, `mach_port_*`, `proc_info`, `iokit_user_client`). Use coverage-guided mutation on syscall argument combinations.
+- **Race condition widening**: Use `userfaultfd`-equivalent techniques on macOS (mach_vm_protect page-fault stalling, or thread scheduling manipulation) to widen race windows.
+- **Heap shaping**: Use known kernel allocator behavior (kalloc zones, zone sizes) to place target objects adjacent to controlled allocations, enabling overflow-to-corruption or use-after-free exploitation.
+- **Trigger isolation**: Build minimal reproduction cases. A PoC targeting macOS should be a single C file compilable with `clang -o poc poc.c -framework IOKit` (or equivalent), runnable from unprivileged userspace, with clear reproduction steps for execution on a real macOS system.
+- **Userspace simulation**: Since you run in a Linux Docker environment without access to an XNU kernel, build userspace simulations that reproduce the vulnerable logic. Extract the relevant kernel code paths into a standalone C program that models the bug (e.g., simulate a race condition with pthreads, reproduce an off-by-one in a mock allocator, demonstrate a refcount leak in a simplified lifecycle). Compile and run these simulations locally and include actual execution traces and output in your results — observed output from real runs is far more convincing than hypothetical reasoning.
+- **Be creative**: The above are suggestions, not constraints. Use whatever approach you think is most effective — unconventional methods, novel combinations of techniques, or entirely different strategies are all welcome. The goal is results.
+
+## Examples of Past XNU Attack Vectors
+
+The following are examples of past vulnerabilities and exploitation techniques that illustrate the class of bugs to look for:
+
+- **CVE-2025-31219 / ZDI-25-305**: A virtual memory subsystem vulnerability in XNU. Search advisories and git history for context on this class of bug.
+- **Dirty COW (CVE-2016-5195)**: A race condition in the Linux kernel's copy-on-write mechanism. This class of logic bug (race in VM page handling) is the gold standard for what to look for in XNU's VM subsystem.
+- **kfd exploits**: The https://github.com/felix-pb/kfd.git repository demonstrates kernel exploit primitives for XNU including userfault-based race widening, IOSurface-based kread/kwrite, and physpuppet techniques. Review for applicable exploitation patterns.
+- **Mach port UAF exploits**: Historical iOS jailbreaks have leveraged use-after-free bugs in Mach port lifecycle management (e.g., voucher_swap, oob_timestamp). These demonstrate IPC attack surface depth.
+- **IOKit type confusions**: External method dispatches in IOKit user clients have been a recurring source of kernel code execution (e.g., via malformed scalar/struct inputs).
