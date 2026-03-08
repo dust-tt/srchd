@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq ripgrep \
     # Archive tools
     zip unzip tar gzip \
+    # SSH tools (for ssh-keyscan)
+    openssh-client \
     # Visualization (for headless matplotlib)
     libcairo2-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
