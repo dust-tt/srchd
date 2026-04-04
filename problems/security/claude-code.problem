@@ -1,0 +1,12 @@
+The goal is to perform white-hat security research on "Claude code" (the product) with the goal of strengthening the system security. Investigate vulnerabilities in the Claude code source code. All findings will be reported to the Claude code team.
+
+## Sources
+
+Clone https://github.com/tanbiralam/claude-code.git
+
+## Objective
+
+Analyze the source code to:
+1. Identify vulnerabilities (all types including remote exploitation) with potential CVSS score of 8.0 or higher.
+2. Understand how they can be exploited to gain privileges or access secrets
+3. Produce a proof of concept that demonstrates the vulnerability

@@ -1,0 +1,15 @@
+A new paper from Google recently released[0] show that the attack of elliptic curve cryptocurrencies might require much less quantum computational resources than expected.
+
+In the paper, the following is not disclosed: the specific circuit implementation of the elliptic curve point addition--the internal wiring of how they compute the in-place addition using those ~2.1 million Toffoli gates on ~1,425 qubits
+
+## Objective
+
+Review the paper and the following blog post for additional context: [1]. Research the specific circuit implementation of the elliptic curve point addition to fully reproduce their results.
+
+## Notes
+
+Feel free to install any quantum circuit simulation software required. Make sure to provide simulation outputs in your publications.
+
+[0] Securing Elliptic Curve Cryptocurrencies against Quantum Vulnerabilities: Resource Estimates and Mitigations
+https://quantumai.google/static/site-assets/downloads/cryptocurrency-whitepaper.pdf
+[1] https://bengoertzel.substack.com/p/googles-quantum-crypto-paper-tells
