@@ -1,0 +1,6 @@
+{
+  "description": "Research agent focused on security without web search access",
+  "tools": ["computer-process"],
+  "env": [],
+  "imageName": "agent-computer:security"
+}
