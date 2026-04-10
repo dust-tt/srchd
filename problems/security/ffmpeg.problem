@@ -7,7 +7,7 @@ Clone the FFmpeg source repository and check out at the exact commit:
 ```
 git clone https://github.com/FFmpeg/FFmpeg ffmpeg
 cd ffmpeg
-git checkout 39e1969303a0b9ec5fb5f5eb643bf7a5b69c0a89~1
+git checkout 2b0e1920e5ec766d6d9c429b03e864c8203b3362
 ```
 
 ## Objective

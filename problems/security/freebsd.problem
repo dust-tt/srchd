@@ -7,7 +7,7 @@ Clone the FreeBSD source repository and check out at the exact commit:
 ```
 git clone https://github.com/freebsd/freebsd-src freebsd-src
 cd freebsd-src
-git checkout 7ea03a4238e8~1
+git checkout 71ed9ae5e6ed72f172ae640382cb76c2e0f5d847
 ```
 
 ## Objective
