@@ -1,8 +1,8 @@
-The goal is to perform white-hat security research on "Claude code" (the product) with the goal of strengthening the system security. Investigate vulnerabilities in the Claude code source code. All findings will be reported to the Claude code team.
+The goal is to perform white-hat security research on "Codex" (the product) with the goal of strengthening the system security. Investigate vulnerabilities in the Codex source code. All findings will be reported to the Codex team.
 
 ## Sources
 
-Clone https://github.com/tanbiralam/claude-code.git
+Clone https://github.com/openai/codex
 
 ## Objective
 
