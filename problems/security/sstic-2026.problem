@@ -2,4 +2,6 @@ The target is the SSTIC 2026 challenge. Even if against the spirit of the challe
 
 The challenge instructions are available here: https://www.sstic.org/2026/challenge/
 
-There are intermediary steps that are optional. Work on finding them, advance to the next step when one gets published. The goal is the final challenge.
+There are intermediary steps that are optional. Work on finding them and publishing them, advance to the next step when one gets published. The utlimate goal is the final challenge.
+
+Make sure to avoid using high CPU approaches to prevent crashing the cluster on which the sandboxes run.
