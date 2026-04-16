@@ -1,18 +1,77 @@
 #!/usr/bin/env node
 
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { AgentResource } from "../src/resources/agent";
 import { ExperimentResource } from "../src/resources/experiment";
 import { MessageResource } from "../src/resources/messages";
 
+function indent(text: string, prefix = "  "): string {
+  return text
+    .split("\n")
+    .map((line) => `${prefix}${line}`)
+    .join("\n");
+}
+
+function renderContentLines(content: unknown): string[] {
+  if (content === null) {
+    return ["null"];
+  }
+
+  if (content === undefined) {
+    return ["undefined"];
+  }
+
+  if (
+    typeof content === "string" ||
+    typeof content === "number" ||
+    typeof content === "boolean" ||
+    typeof content === "bigint"
+  ) {
+    return String(content).split("\n");
+  }
+
+  if (Array.isArray(content)) {
+    if (content.length === 0) {
+      return ["(empty)"];
+    }
+
+    return content.flatMap((item) => {
+      const rendered = renderContentLines(item);
+      return rendered.length <= 1
+        ? [`- ${rendered[0]}`]
+        : ["-", ...rendered.map((line) => `  ${line}`)];
+    });
+  }
+
+  if (typeof content === "object") {
+    const entries = Object.entries(content);
+    if (entries.length === 0) {
+      return ["(empty)"];
+    }
+
+    return entries.flatMap(([key, value]) => {
+      if (
+        value === null ||
+        value === undefined ||
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean" ||
+        typeof value === "bigint"
+      ) {
+        return [`${key}: ${String(value)}`];
+      }
+
+      return [`${key}:`, ...renderContentLines(value).map((line) => `  ${line}`)];
+    });
+  }
+
+  return [String(content)];
+}
+
 async function main() {
-  const [experimentName, outputArg] = process.argv.slice(2);
+  const [experimentName] = process.argv.slice(2);
 
   if (!experimentName) {
-    console.error(
-      "Usage: npx tsx scripts/dump-agent-io.ts <experiment> [output-file]",
-    );
+    console.error("Usage: npx tsx scripts/dump-agent-io.ts <experiment>");
     process.exit(1);
   }
 
@@ -23,55 +82,63 @@ async function main() {
   }
 
   const experiment = experimentRes.value;
-  const outputPath = path.resolve(
-    outputArg ?? `./${experimentName}-agent-io.json`,
-  );
-
+  const experimentData = experiment.toJSON();
   const agents = await AgentResource.listByExperiment(experiment);
   agents.sort((a, b) => a.toJSON().name.localeCompare(b.toJSON().name));
 
-  const agentsDump = await Promise.all(
-    agents.map(async (agent) => {
-      const agentData = agent.toJSON();
-      const messages = await MessageResource.listMessagesByAgent(experiment, agent);
+  const lines: string[] = [];
+  lines.push(`# experiment=${experimentData.name} id=${experimentData.id}`);
+  lines.push(`# problem=${experimentData.problem}`);
+  lines.push(`# generated_at=${new Date().toISOString()}`);
+  lines.push("");
 
-      return {
-        id: agentData.id,
-        name: agentData.name,
-        provider: agentData.provider,
-        model: agentData.model,
-        thinking: agentData.thinking,
-        messages: messages.map((message) => {
-          const messageData = message.toJSON();
+  for (const agent of agents) {
+    const agentData = agent.toJSON();
+    const messages = await MessageResource.listMessagesByAgent(experiment, agent);
 
-          return {
-            id: messageData.id,
-            position: message.position(),
-            created: message.created().toISOString(),
-            role: messageData.role,
-            content: messageData.content,
-          };
-        }),
-      };
-    }),
-  );
+    lines.push(
+      `## agent=${agentData.name} id=${agentData.id} provider=${agentData.provider} model=${agentData.model} thinking=${agentData.thinking}`,
+    );
+    lines.push("");
 
-  const dump = {
-    generatedAt: new Date().toISOString(),
-    experiment: {
-      id: experiment.toJSON().id,
-      name: experiment.toJSON().name,
-      problem: experiment.toJSON().problem,
-      created: experiment.toJSON().created.toISOString(),
-      updated: experiment.toJSON().updated.toISOString(),
-    },
-    agents: agentsDump,
-  };
+    for (const message of messages) {
+      const messageData = message.toJSON();
+      lines.push(
+        `message id=${messageData.id} position=${message.position()} role=${messageData.role} created=${message.created().toISOString()}`,
+      );
 
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify(dump, null, 2) + "\n", "utf8");
+      for (const item of messageData.content) {
+        switch (item.type) {
+          case "text": {
+            lines.push("text:");
+            lines.push(indent(item.text));
+            break;
+          }
+          case "thinking": {
+            lines.push("thinking:");
+            lines.push(indent(item.thinking));
+            break;
+          }
+          case "tool_use": {
+            lines.push(`tool_use name=${item.name} id=${item.id}`);
+            lines.push(indent(renderContentLines(item.input).join("\n")));
+            break;
+          }
+          case "tool_result": {
+            lines.push(
+              `tool_result name=${item.toolUseName} id=${item.toolUseId} error=${item.isError}`,
+            );
+            lines.push(indent(renderContentLines(item.content).join("\n")));
+            break;
+          }
+        }
+      }
 
-  console.log(`Wrote ${outputPath}`);
+      lines.push("");
+    }
+  }
+
+  process.stdout.write(lines.join("\n"));
 }
 
 main().catch((error: unknown) => {
