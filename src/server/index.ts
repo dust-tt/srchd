@@ -20,6 +20,11 @@ export type BasicAuthConfig = {
 export const createApp = (auth?: BasicAuthConfig) => {
   const app = new Hono();
 
+  app.use("*", async (c, next) => {
+    console.log(c.req.path);
+    await next();
+  });
+
   if (auth) {
     app.use(
       "*",
