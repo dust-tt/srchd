@@ -192,7 +192,11 @@ export const citations = sqliteTable(
       .notNull()
       .references(() => publications.id),
   },
-  (t) => [unique().on(t.from, t.to, t.experiment)],
+  (t) => [
+    unique().on(t.from, t.to, t.experiment),
+    index("citations_idx_from").on(t.from),
+    index("citations_idx_to").on(t.to),
+  ],
 );
 
 export const reviews = sqliteTable(
@@ -222,7 +226,10 @@ export const reviews = sqliteTable(
     }),
     content: text("content"),
   },
-  (t) => [unique().on(t.author, t.publication)],
+  (t) => [
+    unique().on(t.author, t.publication),
+    index("reviews_idx_publication").on(t.publication),
+  ],
 );
 
 export const solutions = sqliteTable(
