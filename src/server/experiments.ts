@@ -478,9 +478,9 @@ export const publicationDetail = async (c: Input) => {
   if (experimentRes.isErr()) return c.notFound();
   const experiment = experimentRes.value;
 
-  const publications = await PublicationResource.listByExperiment(experiment);
-  const publication = publications.find((p) => p.toJSON().id === pubId);
-  if (!publication) return c.notFound();
+  const publicationRes = await PublicationResource.findById(experiment, pubId);
+  if (publicationRes.isErr()) return c.notFound();
+  const publication = publicationRes.value;
 
   const pubData = publication.toJSON();
   const expData = experiment.toJSON();
