@@ -53,56 +53,76 @@ export class PublicationResource {
     this.experiment = experiment;
   }
 
-  private async finalize(): Promise<PublicationResource> {
-    const fromCitationsQuery = db
-      .select()
-      .from(citations)
-      .where(eq(citations.from, this.data.id));
-    const toCitationsQuery = db
-      .select()
-      .from(citations)
-      .where(eq(citations.to, this.data.id));
-    const reviewsQuery = db
-      .select()
-      .from(reviews)
-      .where(eq(reviews.publication, this.data.id));
-    const authorQuery = AgentResource.findById(
-      this.experiment,
-      this.data.author,
-    );
+  private static async finalizeMany(
+    experiment: ExperimentResource,
+    data: Publication[],
+  ): Promise<PublicationResource[]> {
+    if (data.length === 0) {
+      return [];
+    }
 
-    const [fromCitationsResults, toCitationsResults, reviewsResults, authorRes] =
-      await Promise.all([
-        fromCitationsQuery,
-        toCitationsQuery,
-        reviewsQuery,
-        authorQuery,
-      ]);
+    const publicationIds = data.map((p) => p.id);
+    const resources = data.map((p) => new PublicationResource(p, experiment));
 
-    assert(authorRes.isOk());
-    this.author = authorRes.value.toJSON();
+    const [fromCitationsResults, toCitationsResults, reviewsResults] = await Promise.all([
+      db.select().from(citations).where(inArray(citations.from, publicationIds)),
+      db.select().from(citations).where(inArray(citations.to, publicationIds)),
+      db.select().from(reviews).where(inArray(reviews.publication, publicationIds)),
+    ]);
 
-    this.citations.from = fromCitationsResults;
-    this.citations.to = toCitationsResults;
+    const agentIds = new Set<number>();
+    for (const publication of data) {
+      agentIds.add(publication.author);
+    }
+    for (const review of reviewsResults) {
+      agentIds.add(review.author);
+    }
 
-    this.reviews = await concurrentExecutor(
-      reviewsResults,
-      async (review) => {
-        const reviewAgentRes = await AgentResource.findById(
-          this.experiment,
-          review.author,
-        );
-        assert(reviewAgentRes.isOk());
-        const reviewAgent = reviewAgentRes.value;
-        return {
-          ...review,
-          author: reviewAgent.toJSON(),
-        };
+    const agentPairs = await concurrentExecutor(
+      Array.from(agentIds),
+      async (agentId) => {
+        const agentRes = await AgentResource.findById(experiment, agentId);
+        assert(agentRes.isOk());
+        return [agentId, agentRes.value.toJSON()] as const;
       },
       { concurrency: 8 },
     );
+    const agentsById = new Map<number, Agent>(agentPairs);
 
-    return this;
+    const fromCitationsByPublicationId = new Map<number, Citation[]>();
+    const toCitationsByPublicationId = new Map<number, Citation[]>();
+    const reviewsByPublicationId = new Map<number, Review[]>();
+
+    for (const citation of fromCitationsResults) {
+      const items = fromCitationsByPublicationId.get(citation.from) ?? [];
+      items.push(citation);
+      fromCitationsByPublicationId.set(citation.from, items);
+    }
+
+    for (const citation of toCitationsResults) {
+      const items = toCitationsByPublicationId.get(citation.to) ?? [];
+      items.push(citation);
+      toCitationsByPublicationId.set(citation.to, items);
+    }
+
+    for (const review of reviewsResults) {
+      const author = agentsById.get(review.author);
+      assert(author);
+      const items = reviewsByPublicationId.get(review.publication) ?? [];
+      items.push({ ...review, author });
+      reviewsByPublicationId.set(review.publication, items);
+    }
+
+    for (const resource of resources) {
+      const author = agentsById.get(resource.data.author);
+      assert(author);
+      resource.author = author;
+      resource.citations.from = fromCitationsByPublicationId.get(resource.data.id) ?? [];
+      resource.citations.to = toCitationsByPublicationId.get(resource.data.id) ?? [];
+      resource.reviews = reviewsByPublicationId.get(resource.data.id) ?? [];
+    }
+
+    return resources;
   }
 
   static async findById(
@@ -117,7 +137,9 @@ export class PublicationResource {
 
     if (!result) return err("not_found_error", `Publication not found for id: ${id}`);
 
-    return ok(await new PublicationResource(result, experiment).finalize());
+    const [publication] = await PublicationResource.finalizeMany(experiment, [result]);
+    assert(publication);
+    return ok(publication);
   }
 
   static async listPublishedByExperiment(
@@ -162,12 +184,9 @@ export class PublicationResource {
     })();
     const results = await query;
 
-    return await concurrentExecutor(
-      results,
-      async (data) => {
-        return await new PublicationResource(data, experiment).finalize();
-      },
-      { concurrency: 8 },
+    return await PublicationResource.finalizeMany(
+      experiment,
+      results as Publication[],
     );
   }
 
@@ -201,13 +220,7 @@ export class PublicationResource {
 
     const publicationsResults = await publicationsQuery;
 
-    return await concurrentExecutor(
-      publicationsResults,
-      async (data) => {
-        return await new PublicationResource(data, experiment).finalize();
-      },
-      { concurrency: 8 },
-    );
+    return await PublicationResource.finalizeMany(experiment, publicationsResults);
   }
 
   static async listByAuthor(
@@ -224,13 +237,7 @@ export class PublicationResource {
         ),
       );
 
-    return await concurrentExecutor(
-      results,
-      async (data) => {
-        return await new PublicationResource(data, experiment).finalize();
-      },
-      { concurrency: 8 },
-    );
+    return await PublicationResource.finalizeMany(experiment, results);
   }
 
   static async listByExperiment(
@@ -242,13 +249,7 @@ export class PublicationResource {
       .where(eq(publications.experiment, experiment.toJSON().id))
       .orderBy(desc(publications.created));
 
-    return await concurrentExecutor(
-      results,
-      async (data) => {
-        return await new PublicationResource(data, experiment).finalize();
-      },
-      { concurrency: 8 },
-    );
+    return await PublicationResource.finalizeMany(experiment, results);
   }
 
   static async findByReference(
@@ -276,13 +277,7 @@ export class PublicationResource {
         ),
       );
 
-    return await concurrentExecutor(
-      results,
-      async (data) => {
-        return await new PublicationResource(data, experiment).finalize();
-      },
-      { concurrency: 8 },
-    );
+    return await PublicationResource.finalizeMany(experiment, results);
   }
 
   private static extractReferences(content: string) {
@@ -338,7 +333,9 @@ export class PublicationResource {
 
     // We don't create citations until the publication gets published.
 
-    return ok(await new PublicationResource(created, experiment).finalize());
+    const [publication] = await PublicationResource.finalizeMany(experiment, [created]);
+    assert(publication);
+    return ok(publication);
   }
 
   async maybePublishOrReject(): Promise<
