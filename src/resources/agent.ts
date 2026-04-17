@@ -18,14 +18,15 @@ import {
 } from "@app/agent_profile";
 import assert from "assert";
 
+export type Evolution = InferSelectModel<typeof evolutions>;
 export type Agent = Omit<InferSelectModel<typeof agents>, "profile"> & {
   profile: AgentProfile;
+  system: string;
 };
-export type Evolution = InferSelectModel<typeof evolutions>;
 
 export class AgentResource {
   private data: InferSelectModel<typeof agents>;
-  private evolutions: Evolution[];
+  private lastEvolution: Evolution | null;
   private profile: AgentProfile;
   experiment: ExperimentResource;
 
@@ -34,23 +35,34 @@ export class AgentResource {
     experiment: ExperimentResource,
   ) {
     this.data = data;
-    this.evolutions = [];
+    this.lastEvolution = null;
     this.experiment = experiment;
     this.profile = PLACEHOLDER_AGENT_PROFILE;
   }
 
-  private async finalize(): Promise<AgentResource> {
-    const results = await db
+  async loadAllEvolutions(): Promise<Evolution[]> {
+    return await db
       .select()
       .from(evolutions)
       .where(eq(evolutions.agent, this.data.id))
       .orderBy(desc(evolutions.created));
+  }
+
+  private async finalize(): Promise<AgentResource> {
+    const [latest] = await db
+      .select()
+      .from(evolutions)
+      .where(eq(evolutions.agent, this.data.id))
+      .orderBy(desc(evolutions.created))
+      .limit(1);
+
+    assert(latest);
+    this.lastEvolution = latest;
 
     const profileRes = await getAgentProfile(this.data.profile);
     assert(profileRes.isOk());
     this.profile = profileRes.value;
 
-    this.evolutions = results;
     return this;
   }
 
@@ -86,7 +98,12 @@ export class AgentResource {
     const [result] = await db
       .select()
       .from(agents)
-      .where(eq(agents.id, id))
+      .where(
+        and(
+          eq(agents.id, id),
+          eq(agents.experiment, experiment.toJSON().id),
+        ),
+      )
       .limit(1);
 
     if (!result) return err("not_found_error", `Agent not found for id: ${id}`);
@@ -198,7 +215,7 @@ export class AgentResource {
         })
         .returning();
 
-      this.evolutions = [created, ...this.evolutions];
+      this.lastEvolution = created;
       return ok(this);
     } catch (error) {
       return err(
@@ -209,12 +226,11 @@ export class AgentResource {
     }
   }
 
-  toJSON() {
+  toJSON(): Agent {
+    assert(this.lastEvolution);
     return {
       ...this.data,
-      // Only non-default tools.
-      system: this.evolutions[0].system,
-      evolutions: this.evolutions,
+      system: this.lastEvolution.system,
       profile: this.profile,
     };
   }

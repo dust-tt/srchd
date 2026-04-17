@@ -376,8 +376,6 @@ agentCmd
         const a = agent.toJSON();
         a.system =
           a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
-        // @ts-expect-error: clean-up hack
-        delete a.evolutions;
         // @ts-expect-error: replace experiment id with name for display
         a.experiment = agent.experiment.toJSON().name;
         // @ts-expect-error: replace profile object with name for display
@@ -411,8 +409,6 @@ agentCmd
         const a = agent.toJSON();
         a.system =
           a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
-        // @ts-expect-error: clean-up hack
-        delete a.evolutions;
         // @ts-expect-error: replace experiment id with name for display
         a.experiment = agent.experiment.toJSON().name;
         // @ts-expect-error: replace profile object with name for display
@@ -439,8 +435,6 @@ agentCmd
 
     const a = agent.toJSON();
     a.system = a.system.substring(0, 32) + (a.system.length > 32 ? "..." : "");
-    // @ts-expect-error: clean-up hack
-    delete a.evolutions;
     // @ts-expect-error: replace experiment id with name for display
     a.experiment = agent.experiment.toJSON().name;
     // @ts-expect-error: replace profile object with name for display

@@ -153,9 +153,7 @@ export const experimentAgents = async (c: Input) => {
             Provider: ${sanitizeText(agentData.provider)} | Model: ${sanitizeText(
               agentData.model,
             )} |
-            Thinking: ${sanitizeText(agentData.thinking)} | Evolutions: ${
-              agentData.evolutions.length
-            } |
+            Thinking: ${sanitizeText(agentData.thinking)} |
             Profile: ${sanitizeText(agentData.profile.name)} |
             Created: ${sanitizeText(agentData.created.toLocaleString())}
           </div>
@@ -178,9 +176,10 @@ export const agentOverview = async (c: Input) => {
   if (experimentRes.isErr()) return c.notFound();
   const experiment = experimentRes.value;
 
-  const agents = await AgentResource.listByExperiment(experiment);
-  const agent = agents.find((a) => a.toJSON().id === agentId);
-  if (!agent) return c.notFound();
+  const agentRes = await AgentResource.findById(experiment, agentId);
+  if (agentRes.isErr()) return c.notFound();
+  const agent = agentRes.value;
+  const evolutions = await agent.loadAllEvolutions();
 
   const agentPublications = await PublicationResource.listByAuthor(
     experiment,
@@ -197,25 +196,21 @@ export const agentOverview = async (c: Input) => {
   const experimentName = sanitizeText(expData.name);
 
   const evolutionsCarousel =
-    agentData.evolutions.length > 0
+    evolutions.length > 0
       ? `
 
-    <h2>Evolutions <span class="count">(${
-      agentData.evolutions.length
-    })</span></h2>
+    <h2>Evolutions <span class="count">(${evolutions.length})</span></h2>
     <div class="evolution-carousel">
       <div class="evolution-header">
         <a onclick="previousEvolution()" id="prevBtn">← Prev</a>
-        <span id="evolutionCounter">1 / ${agentData.evolutions.length}</span>
+        <span id="evolutionCounter">1 / ${evolutions.length}</span>
         <a onclick="nextEvolution()" id="nextBtn">Next →</a>
       </div>
       <div class="evolution-content">
         <div id="evolutionDisplay">
           <div class="evolution-meta" id="evolutionMeta">
-            Evolution #${
-              agentData.evolutions.length
-            } (Latest) - Created: ${sanitizeText(
-              agentData.evolutions[0].created.toLocaleString(),
+            Evolution #${evolutions.length} (Latest) - Created: ${sanitizeText(
+              evolutions[0].created.toLocaleString(),
             )}
           </div>
           <div class="diff-content" id="diffContent"></div>
@@ -224,7 +219,7 @@ export const agentOverview = async (c: Input) => {
     </div>
     <script>
       let currentEvolutionIndex = 0;
-      const evolutions = ${safeScriptJSON(agentData.evolutions)};
+      const evolutions = ${safeScriptJSON(evolutions)};
       const escapeHtml = (value) =>
         String(value)
           .replace(/&/g, "&amp;")
