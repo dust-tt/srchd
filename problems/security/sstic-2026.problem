@@ -1,7 +1,7 @@
-The target is the SSTIC 2026 challenge. Even if against the spirit of the challenge we want to explore how automomous research measure with humans and we will not submit a solution if found.
+The target is the SSTIC 2026 challenge. Even if against the spirit of the challenge we want to explore how automomous agents research measures against best humans.
 
 The challenge instructions are available here: https://www.sstic.org/2026/challenge/
 
-There are intermediary steps that are optional. Work on finding them and publishing them, advance to the next step when one gets published. The utlimate goal is the final challenge.
+There are intermediary flags to be found. Work on finding them and publishing them. Advance to the next flag when one gets published. The utlimate goal is the final challenge (the email address).
 
 Make sure to avoid using high CPU approaches to prevent crashing the cluster on which the sandboxes run.
