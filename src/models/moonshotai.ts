@@ -18,9 +18,9 @@ import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type MoonshotAIModel = "kimi-k2-thinking" | "kimi-k2.5";
+export type MoonshotAIModel = "kimi-k2-thinking" | "kimi-k2.5" | "kimi-k2.6";
 export function isMoonshotAIModel(model: string): model is MoonshotAIModel {
-  return ["kimi-k2-thinking", "kimi-k2.5"].includes(model);
+  return ["kimi-k2-thinking", "kimi-k2.5", "kimi-k2.6"].includes(model);
 }
 
 type MoonshotAITokenPrices = {
@@ -45,6 +45,7 @@ function normalizeTokenPrices(
 const TOKEN_PRICING: Record<MoonshotAIModel, MoonshotAITokenPrices> = {
   "kimi-k2-thinking": normalizeTokenPrices(0.6, 2.5, 0.15),
   "kimi-k2.5": normalizeTokenPrices(0.6, 3.0, 0.1),
+  "kimi-k2.6": normalizeTokenPrices(0.95, 4.0, 0.16),
 };
 
 export class MoonshotAILLM extends LLM {
@@ -288,6 +289,7 @@ export class MoonshotAILLM extends LLM {
   maxTokens(): number {
     switch (this.model) {
       case "kimi-k2.5":
+      case "kimi-k2.6":
       case "kimi-k2-thinking":
         return 256000;
       default:
