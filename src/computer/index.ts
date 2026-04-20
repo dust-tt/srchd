@@ -246,12 +246,17 @@ export class Computer {
       options?.tty ? undefined : options?.timeoutMs,
     );
 
-    // Extract PID from captured output
-    // The PID marker is written to stderr (or stdout in TTY mode)
-    const outputToSearch = options?.tty ? process.stdout : process.stderr;
-    const pidMatch = outputToSearch.match(/SRCHD_PID:(\d+)/);
-    if (pidMatch && pidMatch[1]) {
-      process.pid = parseInt(pidMatch[1], 10);
+    // Extract PID from captured output.
+    // We prefer the PID detected while streaming so it remains available even if
+    // the output buffer has already truncated older data.
+    if (process.detectedPid !== undefined) {
+      process.pid = process.detectedPid;
+    } else {
+      const outputToSearch = options?.tty ? process.stdout : process.stderr;
+      const pidMatch = outputToSearch.match(/SRCHD_PID:(\d+)/);
+      if (pidMatch?.[1]) {
+        process.pid = parseInt(pidMatch[1], 10);
+      }
     }
 
     this.processes.set(process.pid, process);
