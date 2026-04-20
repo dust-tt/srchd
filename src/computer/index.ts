@@ -15,6 +15,47 @@ import { DEFAULT_WORKDIR } from "./definitions";
 import { newProcess,
   Process } from "./process";
 
+const VALID_ENV_VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function buildShellCommand(
+  cmd: string,
+  cwd: string,
+  env: Record<string, string>,
+  emitPidMarker: boolean,
+): Result<string[]> {
+  for (const key of Object.keys(env)) {
+    if (!VALID_ENV_VAR_NAME.test(key)) {
+      return err(
+        "invalid_parameters_error",
+        `Invalid environment variable name: ${key}`,
+      );
+    }
+  }
+
+  const script = [
+    "set -e",
+    'while [ "$#" -gt 2 ]; do',
+    '  export "$1=$2"',
+    '  shift 2',
+    "done",
+    'cd -- "$1"',
+    emitPidMarker ? 'echo "SRCHD_PID:$$" >&2' : undefined,
+    'exec /bin/bash -lc "$2"',
+  ].filter((line): line is string => line !== undefined).join("\n");
+
+  const envArgs = Object.entries(env).flatMap(([key, value]) => [key, value]);
+
+  return ok([
+    "/bin/bash",
+    "-lc",
+    script,
+    "srchd",
+    ...envArgs,
+    cwd,
+    cmd,
+  ]);
+}
+
 export function computerId(
   experiment: ExperimentResource,
   agent: AgentResource,
@@ -217,29 +258,13 @@ export class Computer {
     const env = options?.env ?? {};
     const process = newProcess(cmd, cwd, env, options?.tty);
 
-    // Build the command with environment variables and working directory
-    // We wrap the command to capture the PID and run it in the foreground
-    // This keeps the K8s exec connection alive for the duration of the command
-    let fullCmd = "";
-    if (options?.env) {
-      const envVars = Object.entries(env)
-        .map(([k, v]) => `export ${k}="${v.replace(/"/g, '\\"')}"`)
-        .join("; ");
-      fullCmd += envVars + "; ";
+    const shellCommand = buildShellCommand(cmd, cwd, env, true);
+    if (shellCommand.isErr()) {
+      return shellCommand;
     }
 
-    // Run the command in foreground to keep the K8s exec connection alive.
-    // We use a wrapper script that:
-    // 1. Changes to the specified directory
-    // 2. Prints the PID to stderr for tracking
-    // 3. Runs the command directly (not in background)
-    // This ensures stdin/stdout/stderr remain connected for the duration of the process.
-    const escapedCmd = cmd.replace(/'/g, "'\\''");
-    const escapedCwd = cwd.replace(/'/g, "'\\''");
-    fullCmd += `cd '\''${escapedCwd}'\'' && echo "SRCHD_PID:$$" >&2 && ${escapedCmd}`;
-
     const res = await k8sSpawn(
-      ["/bin/bash", "-lc", fullCmd],
+      shellCommand.value,
       this.namespace,
       this.computerId,
       process,
@@ -309,18 +334,13 @@ export class Computer {
 
     const startTs = Date.now();
 
-    // Build the command with environment variables and working directory
-    let fullCmd = "";
-    if (options?.env) {
-      const envVars = Object.entries(options.env)
-        .map(([k, v]) => `export ${k}="${v.replace(/"/g, '\\"')}"`)
-        .join("; ");
-      fullCmd += envVars + "; ";
+    const shellCommand = buildShellCommand(cmd, cwd, options?.env ?? {}, false);
+    if (shellCommand.isErr()) {
+      return shellCommand;
     }
-    fullCmd += `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}`;
 
     const execPromise = computerExec(
-      ["/bin/bash", "-lc", fullCmd],
+      shellCommand.value,
       this.namespace,
       this.computerId,
       options?.timeoutMs,
