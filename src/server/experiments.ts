@@ -36,6 +36,19 @@ import { getAttachmentPath } from "@app/tools/publications";
 
 type Input = Context<BlankEnv, any, BlankInput>;
 
+function numberParam(c: Input, name: string): number | null {
+  const raw = c.req.param(name);
+  if (!raw) {
+    return null;
+  }
+  const value = Number.parseInt(raw, 10);
+  return Number.isNaN(value) ? null : value;
+}
+
+function stringParam(c: Input, name: string): string | null {
+  return c.req.param(name) ?? null;
+}
+
 // Experiments list
 export const experimentsList = async (c: Input) => {
   const experiments = (await ExperimentResource.all()).sort(
@@ -65,7 +78,8 @@ export const experimentsList = async (c: Input) => {
 
 // Experiment overview
 export const experimentOverview = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
+  const id = numberParam(c, "id");
+  if (id === null) return c.notFound();
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
@@ -129,7 +143,8 @@ export const experimentOverview = async (c: Input) => {
 
 // Experiment agents
 export const experimentAgents = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
+  const id = numberParam(c, "id");
+  if (id === null) return c.notFound();
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
@@ -169,8 +184,9 @@ export const experimentAgents = async (c: Input) => {
 
 // Agent detail
 export const agentOverview = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
-  const agentId = parseInt(c.req.param("agentId"));
+  const id = numberParam(c, "id");
+  const agentId = numberParam(c, "agentId");
+  if (id === null || agentId === null) return c.notFound();
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
@@ -393,7 +409,8 @@ export const agentOverview = async (c: Input) => {
 
 // Experiment publications
 export const publicationList = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
+  const id = numberParam(c, "id");
+  if (id === null) return c.notFound();
   const statusFilter = c.req.query("status") ?? "all";
 
   const experimentRes = await ExperimentResource.findById(id);
@@ -466,8 +483,9 @@ export const publicationList = async (c: Input) => {
 
 // Publication detail
 export const publicationDetail = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
-  const pubId = parseInt(c.req.param("pubId"));
+  const id = numberParam(c, "id");
+  const pubId = numberParam(c, "pubId");
+  if (id === null || pubId === null) return c.notFound();
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
@@ -612,8 +630,9 @@ export const publicationDetail = async (c: Input) => {
 
 // Publication download
 export const publicationDownload = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
-  const pubId = parseInt(c.req.param("pubId"));
+  const id = numberParam(c, "id");
+  const pubId = numberParam(c, "pubId");
+  if (id === null || pubId === null) return c.notFound();
   const reviews = c.req.param("reviews") === "true";
 
   const experimentRes = await ExperimentResource.findById(id);
@@ -675,9 +694,12 @@ export const publicationDownload = async (c: Input) => {
 
 // Publication attachment download
 export const publicationAttachmentDownload = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
-  const pubId = parseInt(c.req.param("pubId"));
-  const attachment = c.req.param("attachment");
+  const id = numberParam(c, "id");
+  const pubId = numberParam(c, "pubId");
+  const attachment = stringParam(c, "attachment");
+  if (id === null || pubId === null || attachment === null) {
+    return c.notFound();
+  }
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
@@ -709,7 +731,8 @@ export const publicationAttachmentDownload = async (c: Input) => {
 
 // Experiment solutions
 export const solutionList = async (c: Input) => {
-  const id = parseInt(c.req.param("id"));
+  const id = numberParam(c, "id");
+  if (id === null) return c.notFound();
 
   const experimentRes = await ExperimentResource.findById(id);
   if (experimentRes.isErr()) return c.notFound();
