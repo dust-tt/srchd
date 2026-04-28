@@ -18,9 +18,9 @@ import { removeNulls } from "@app/lib/utils";
 import { convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type ZhipuModel = "glm-5" | "glm-5-code";
+export type ZhipuModel = "glm-5.1" | "glm-5" | "glm-5-code";
 export function isZhipuModel(model: string): model is ZhipuModel {
-  return ["glm-5", "glm-5-code"].includes(model);
+  return ["glm-5.1", "glm-5", "glm-5-code"].includes(model);
 }
 
 type ZhipuTokenPrices = {
@@ -43,6 +43,7 @@ function normalizeTokenPrices(
 
 // https://docs.z.ai/guides/overview/pricing
 const TOKEN_PRICING: Record<ZhipuModel, ZhipuTokenPrices> = {
+  "glm-5.1": normalizeTokenPrices(1.4, 4.4, 0.26),
   "glm-5": normalizeTokenPrices(1, 3.2, 0.2),
   "glm-5-code": normalizeTokenPrices(1.2, 5, 0.3),
 };
@@ -246,6 +247,7 @@ export class ZhipuLLM extends LLM {
     switch (this.model) {
       case "glm-5":
       case "glm-5-code":
+      case "glm-5.1":
         return 200000;
       default:
         assertNever(this.model);
