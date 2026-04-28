@@ -375,6 +375,10 @@ export class OpenAILLM extends LLM {
       return err("model_error", "Failed to run model", error);
     }
   }
+  maxInputItems(): number {
+    return 16384;
+  }
+
   maxTokens(): number {
     switch (this.model) {
       case "gpt-4.1":

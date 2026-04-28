@@ -88,6 +88,14 @@ export abstract class LLM {
   abstract maxTokens(): number;
 
   /**
+   * Maximum number of input items (messages/entries) allowed by the API.
+   * Returns Infinity by default (no limit).
+   */
+  maxInputItems(): number {
+    return Infinity;
+  }
+
+  /**
    * Calculate the cost for a single TokenUsage.
    * Each provider implements its own pricing logic.
    */

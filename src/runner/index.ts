@@ -339,7 +339,7 @@ This is an automated system message and there is no user available to respond. P
      * loop (at lastAgentLoopStartIdx) to ensure (1).
      */
     let tokenCount = 0;
-    do {
+    for (;;) {
       // Prune messages before contextPruning.lastAgentLoopInnerStartIdx.
       let messages = [...this.messages]
         .slice(this.contextPruning.lastAgentLoopInnerStartIdx)
@@ -357,6 +357,20 @@ This is an automated system message and there is no user available to respond. P
         const agentLoopStartUserMessage =
           this.messages[this.contextPruning.lastAgentLoopStartIdx].toJSON();
         messages = [agentLoopStartUserMessage, ...messages];
+      }
+
+      // Check input items count before making an API call to count tokens.
+      const inputItemsCount = messages.reduce(
+        (acc, m) => acc + m.content.length,
+        0,
+      );
+      const maxInputItems = this.model.maxInputItems();
+      if (inputItemsCount > maxInputItems) {
+        const res = this.shiftContextPruning();
+        if (res.isErr()) {
+          return res;
+        }
+        continue;
       }
 
       const res = await this.model.tokens(
@@ -388,9 +402,7 @@ This is an automated system message and there is no user available to respond. P
       } else {
         return ok(messages);
       }
-    } while (tokenCount > this.model.maxTokens());
-
-    return err("agent_loop_overflow_error", "Unreachable");
+    }
   }
 
   /**
