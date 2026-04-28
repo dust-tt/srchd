@@ -89,17 +89,17 @@ export function newProcess(
     });
   }
 
-  let process: Process | undefined;
+  const processRef: { current?: Process } = {};
 
   const detectPid = (text: string) => {
     const pidMatch = text.match(/SRCHD_PID:(\d+)/);
-    if (!pidMatch?.[1] || !process) {
+    if (!pidMatch?.[1] || !processRef.current) {
       return;
     }
 
     const pid = parseInt(pidMatch[1], 10);
-    process.detectedPid = pid;
-    process.pid = pid;
+    processRef.current.detectedPid = pid;
+    processRef.current.pid = pid;
   };
 
   const stdoutStream = new Writable({
@@ -148,7 +148,7 @@ export function newProcess(
 
   const stdinStream = new PassThrough();
 
-  process = {
+  const process: Process = {
     pid: -1, // Nonexistent when starting process
     status: 'running',
     stdinStream,
@@ -188,6 +188,7 @@ export function newProcess(
       return lines.join('\n');
     },
   };
+  processRef.current = process;
 
   return process;
 }

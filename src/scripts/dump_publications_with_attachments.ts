@@ -158,9 +158,10 @@ async function main() {
     throw new Error(`Output file already exists: ${outputPath} (use --force to overwrite)`);
   }
 
-  const experiments = experimentName
+  const selectedExperimentName = experimentName;
+  const experiments = selectedExperimentName
     ? [await (async () => {
-      const res = await ExperimentResource.findByName(experimentName!);
+      const res = await ExperimentResource.findByName(selectedExperimentName);
       if (res.isErr()) {
         throw new Error(res.error.message);
       }
