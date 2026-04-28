@@ -48,6 +48,10 @@ const TOKEN_PRICING: Record<MoonshotAIModel, MoonshotAITokenPrices> = {
   "kimi-k2.6": normalizeTokenPrices(0.95, 4.0, 0.16),
 };
 
+function stripNullBytes(value: string): string {
+  return value.replace(/\u0000/g, "");
+}
+
 export class MoonshotAILLM extends LLM {
   private client: OpenAI;
   private model: MoonshotAIModel;
@@ -66,7 +70,7 @@ export class MoonshotAILLM extends LLM {
 
   messages(prompt: string, messages: Message[]) {
     const inputItems: ChatCompletionMessageParam[] = [
-      { role: "system", content: prompt },
+      { role: "system", content: stripNullBytes(prompt) },
       ...removeNulls(
         messages
           .map((msg) => {
@@ -75,14 +79,17 @@ export class MoonshotAILLM extends LLM {
                 return msg.content.map((c) => {
                   switch (c.type) {
                     case "text":
-                      return { role: "user" as const, content: c.text };
+                      return {
+                        role: "user" as const,
+                        content: stripNullBytes(c.text),
+                      };
                     case "tool_result":
                       return {
                         role: "tool" as const,
-                        name: c.toolUseName,
-                        tool_call_id: c.toolUseId,
-                        id: c.toolUseId,
-                        content: JSON.stringify(c.content),
+                        name: stripNullBytes(c.toolUseName),
+                        tool_call_id: stripNullBytes(c.toolUseId),
+                        id: stripNullBytes(c.toolUseId),
+                        content: stripNullBytes(JSON.stringify(c.content)),
                       };
                     default:
                       return undefined;
@@ -98,19 +105,19 @@ export class MoonshotAILLM extends LLM {
                 msg.content.forEach((c) => {
                   switch (c.type) {
                     case "text":
-                      message.content = c.text;
+                      message.content = stripNullBytes(c.text);
                       break;
                     case "thinking":
-                      message.reasoning_content = c.thinking;
+                      message.reasoning_content = stripNullBytes(c.thinking);
                       break;
                     case "tool_use":
                       message.tool_calls = message.tool_calls ?? [];
                       message.tool_calls.push({
                         type: "function" as const,
-                        id: c.id,
+                        id: stripNullBytes(c.id),
                         function: {
-                          name: c.name,
-                          arguments: JSON.stringify(c.input),
+                          name: stripNullBytes(c.name),
+                          arguments: stripNullBytes(JSON.stringify(c.input)),
                         },
                       });
                       break;
@@ -143,8 +150,8 @@ export class MoonshotAILLM extends LLM {
         tools: tools.map((tool) => ({
           type: "function",
           function: {
-            name: tool.name,
-            description: tool.description,
+            name: stripNullBytes(tool.name),
+            description: tool.description ? stripNullBytes(tool.description) : undefined,
             parameters: tool.inputSchema as any,
           },
           strict: false,
@@ -152,10 +159,12 @@ export class MoonshotAILLM extends LLM {
       });
 
       const message = response.choices[0].message;
-      const textContent = message.content;
+      const textContent = message.content
+        ? stripNullBytes(message.content)
+        : message.content;
       const thinkingContent =
-        "reasoning_content" in message
-          ? (message.reasoning_content as string)
+        "reasoning_content" in message && typeof message.reasoning_content === "string"
+          ? stripNullBytes(message.reasoning_content)
           : undefined;
       const toolCalls = message.tool_calls;
 
@@ -184,12 +193,12 @@ export class MoonshotAILLM extends LLM {
             .map((toolCall) => {
               return {
                 type: "tool_use" as const,
-                id: toolCall.id,
-                name: toolCall.function.name,
-                input: JSON.parse(toolCall.function.arguments),
+                id: stripNullBytes(toolCall.id),
+                name: stripNullBytes(toolCall.function.name),
+                input: JSON.parse(stripNullBytes(toolCall.function.arguments)),
                 provider: {
                   moonshotai: {
-                    id: toolCall.id,
+                    id: stripNullBytes(toolCall.id),
                   },
                 },
               };
@@ -259,8 +268,8 @@ export class MoonshotAILLM extends LLM {
             tools: tools.map((tool) => ({
               type: "function",
               function: {
-                name: tool.name,
-                description: tool.description,
+                name: stripNullBytes(tool.name),
+                description: tool.description ? stripNullBytes(tool.description) : undefined,
                 parameters: tool.inputSchema as any,
               },
               strict: false,

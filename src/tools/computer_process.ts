@@ -335,7 +335,7 @@ Success status, last 100 lines of stdout after sending input, stderr, and exit c
 Displays the tail of a process's stdout (for long outputs), stderr, current status, and exit code if available.
 
 **Background processes:**
-When a process is moved to background (either explicitly or via timeout), this command shows any output received up until that point. The output buffer continues to accumulate while the process runs in the background.
+When a process is moved to background (either explicitly or via timeout), this command shows the recent output received up until that point. The output buffer is bounded, so older output may be truncated while the process runs in the background.
 
 **Use cases:**
 - Check progress of long-running processes
