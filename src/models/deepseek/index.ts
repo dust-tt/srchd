@@ -19,9 +19,9 @@ import { removeNulls } from "@app/lib/utils";
 import { convertToolChoice } from "../openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type DeepseekModel = "deepseek-chat" | "deepseek-reasoner";
+export type DeepseekModel = "deepseek-chat" | "deepseek-reasoner" | "deepseek-v4-pro";
 export function isDeepseekModel(model: string): model is DeepseekModel {
-  return ["deepseek-chat", "deepseek-reasoner"].includes(model);
+  return ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro"].includes(model);
 }
 
 type DeepseekTokenPrices = {
@@ -46,6 +46,7 @@ function normalizeTokenPrices(
 const TOKEN_PRICING: Record<DeepseekModel, DeepseekTokenPrices> = {
   "deepseek-chat": normalizeTokenPrices(0.28, 0.42, 0.028),
   "deepseek-reasoner": normalizeTokenPrices(0.28, 0.42, 0.028),
+  "deepseek-v4-pro": normalizeTokenPrices(1.74, 3.48, 0.145),
 };
 
 export class DeepseekLLM extends LLM {
@@ -142,7 +143,18 @@ export class DeepseekLLM extends LLM {
           model: this.model,
           messages: input,
           // 32K is the default, but we want to be able to use the full context window
-          max_completion_tokens: this.model === "deepseek-reasoner" ? (this.config.thinking && this.config.thinking === "high" ? 64000 : 32000) : 8000,
+          max_completion_tokens: (() => {
+            switch (this.model) {
+              case "deepseek-reasoner":
+                return this.config.thinking && this.config.thinking === "high" ? 64000 : 32000;
+              case "deepseek-v4-pro":
+                return this.config.thinking && this.config.thinking === "high" ? 128000 : 64000;
+              case "deepseek-chat":
+                return 8000;
+              default:
+                assertNever(this.model);
+            }
+          })(),
           tool_choice: convertToolChoice(toolChoice),
           tools: tools.map((tool) => ({
             type: "function",
@@ -275,6 +287,8 @@ export class DeepseekLLM extends LLM {
         return 128000;
       case "deepseek-reasoner":
         return 128000;
+      case "deepseek-v4-pro":
+        return 1000000;
       default:
         assertNever(this.model);
     }

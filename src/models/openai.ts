@@ -48,6 +48,7 @@ const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
   "gpt-5.2-codex": normalizeTokenPrices(1.75, 14),
   "gpt-5.3-codex": normalizeTokenPrices(1.75, 14),
   "gpt-5.4": normalizeTokenPrices(2.50, 15),
+  "gpt-5.5": normalizeTokenPrices(5, 30, 0.5),
 };
 
 export function convertToolChoice(toolChoice: ToolChoice) {
@@ -88,7 +89,8 @@ export type OpenAIModel =
   | "gpt-5.2"
   | "gpt-5.2-codex"
   | "gpt-5.3-codex"
-  | "gpt-5.4";
+  | "gpt-5.4"
+  | "gpt-5.5";
 export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
     "gpt-4.1",
@@ -102,6 +104,7 @@ export function isOpenAIModel(model: string): model is OpenAIModel {
     "gpt-5.2-codex",
     "gpt-5.3-codex",
     "gpt-5.4",
+    "gpt-5.5",
   ].includes(model);
 }
 
@@ -386,6 +389,7 @@ export class OpenAILLM extends LLM {
       case "gpt-5.2-codex":
       case "gpt-5.3-codex":
       case "gpt-5.4":
+      case "gpt-5.5":
         return 400000 - 128000;
       // Real context size, start with 400k (cost for now)
       // case "gpt-5.4":
