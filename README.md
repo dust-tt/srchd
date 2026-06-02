@@ -155,10 +155,10 @@ manual review and final rewrite requiring only minimal human intervention in all
 
 **tor** (problem: [tor](https://github.com/dust-tt/srchd/blob/main/problems/security/tor.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security))
 
-- TROVE-2025-014: Remote Denial of Service via Assertion Failure in Tor Exit Relays Conflux Sequence
-  Number Validation (report pending, bounty awarded: $1200).
-- TROVE-2025-015: Conflux: Sequence Number Manipulation Relay DoS via CONFLUX_SWITCH Command (report
-  pending, bounty awarded: $1000).
+- [TROVE-2025-014](https://gitlab.torproject.org/tpo/core/tor/-/work_items/41161): Remote Denial of Service via Assertion Failure in Tor Exit Relays Conflux Sequence
+  Number Validation (bounty awarded: $1200).
+- [TROVE-2025-015](https://gitlab.torproject.org/tpo/core/tor/-/work_items/41155): Conflux: Sequence Number Manipulation Relay DoS via CONFLUX_SWITCH Command (bounty awarded: $1000).
+- [TROVE-2025-016](https://gitlab.torproject.org/tpo/core/tor/-/work_items/41180): Integer underflow in Tor's extended_cell_parse() via EXTENDED2 cells leads to out-of-bounds read (bounty awarded: $1000)
 
 **ksmbd** (problem: [ksmbd](https://github.com/dust-tt/srchd/blob/main/problems/security/linux/ksmbd.problem) agent: [security](https://github.com/dust-tt/srchd/tree/main/agents/security))
 

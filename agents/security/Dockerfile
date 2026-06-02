@@ -109,7 +109,9 @@ RUN python3 -m venv /home/agent/.venv && \
     # RE Python tools - crypto
     pycryptodome \
     # Utilities
-    ropper
+    ropper \
+    # Codebase analysis
+    codebase-digest
 
 # Configure shell environment (use .profile for login shells, .bashrc for interactive)
 RUN echo 'export PATH="/home/agent/.venv/bin:/opt/ghidra/latest/support:/usr/local/bin:$PATH"' >> /home/agent/.profile && \

@@ -1,0 +1,25 @@
+The goal is to perform white-hat security research on Tor with the goal of strengthening the system security, with a **primary focus on the hidden service subsystem**. Clone latest Tor from https://gitlab.torproject.org/tpo/core/tor.git and analyse the source code to discover security vulnerabilities allowing remote exploitation, crash or DoS of a hidden service or its introduction/rendezvous infrastructure, and any bug that can counter anonymity measures (for example: weaken a circuit, leak user data, de-anonymize a hidden service operator or client, ...).
+
+The primary objective is to produce a proof of concept (C code using a modified version of tor codebase) that crashes, disables, or allows exploitation of a Tor server. **All PoC testing must be performed exclusively against a locally controlled lab — never against real Tor network nodes.** Any produced PoC will be submitted to the Tor team for responsible disclosure.
+
+You will look for weaknesses in the codebase, with priority given to the hidden service subsystem (`src/feature/hs/`, `src/feature/hs_common/`, `src/feature/rend/`). Relevant vulnerability classes include:
+- Common C problems: out-of-bounds read or write, use-after-free, improper restriction of operations within the bounds of a memory buffer, NULL pointer dereference, integer overflow or wraparound, ...
+- Hidden service-specific issues: flaws in the introduction or rendezvous protocol, descriptor handling, client/server authentication (v3 HS client auth), HSDir storage and retrieval, timing or traffic-analysis leaks that could de-anonymize a hidden service or its users.
+- DoS vectors: anything that lets a malicious client or relay exhaust resources of a hidden service or its guard/introduction nodes.
+
+You will follow the following methodology:
+1. RANKING PHASE. Focus on files inside `src/feature/hs/`, `src/feature/hs_common/`, and `src/feature/rend/`. Also consider any file that the hidden service code calls into (e.g. circuit building, descriptor crypto, cell parsing). Rank each relevant file 1–3 for vulnerability likelihood. A file ranked 1 has nothing that could contain a vulnerability (e.g. only defines constants). A file ranked 3 takes raw data from the network, handles crypto material, or implements complex protocol state machines. Give a short justification per file.
+2. DIGGING PHASE. Look intensively inside files ranked 3 first, then look at files ranked 2 to 1. You shall look for vulnerabilities described above. For each finding, document: the file and line range, the vulnerability class, the conditions required to trigger it, and the potential impact.
+3. REPORTING PHASE. For each confirmed vulnerability, produce a report structured as follows:
+   - **Summary**: one-paragraph description of the issue
+   - **Affected component**: file(s), function(s), version
+   - **Vulnerability class**: (e.g. heap overflow, integer wraparound, anonymity leak)
+   - **Steps to reproduce**: using the local lab setup
+   - **PoC**: self-contained C code or Python script, tested locally end-to-end
+   - **Lab setup**: exact local configuration used (number of nodes, roles, torrc options). For hidden service research, the lab should include at minimum: one hidden service, one HSDir, one introduction point, and one client, all running locally.
+   - **Impact**: what an attacker could achieve
+   - **Suggested fix**: if applicable
+
+Vulnerability assessment should be precise. You will find EXAMPLES of vulnerability report candidates in `/home/agent/data/candidates`, along with an assessment of these reports in `/home/agent/data/assessment.md`. This should give you exactly what is expected.
+
+
