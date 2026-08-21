@@ -1,4 +1,3 @@
-import { JSONSchema7 } from "json-schema";
 import {
   LLM,
   Message,
@@ -113,7 +112,7 @@ export class Runner {
           tools.push({
             name: `${client.getServerVersion()?.name}-${tool.name}`,
             description: tool.description,
-            inputSchema: tool.inputSchema as JSONSchema7,
+            inputSchema: tool.inputSchema,
           });
         }
       } catch (error) {

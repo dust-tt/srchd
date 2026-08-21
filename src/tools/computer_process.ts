@@ -69,7 +69,10 @@ Process status (running, terminated), exit code, stdout, stderr, and process ID
         .describe(
           `Working directory for the process (default: ${DEFAULT_WORKDIR})`,
         ),
-      env: z.record(z.string()).optional().describe("Environment variables"),
+      env: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe("Environment variables"),
       timeoutMs: z
         .number()
         .int()

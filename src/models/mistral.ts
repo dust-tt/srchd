@@ -201,6 +201,12 @@ export class MistralLLM extends LLM {
           `Unexpected finish reason: ${finishReason}`,
         );
       }
+      if (!msg) {
+        return err(
+          "model_error",
+          "Mistral response did not include an assistant message",
+        );
+      }
 
       const content: (TextContent | ToolUse | Thinking)[] = [];
 

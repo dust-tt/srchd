@@ -65,6 +65,9 @@ The system supports models from multiple providers:
 
 ### Requirements
 
+- Node.js 24.15 or newer (the pinned version is in `.nvmrc`)
+- npm 12 or newer
+
 You need the default environment variables for each provider library set up with your own keys (eg:
 `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`).
 
@@ -75,7 +78,7 @@ Desktop or minikube work great).
 
 ```bash
 # Installation
-npm i
+npm install
 npx drizzle-kit migrate
 
 # List available agent profiles

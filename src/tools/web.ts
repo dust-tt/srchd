@@ -46,11 +46,6 @@ export async function createWebServer(): Promise<McpServer> {
       offset: number;
       length: number;
     }) => {
-      const scrapeResponse = await firecrawl.scrapeUrl(url, {
-        // By default cache-expiry is already set to 2 days.
-        formats: ["markdown"],
-      });
-
       if (length > 8192) {
         return errorToCallToolResult(
           err(
@@ -60,9 +55,13 @@ export async function createWebServer(): Promise<McpServer> {
         );
       }
 
-      if (scrapeResponse.success) {
-        const text = scrapeResponse.markdown
-          ? scrapeResponse.markdown.slice(offset, length + offset)
+      try {
+        const document = await firecrawl.scrape(url, {
+          // By default cache-expiry is already set to 2 days.
+          formats: ["markdown"],
+        });
+        const text = document.markdown
+          ? document.markdown.slice(offset, length + offset)
           : "";
         return {
           isError: false,
@@ -73,14 +72,15 @@ export async function createWebServer(): Promise<McpServer> {
             },
           ],
         };
+      } catch (error) {
+        return errorToCallToolResult(
+          err(
+            "web_fetch_error",
+            "Failed to fetch the webpage",
+            error,
+          ),
+        );
       }
-      return errorToCallToolResult(
-        err(
-          "web_fetch_error",
-          "Failed to fetch the webpage",
-          new Error(scrapeResponse.error),
-        ),
-      );
     },
   );
 
@@ -104,14 +104,20 @@ export async function createWebServer(): Promise<McpServer> {
         );
       }
 
-      const searchResponse = await firecrawl.search(query, {
-        limit: count,
-      });
-
-      if (searchResponse.success) {
+      try {
+        const searchResponse = await firecrawl.search(query, {
+          limit: count,
+        });
         let results = "";
-        for (const [i, res] of searchResponse.data.entries()) {
-          results += `${i + 1}. [${res.title}](${res.url})\n${res.description}\n\n`;
+        for (const [i, res] of (searchResponse.web ?? []).entries()) {
+          const title = "url" in res ? res.title : res.metadata?.title;
+          const url =
+            "url" in res
+              ? res.url
+              : (res.metadata?.url ?? res.metadata?.sourceURL);
+          const description =
+            "url" in res ? res.description : res.metadata?.description;
+          results += `${i + 1}. [${title ?? url ?? "Untitled"}](${url ?? ""})\n${description ?? ""}\n\n`;
         }
         return {
           isError: false,
@@ -122,15 +128,15 @@ export async function createWebServer(): Promise<McpServer> {
             },
           ],
         };
+      } catch (error) {
+        return errorToCallToolResult(
+          err(
+            "web_search_error",
+            "Failed to search for the query",
+            error,
+          ),
+        );
       }
-
-      return errorToCallToolResult(
-        err(
-          "web_search_error",
-          "Failed to search for the query",
-          new Error(searchResponse.error),
-        ),
-      );
     },
   );
 

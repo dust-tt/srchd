@@ -186,7 +186,7 @@ export class PublicationResource {
 
     return await PublicationResource.finalizeMany(
       experiment,
-      results as Publication[],
+      results,
     );
   }
 

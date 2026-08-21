@@ -307,7 +307,14 @@ export class AnthropicLLM extends LLM {
                 case "mcp_tool_result":
                 case "code_execution_tool_result":
                 case "container_upload":
-                case "web_search_tool_result": {
+                case "web_search_tool_result":
+                case "web_fetch_tool_result":
+                case "advisor_tool_result":
+                case "bash_code_execution_tool_result":
+                case "text_editor_code_execution_tool_result":
+                case "tool_search_tool_result":
+                case "compaction":
+                case "fallback": {
                   return null;
                 }
                 default:

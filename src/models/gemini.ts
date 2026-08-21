@@ -1,7 +1,6 @@
 import {
   Content,
   FunctionCallingConfigMode,
-  FunctionDeclaration,
   GenerateContentResponseUsageMetadata,
   GoogleGenAI,
 } from "@google/genai";
@@ -168,7 +167,7 @@ export class GeminiLLM extends LLM {
                   name: tool.name,
                   description: tool.description ?? "",
                   parametersJsonSchema: tool.inputSchema,
-                } as FunctionDeclaration;
+                };
               }),
             },
           ],
