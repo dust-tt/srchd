@@ -1,13 +1,15 @@
-Dust is a SaaS platform allowing the creation and use of agents in users workspaces. Dust is deployed in 2 regions (US and EU). A Dust workspace regroups users from the same company.
+Dust is a company agent harness, a SaaS platform used by teams to define and execute agents with access to their data and infrastructure. Dust is deployed in 2 regions (US and EU). A Dust workspace regroups users from the same company.
 
-- Workspace: created by customer, regroups users from the same company, administrated by admins. Data seggregation is enforced at the workspace level.
-- Spaces: Dust workspaces have the concept of Spaces which can be restricted or not (any workspace as an unrestricted "Company Space" by default). There is also a system space which is reserved to admins.
+- Workspace: created by customer (generally a company), regroups users from the same company, administrated by admins. Data seggregation is enforced at the workspace level.
+- Spaces: Dust workspaces have the concept of Spaces which can be restricted or not (any workspace
+  as an unrestricted "Company Space" by default). There is also a system space which is reserved to admins. Note that pods are lightweight spaces as well.
 - Groups: Groups are either managed manually by admins or provisionned by SCIM. Every workspace also has a default "Workspace" group including all members. Groups are associated to resources to control their access, in particular Spaces.
 - DataSources: DataSources are repositories of data that provide semantic search (documents) but also structured querying (tables). Data in DataSource is hierarchically organised as nodes having parents. A node can be either a Document, a Folder, or a Table.
 - Connections: managed connections to services such as Slack, Notion, Google Drive that automatically ingest the company data into a DataSource.
 - DataSourceViews: Data from a DataSource can be added to a space by creating DataSourceViews (a pointer to a DataSource with a selection of parent nodes that serve as filters). This is how data from a Connection is distributed to a Space by admins. DataSourceViews are tied to a Space. DataSource are not tied to the System space, there is a default DataSourceView tied for each DataSource tied to the System space.
 - Tools: tools are MCP servers that are configured by the admin and are made available to Spaces by MCPServerViews.
 - Agents: Instructions, tools and knowledge (presented by a table query or semantic search tool) coming from Spaces. Any user can create and publish an agent, not limited to the builder role (which increasingly exists for legacy reasons).
+- Pods: collaboration surface (shared folder) regrouping conversations with customizations privimites (default agent, instructiosn, data).
 
 Space seggregation: An agent pointing to tools or data coming from a restricted space can only be used by users that are part of that space. Conversations involving agents leveraging restricted Spaces tools or knowledge are also restricted to users having access to these spaces. Agents are not direclty attached to Spaces: the access control enforced on Agents (and hence Conversations) are driven by the tools and knowledge attached to the agent (eg an agent can have no tools and be accessible by everyone or have 2 tools from 2 different restricted spaces and therefore accessible only by users that are in both spaces).
 
