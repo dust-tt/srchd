@@ -39,8 +39,14 @@ function normalizeTokenPrices(
   };
 }
 
-// https://docs.claude.com/en/docs/about-claude/pricing#model-pricing
+// https://platform.claude.com/docs/en/about-claude/pricing
 const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
+  "claude-fable-5": normalizeTokenPrices(10, 50),
+  "claude-mythos-5": normalizeTokenPrices(10, 50),
+  "claude-opus-5": normalizeTokenPrices(5, 25),
+  "claude-sonnet-5": normalizeTokenPrices(2, 10),
+  "claude-opus-4-8": normalizeTokenPrices(5, 25),
+  "claude-opus-4-7": normalizeTokenPrices(5, 25),
   "claude-opus-4-6": normalizeTokenPrices(5, 25),
   "claude-opus-4-5": normalizeTokenPrices(5, 25),
   "claude-sonnet-4-6": normalizeTokenPrices(3, 15),
@@ -49,6 +55,12 @@ const TOKEN_PRICING: Record<AnthropicModel, AnthropicTokenPrices> = {
 };
 
 export type AnthropicModel =
+  | "claude-fable-5"
+  | "claude-mythos-5"
+  | "claude-opus-5"
+  | "claude-sonnet-5"
+  | "claude-opus-4-8"
+  | "claude-opus-4-7"
   | "claude-opus-4-6"
   | "claude-opus-4-5"
   | "claude-sonnet-4-6"
@@ -56,6 +68,12 @@ export type AnthropicModel =
   | "claude-haiku-4-5";
 export function isAnthropicModel(model: string): model is AnthropicModel {
   return [
+    "claude-fable-5",
+    "claude-mythos-5",
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
     "claude-opus-4-6",
     "claude-opus-4-5",
     "claude-sonnet-4-6",
@@ -64,13 +82,78 @@ export function isAnthropicModel(model: string): model is AnthropicModel {
   ].includes(model);
 }
 
+function usesAdaptiveThinking(model: AnthropicModel): boolean {
+  return [
+    "claude-fable-5",
+    "claude-mythos-5",
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+  ].includes(model);
+}
+
+function requiresAdaptiveThinking(model: AnthropicModel): boolean {
+  return model === "claude-fable-5" || model === "claude-mythos-5";
+}
+
+function anthropicThinkingConfig(
+  model: AnthropicModel,
+  thinking: ModelConfig["thinking"],
+) {
+  if (
+    requiresAdaptiveThinking(model) ||
+    (usesAdaptiveThinking(model) && thinking !== undefined && thinking !== "none")
+  ) {
+    return {
+      type: "adaptive" as const,
+      display: "summarized" as const,
+    };
+  }
+
+  switch (thinking) {
+    case undefined:
+    case "none":
+      return {
+        type: "disabled" as const,
+      };
+    case "low":
+      return {
+        type: "enabled" as const,
+        budget_tokens: DEFAULT_LOW_THINKING_TOKENS,
+      };
+    case "high":
+      return {
+        type: "enabled" as const,
+        budget_tokens: DEFAULT_HIGH_THINKING_TOKENS,
+      };
+    default:
+      assertNever(thinking);
+  }
+}
+
+function anthropicOutputConfig(
+  model: AnthropicModel,
+  thinking: ModelConfig["thinking"],
+) {
+  const adaptiveThinkingEnabled =
+    requiresAdaptiveThinking(model) ||
+    (usesAdaptiveThinking(model) && thinking !== undefined && thinking !== "none");
+  if (!adaptiveThinkingEnabled) {
+    return undefined;
+  }
+  return {
+    effort: thinking === "high" ? ("high" as const) : ("low" as const),
+  };
+}
+
 export class AnthropicLLM extends LLM {
   private client: Anthropic;
   private model: AnthropicModel;
 
   constructor(
     config: ModelConfig,
-    model: AnthropicModel = "claude-sonnet-4-6",
+    model: AnthropicModel = "claude-sonnet-5",
   ) {
     super(config);
     this.client = new Anthropic({
@@ -224,26 +307,8 @@ export class AnthropicLLM extends LLM {
             },
           },
         ],
-        thinking: (() => {
-          switch (this.config.thinking) {
-            case undefined:
-              return {
-                type: "disabled",
-              };
-            case "low": {
-              return {
-                type: "enabled",
-                budget_tokens: DEFAULT_LOW_THINKING_TOKENS,
-              };
-            }
-            case "high": {
-              return {
-                type: "enabled",
-                budget_tokens: DEFAULT_HIGH_THINKING_TOKENS,
-              };
-            }
-          }
-        })(),
+        thinking: anthropicThinkingConfig(this.model, this.config.thinking),
+        output_config: anthropicOutputConfig(this.model, this.config.thinking),
         tools: tools.map((tool) => ({
           name: tool.name,
           description: tool.description,
@@ -252,7 +317,9 @@ export class AnthropicLLM extends LLM {
         tool_choice: {
           type: toolChoice,
         },
-        betas: ["interleaved-thinking-2025-05-14"],
+        betas: usesAdaptiveThinking(this.model)
+          ? undefined
+          : ["interleaved-thinking-2025-05-14"],
       });
 
       const tokenUsage = this.tokenUsage(message.usage);
@@ -341,26 +408,7 @@ export class AnthropicLLM extends LLM {
         model: this.model,
         messages: this.messages(messages),
         system: prompt,
-        thinking: (() => {
-          switch (this.config.thinking) {
-            case undefined:
-              return {
-                type: "disabled",
-              };
-            case "low": {
-              return {
-                type: "enabled",
-                budget_tokens: DEFAULT_LOW_THINKING_TOKENS,
-              };
-            }
-            case "high": {
-              return {
-                type: "enabled",
-                budget_tokens: DEFAULT_HIGH_THINKING_TOKENS,
-              };
-            }
-          }
-        })(),
+        thinking: anthropicThinkingConfig(this.model, this.config.thinking),
         tools: tools.map((tool) => ({
           name: tool.name,
           description: tool.description,
@@ -406,9 +454,16 @@ export class AnthropicLLM extends LLM {
 
   maxTokens(): number {
     switch (this.model) {
+      case "claude-fable-5":
+      case "claude-mythos-5":
+      case "claude-opus-5":
+      case "claude-sonnet-5":
+      case "claude-opus-4-8":
+      case "claude-opus-4-7":
       case "claude-opus-4-6":
-      case "claude-opus-4-5":
       case "claude-sonnet-4-6":
+        return 1000000 - 128000;
+      case "claude-opus-4-5":
       case "claude-sonnet-4-5":
       case "claude-haiku-4-5":
         return 200000 - 64000;

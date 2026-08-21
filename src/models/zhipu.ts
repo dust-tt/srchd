@@ -18,9 +18,16 @@ import { removeNulls } from "@app/lib/utils";
 import { convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type ZhipuModel = "glm-5.1" | "glm-5" | "glm-5-code";
+export type ZhipuModel =
+  | "glm-5.3"
+  | "glm-5.2"
+  | "glm-5.1"
+  | "glm-5"
+  | "glm-5-code";
 export function isZhipuModel(model: string): model is ZhipuModel {
-  return ["glm-5.1", "glm-5", "glm-5-code"].includes(model);
+  return ["glm-5.3", "glm-5.2", "glm-5.1", "glm-5", "glm-5-code"].includes(
+    model,
+  );
 }
 
 type ZhipuTokenPrices = {
@@ -43,16 +50,36 @@ function normalizeTokenPrices(
 
 // https://docs.z.ai/guides/overview/pricing
 const TOKEN_PRICING: Record<ZhipuModel, ZhipuTokenPrices> = {
+  "glm-5.3": normalizeTokenPrices(1.4, 4.4, 0.26),
+  "glm-5.2": normalizeTokenPrices(1.4, 4.4, 0.26),
   "glm-5.1": normalizeTokenPrices(1.4, 4.4, 0.26),
   "glm-5": normalizeTokenPrices(1, 3.2, 0.2),
   "glm-5-code": normalizeTokenPrices(1.2, 5, 0.3),
 };
 
+function zhipuReasoningConfig(
+  model: ZhipuModel,
+  thinking: ModelConfig["thinking"],
+) {
+  if (model !== "glm-5.2" && model !== "glm-5.3") {
+    return {};
+  }
+  if (model === "glm-5.2" && thinking === "none") {
+    return {
+      thinking: { type: "disabled" as const },
+    };
+  }
+  return {
+    thinking: { type: "enabled" as const },
+    reasoning_effort: thinking === "high" ? ("high" as const) : ("low" as const),
+  };
+}
+
 export class ZhipuLLM extends LLM {
   private client: OpenAI;
   private model: ZhipuModel;
 
-  constructor(config: ModelConfig, model: ZhipuModel = "glm-5") {
+  constructor(config: ModelConfig, model: ZhipuModel = "glm-5.3") {
     super(config);
     this.client = new OpenAI({
       apiKey: process.env.Z_AI_API_KEY,
@@ -135,6 +162,7 @@ export class ZhipuLLM extends LLM {
       const response = await this.client.chat.completions.create({
         model: this.model,
         messages: input,
+        ...zhipuReasoningConfig(this.model, this.config.thinking),
         tool_choice: convertToolChoice(toolChoice),
         tools: tools.map((tool) => ({
           type: "function",
@@ -249,6 +277,9 @@ export class ZhipuLLM extends LLM {
       case "glm-5-code":
       case "glm-5.1":
         return 200000;
+      case "glm-5.2":
+      case "glm-5.3":
+        return 872000;
       default:
         assertNever(this.model);
     }

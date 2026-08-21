@@ -47,8 +47,17 @@ const TOKEN_PRICING: Record<OpenAIModel, OpenAITokenPrices> = {
   "gpt-5.2": normalizeTokenPrices(1.75, 14),
   "gpt-5.2-codex": normalizeTokenPrices(1.75, 14),
   "gpt-5.3-codex": normalizeTokenPrices(1.75, 14),
-  "gpt-5.4": normalizeTokenPrices(2.50, 15),
+  "gpt-5.4": normalizeTokenPrices(2.5, 15, 0.25),
+  "gpt-5.4-mini": normalizeTokenPrices(0.75, 4.5, 0.075),
+  "gpt-5.4-nano": normalizeTokenPrices(0.2, 1.25, 0.02),
+  "gpt-5.4-pro": normalizeTokenPrices(30, 180, 30),
   "gpt-5.5": normalizeTokenPrices(5, 30, 0.5),
+  "gpt-5.5-pro": normalizeTokenPrices(30, 180, 30),
+  "gpt-5.6": normalizeTokenPrices(5, 30, 0.5),
+  "gpt-5.6-sol": normalizeTokenPrices(5, 30, 0.5),
+  "gpt-5.6-terra": normalizeTokenPrices(2, 12, 0.2),
+  "gpt-5.6-luna": normalizeTokenPrices(0.2, 1.2, 0.02),
+  "gpt-5.6-cyber": normalizeTokenPrices(12.5, 75, 1.25),
 };
 
 export function convertToolChoice(toolChoice: ToolChoice) {
@@ -90,7 +99,16 @@ export type OpenAIModel =
   | "gpt-5.2-codex"
   | "gpt-5.3-codex"
   | "gpt-5.4"
-  | "gpt-5.5";
+  | "gpt-5.4-mini"
+  | "gpt-5.4-nano"
+  | "gpt-5.4-pro"
+  | "gpt-5.5"
+  | "gpt-5.5-pro"
+  | "gpt-5.6"
+  | "gpt-5.6-sol"
+  | "gpt-5.6-terra"
+  | "gpt-5.6-luna"
+  | "gpt-5.6-cyber";
 export function isOpenAIModel(model: string): model is OpenAIModel {
   return [
     "gpt-4.1",
@@ -104,7 +122,16 @@ export function isOpenAIModel(model: string): model is OpenAIModel {
     "gpt-5.2-codex",
     "gpt-5.3-codex",
     "gpt-5.4",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gpt-5.4-pro",
     "gpt-5.5",
+    "gpt-5.5-pro",
+    "gpt-5.6",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-5.6-cyber",
   ].includes(model);
 }
 
@@ -392,12 +419,19 @@ export class OpenAILLM extends LLM {
       case "gpt-5.2":
       case "gpt-5.2-codex":
       case "gpt-5.3-codex":
+      case "gpt-5.4-mini":
+      case "gpt-5.4-nano":
+      case "gpt-5.6-cyber":
+        return 272000;
       case "gpt-5.4":
+      case "gpt-5.4-pro":
       case "gpt-5.5":
-        return 400000 - 128000;
-      // Real context size, start with 400k (cost for now)
-      // case "gpt-5.4":
-      //   return 1050000 - 128000;
+      case "gpt-5.5-pro":
+      case "gpt-5.6":
+      case "gpt-5.6-sol":
+      case "gpt-5.6-terra":
+      case "gpt-5.6-luna":
+        return 922000;
       default:
         assertNever(this.model);
     }

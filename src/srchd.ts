@@ -273,7 +273,7 @@ agentCmd
   .description("Create a new agent")
   .requiredOption("-e, --experiment <experiment>", "Experiment name")
   .option("-n, --name <name>", "Agent name")
-  .option("-m, --model <model>", "AI model", "claude-sonnet-4-5")
+  .option("-m, --model <model>", "AI model", "claude-sonnet-5")
   .option(
     "-t, --thinking <thinking>",
     "Thinking configuration (none | low | high)",

@@ -1,4 +1,5 @@
 import {
+  clampContextSize,
   LLM,
   Message,
   TextContent,
@@ -393,7 +394,7 @@ This is an automated system message and there is no user available to respond. P
       tokenCount = res.value;
       // console.log("TOKEN COUNT: " + tokenCount);
 
-      if (tokenCount > this.model.maxTokens()) {
+      if (tokenCount > clampContextSize(this.model.maxTokens())) {
         const res = this.shiftContextPruning();
         if (res.isErr()) {
           return res;

@@ -18,9 +18,15 @@ import { removeNulls } from "@app/lib/utils";
 import { convertThinking, convertToolChoice } from "./openai";
 import { CompletionUsage } from "openai/resources/completions";
 
-export type MoonshotAIModel = "kimi-k2-thinking" | "kimi-k2.5" | "kimi-k2.6";
+export type MoonshotAIModel =
+  | "kimi-k2-thinking"
+  | "kimi-k2.5"
+  | "kimi-k2.6"
+  | "kimi-k3";
 export function isMoonshotAIModel(model: string): model is MoonshotAIModel {
-  return ["kimi-k2-thinking", "kimi-k2.5", "kimi-k2.6"].includes(model);
+  return ["kimi-k2-thinking", "kimi-k2.5", "kimi-k2.6", "kimi-k3"].includes(
+    model,
+  );
 }
 
 type MoonshotAITokenPrices = {
@@ -41,12 +47,30 @@ function normalizeTokenPrices(
   };
 }
 
-// https://platform.moonshot.ai/docs/pricing/chat#product-pricing
+// https://platform.kimi.ai/docs/pricing/chat
 const TOKEN_PRICING: Record<MoonshotAIModel, MoonshotAITokenPrices> = {
   "kimi-k2-thinking": normalizeTokenPrices(0.6, 2.5, 0.15),
   "kimi-k2.5": normalizeTokenPrices(0.6, 3.0, 0.1),
   "kimi-k2.6": normalizeTokenPrices(0.95, 4.0, 0.16),
+  "kimi-k3": normalizeTokenPrices(3, 15, 0.3),
 };
+
+function moonshotApiKey(): string | undefined {
+  return process.env.MOONSHOT_API_KEY ?? process.env.MOONSHOTAI_API_KEY;
+}
+
+function convertKimiK3Thinking(thinking: ModelConfig["thinking"]) {
+  switch (thinking) {
+    case "high":
+      return "high";
+    case "low":
+    case "none":
+    case undefined:
+      return "low";
+    default:
+      assertNever(thinking);
+  }
+}
 
 function stripNullBytes(value: string): string {
   return value.replace(/\u0000/g, "");
@@ -58,11 +82,11 @@ export class MoonshotAILLM extends LLM {
 
   constructor(
     config: ModelConfig,
-    model: MoonshotAIModel = "kimi-k2-thinking",
+    model: MoonshotAIModel = "kimi-k3",
   ) {
     super(config);
     this.client = new OpenAI({
-      apiKey: process.env.MOONSHOTAI_API_KEY,
+      apiKey: moonshotApiKey(),
       baseURL: "https://api.moonshot.ai/v1",
     });
     this.model = model;
@@ -146,7 +170,10 @@ export class MoonshotAILLM extends LLM {
         model: this.model,
         messages: input,
         tool_choice: convertToolChoice(toolChoice),
-        reasoning_effort: convertThinking(this.config.thinking),
+        reasoning_effort:
+          this.model === "kimi-k3"
+            ? convertKimiK3Thinking(this.config.thinking)
+            : convertThinking(this.config.thinking),
         tools: tools.map((tool) => ({
           type: "function",
           function: {
@@ -260,7 +287,7 @@ export class MoonshotAILLM extends LLM {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.MOONSHOTAI_API_KEY}`,
+            Authorization: `Bearer ${moonshotApiKey()}`,
           },
           body: JSON.stringify({
             model: this.model,
@@ -301,6 +328,8 @@ export class MoonshotAILLM extends LLM {
       case "kimi-k2.6":
       case "kimi-k2-thinking":
         return 256000;
+      case "kimi-k3":
+        return 1048576;
       default:
         assertNever(this.model);
     }

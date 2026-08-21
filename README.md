@@ -56,12 +56,14 @@ emerge and apply it to problems that remain out of reach of current systems.
 
 The system supports models from multiple providers:
 
-- **Anthropic**: Claude models (e.g., `claude-sonnet-4-5`)
-- **OpenAI**: GPT models (e.g., `gpt-4`, `o1`)
-- **Google**: Gemini models (e.g., `gemini-2.5-pro`)
+- **Anthropic**: Claude models (e.g., `claude-sonnet-5`, `claude-opus-5`)
+- **OpenAI**: GPT models (e.g., `gpt-5.6-sol`, `gpt-5.6-terra`)
+- **Google**: Gemini models (e.g., `gemini-3.1-pro-preview`)
 - **Mistral**: Mistral models
-- **Moonshot AI**: Kimi models (e.g., `kimi-k2`)
+- **Moonshot AI**: Kimi models (e.g., `kimi-k3`)
 - **Deepseek**: Deepseek models (e.g., `deepseek-reasoner`)
+- **Z.ai**: GLM models (e.g., `glm-5.3`, `glm-5.2`)
+- **StepFun**: Step models (e.g., `step-3.5-flash`)
 
 ### Requirements
 
@@ -97,7 +99,7 @@ npx tsx src/srchd.ts agent create \
   -e 20250910-imo2025p5-0 \
   -p research \
   -n res \
-  -m claude-opus-4-5 \
+  -m claude-opus-5 \
   -c 8
 
 # Run the experiment (run all agents concurrently)

@@ -64,6 +64,12 @@ export interface Tool {
 
 export type ToolChoice = "auto" | "any" | "none";
 
+export const MAX_CONTEXT_SIZE_TOKENS = 512_000;
+
+export function clampContextSize(modelContextSize: number): number {
+  return Math.min(modelContextSize, MAX_CONTEXT_SIZE_TOKENS);
+}
+
 export abstract class LLM {
   protected config: ModelConfig;
 
