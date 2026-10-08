@@ -6,28 +6,85 @@ on:
   pull_request_review_comment:
     types: [created]
   issues:
-    types: [opened, assigned]
+    types: [opened]
   pull_request_review:
     types: [submitted]
 
+permissions: {}
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  claude:
+  check-same-repo-pr:
+    name: Verify issue comment PR is same-repo
+    # issue_comment payloads have no head repo; query the PR via gh for fork PRs.
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
-        (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
-        (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&
-        (github.event.review.author_association == 'OWNER' || github.event.review.author_association == 'MEMBER' || github.event.review.author_association == 'COLLABORATOR')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
-        (github.event.issue.author_association == 'OWNER' || github.event.issue.author_association == 'MEMBER' || github.event.issue.author_association == 'COLLABORATOR'))
+      github.event_name == 'issue_comment'
+      && github.event.issue.pull_request
+      && contains(github.event.comment.body, '@claude')
+      && (github.event.comment.author_association == 'OWNER'
+        || github.event.comment.author_association == 'MEMBER'
+        || github.event.comment.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
-      actions: read # Required for Claude to read CI results on PRs
+      pull-requests: read # gh pr view for isCrossRepository
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - name: Check cross-repository PR
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          is_cross="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json isCrossRepository --jq '.isCrossRepository')"
+          if [ "$is_cross" = "true" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping: PR is from a fork (cross-repository)."
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  claude:
+    name: Claude Code
+    needs: [check-same-repo-pr]
+    if: |
+      always()
+      && (needs.check-same-repo-pr.result == 'skipped'
+        || (needs.check-same-repo-pr.result == 'success' && needs.check-same-repo-pr.outputs.ok == 'true'))
+      && (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
+          (github.event.comment.author_association == 'OWNER'
+            || github.event.comment.author_association == 'MEMBER'
+            || github.event.comment.author_association == 'COLLABORATOR')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
+          (github.event.comment.author_association == 'OWNER'
+            || github.event.comment.author_association == 'MEMBER'
+            || github.event.comment.author_association == 'COLLABORATOR') &&
+          github.event.pull_request.head.repo.full_name == github.repository) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&
+          (github.event.review.author_association == 'OWNER'
+            || github.event.review.author_association == 'MEMBER'
+            || github.event.review.author_association == 'COLLABORATOR') &&
+          github.event.pull_request.head.repo.full_name == github.repository) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
+          (github.event.issue.author_association == 'OWNER'
+            || github.event.issue.author_association == 'MEMBER'
+            || github.event.issue.author_association == 'COLLABORATOR'))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read # Checkout only; Claude writes via its GitHub App OIDC token
+      pull-requests: read # Read PR context for @claude on reviews/comments
+      issues: read # Read issue context for @claude on issues/comments
+      id-token: write # OIDC for claude-code-action GitHub App token
+      actions: read # additional_permissions: actions: read (CI logs on PRs)
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -45,30 +102,14 @@ jobs:
         uses: anthropics/claude-code-action@5fb899572b81d2bb648d4d187173a2f423a9677c # v1.0.96
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
-          # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
-          
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
-          # model: "claude-opus-4-20250514"
-          
-          # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
-          
-          # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
-          
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
-          
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
-          
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
-
+          # Read/edit tools only; no WebFetch/WebSearch; Bash limited to inspect/typecheck/lint.
+          # Writes (comments/branches/PRs) go through the Claude GitHub App, not GITHUB_TOKEN.
+          # Quote --allowed-tools: claude_args is shell-quote parsed; spaces inside Bash(...)
+          # and flags like --noEmit must stay inside one argument.
+          claude_args: |
+            --max-turns 36
+            --allowed-tools "Agent,Edit,Glob,Grep,LS,MultiEdit,NotebookEdit,NotebookRead,Read,TodoRead,TodoWrite,Write,Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(npx tsc --noEmit),Bash(npm run typecheck),Bash(npm run lint)"
+            --disallowed-tools WebFetch,WebSearch
+            --system-prompt "Run typecheck and lint from the repository root using exactly: npm run typecheck, npm run lint, or npx tsc --noEmit. Do not use cd ... && ... chaining, package installs, WebFetch, or WebSearch."
