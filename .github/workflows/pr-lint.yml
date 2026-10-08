@@ -49,10 +49,18 @@ jobs:
 
       - name: Lint changed files
         if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          # tj-actions emits a space-separated list (same as the previous unquoted
+          # ${{ }} expansion). Pass via env to avoid template injection into the shell.
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
+          set -euo pipefail
           echo "Linting changed files:"
-          echo "${{ steps.changed-files.outputs.all_changed_files }}"
-          NODE_OPTIONS='--max-old-space-size=8192' npx eslint --cache --cache-location .eslintcache ${{ steps.changed-files.outputs.all_changed_files }}
+          echo "$CHANGED_FILES"
+          # Split on spaces like the prior ${{ }} expansion; quote each path for eslint.
+          # Filenames with spaces were already unsupported by the previous workflow.
+          read -r -a files <<< "$CHANGED_FILES"
+          NODE_OPTIONS='--max-old-space-size=8192' npx eslint --cache --cache-location .eslintcache "${files[@]}"
 
       - name: No files to lint
         if: steps.changed-files.outputs.any_changed != 'true'
