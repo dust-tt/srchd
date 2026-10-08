@@ -1,21 +1,30 @@
 name: Lint & TypeCheck
+
 on:
   push:
     branches: ["main"]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   eslint:
     name: Run eslint scanning
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
-      contents: read
-      security-events: write
+      contents: read # Checkout source for lint/typecheck
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24"
           cache: "npm"
@@ -24,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Restore ESLint cache
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: .eslintcache
           key: eslint-cache-${{ runner.os }}-${{ hashFiles('**/eslint.config.ts') }}-${{ hashFiles('**/tsconfig.json') }}
@@ -33,7 +42,7 @@ jobs:
             eslint-cache-${{ runner.os }}-
 
       - name: Restore TypeScript build info cache
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: .tsbuildinfo
           key: tsbuildinfo-${{ runner.os }}-${{ hashFiles('**/tsconfig.json') }}-${{ hashFiles('src/**/*.ts') }}
